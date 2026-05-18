@@ -23,7 +23,7 @@ This symlinks every `SKILL.md`-bearing directory under `skills/` (excluding `dep
 
 Skills for daily code work.
 
-_(none yet)_
+- **[continuity](./skills/engineering/continuity/SKILL.md)** — Learn, record, audit, and apply codebase patterns consistently across a repository.
 
 ### Productivity
 
