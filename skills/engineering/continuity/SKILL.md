@@ -91,6 +91,17 @@ Infer the mode from the request:
 9. **Respect baselines.** If a pattern is marked `changed-files` or has baseline exceptions, do not present legacy drift as a CI blocker unless it overlaps changed/provided files.
 10. **Respect repo rules.** Follow `AGENTS.md`, package-level `AGENTS.md`, and any relevant local skills or rules discovered near the files.
 
+## React Navigation Screen Fixes
+
+When applying a React or React Native navigation pattern, do not interpret "thin screen" as "extract the entire screen body into a new `*Content` component." Prefer the smallest change that makes the screen match the local pattern:
+
+- A `*Screen.tsx` file should usually keep the screen implementation and export exactly one default screen component.
+- Do not create `DustContent`, `<ScreenName>Content`, or similar one-off wrappers only to reduce line count or move all JSX elsewhere.
+- Collapse unnecessary one-off renderable helpers into the default screen when they do not improve clarity; keep local private helpers only when they reduce real complexity.
+- Move feature components, providers, query wrappers, atoms, and reusable UI outside the screen only when the local source-of-truth pattern clearly requires that boundary.
+- Prefer navigator-level `screenLayout` or route-level `layout` for shared screen wrappers such as `ExchangeScreenContainer`; avoid repeating wrapper components inside every screen when React Navigation can own the layout.
+- If deciding between extracting a component and keeping logic in the screen is ambiguous, ask for a canonical source file before editing.
+
 ## Learning Workflow
 
 When invoked as `learn` or when asked to identify a new pattern:
