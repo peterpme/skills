@@ -1,6 +1,7 @@
 {
   "name": "peterpme-skills",
   "skills": [
+    "./skills/engineering/codex-manager",
     "./skills/engineering/continuity",
     "./skills/productivity/morning-recap",
     "./skills/productivity/study-repo"
