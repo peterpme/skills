@@ -1,11 +1,13 @@
 ---
-name: codex-manager
-description: reusable manager-agent workflow for complex Codex engineering tasks that require spawning specialist agents, auditing repositories, implementing changes, validating with project-native commands, opening pull requests, resolving review comments, and running an independent final audit. Use when the user asks Codex or ChatGPT to coordinate multi-agent implementation, create a PR, install project rules or skills, perform large refactors, enforce validation gates, or manage a complex engineering issue from intake through merge readiness.
+name: engineering-manager
+description: reusable engineering manager workflow for complex agentic or human-led engineering tasks that require coordinating specialists, auditing repositories, implementing changes, validating with project-native commands, opening pull requests, resolving review comments, and running an independent final audit. Use when the user asks an agent or engineering lead to coordinate multi-agent or multi-reviewer implementation, create a PR, install project rules or skills, perform large refactors, enforce validation gates, or manage a complex engineering issue from intake through merge readiness.
 ---
 
-# Codex Manager
+# Engineering Manager
 
-Use this skill to turn a complex engineering request into a managed Codex workflow with specialist agents, evidence gates, implementation, validation, PR handling, review resolution, and final independent audit.
+Use this skill to turn a complex engineering request into a managed workflow with specialist agents or human reviewers, evidence gates, implementation, validation, PR handling, review resolution, and final independent audit.
+
+It is tool-agnostic. Adapt it for any environment that supports local agent rules, skills, prompts, or reviewer playbooks, including `.agents`, `.devin`, `.cursor`, `.claude`, `.codex`, `.github`, or project docs.
 
 ## Core rule
 
@@ -24,7 +26,7 @@ For every complex task:
 
 ## Default agent set
 
-Use up to 10 agents. Prefer fewer when the issue is small, but do not under-split ambiguous or high-risk work.
+Use up to 10 agents or reviewers. Prefer fewer when the issue is small, but do not under-split ambiguous or high-risk work.
 
 Suggested roles:
 - Manager agent: coordinates, maintains checklist, decides sequencing, owns final response.
@@ -120,6 +122,6 @@ Fix material discrepancies before finalizing.
 
 ## Reusable prompt template
 
-Use `references/manager-prompt-template.md` when the user wants a copyable manager prompt for Codex.
+Use `references/manager-prompt-template.md` when the user wants a copyable engineering manager prompt.
 
 Use `references/install-skill-pr-prompt.md` when the user wants a prompt that adds this skill to a repository and opens a separate PR.

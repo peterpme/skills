@@ -1,16 +1,18 @@
-# Prompt: Add Codex Manager Skill to a Project and Open a Separate PR
+# Prompt: Add Engineering Manager Skill to a Project and Open a Separate PR
 
 ```text
-You are Codex working in this repository.
+You are an engineering agent or maintainer working in this repository.
 
 Goal:
-Add a reusable manager-agent skill/prompt package to this project in a separate pull request. This PR should only add the manager skill/rules and supporting documentation. It should not implement unrelated product changes.
+Add a reusable engineering manager skill/prompt package to this project in a separate pull request. This PR should only add the manager skill/rules and supporting documentation. It should not implement unrelated product changes.
 
 Source skill content:
-Use the codex-manager skill content provided in this conversation or available in the local file/archive I gave you. If the project has an existing skills, prompts, agent-rules, .codex, .cursor, .github, or docs convention, install it there. Otherwise, create a lightweight location such as:
-- .codex/skills/codex-manager/
+Use the engineering-manager skill content provided in this conversation or available in the local file/archive I gave you. If the project has an existing skills, prompts, agent-rules, `.agents`, `.devin`, `.cursor`, `.claude`, `.codex`, `.github`, or docs convention, install it there. Otherwise, create a lightweight location such as:
+- .agents/skills/engineering-manager/
+- .codex/skills/engineering-manager/
+- .claude/skills/engineering-manager/
 or, if this repo already uses agent skills:
-- skills/codex-manager/
+- skills/engineering-manager/
 
 Required files:
 1. A main manager skill/instruction file that explains when to use the manager workflow.
@@ -20,7 +22,7 @@ Required files:
 
 Behavior the skill must encode:
 - act as manager first
-- spawn focused specialist agents
+- spawn focused specialist agents or assign focused human reviewers
 - require findings before implementation
 - create a concrete checklist
 - implement in small reviewable batches
@@ -34,7 +36,7 @@ Behavior the skill must encode:
 Implementation steps:
 1. Inspect the repo for existing agent/skill/prompt conventions.
 2. Choose the least surprising install path.
-3. Add the codex-manager skill files.
+3. Add the engineering-manager skill files.
 4. Keep the content generic and reusable. Do not hard-code project-specific assumptions into the reusable skill.
 5. Run formatting/lint checks if docs or markdown checks exist.
 6. Commit the changes on a separate branch.
@@ -46,10 +48,10 @@ Implementation steps:
    - note that this PR is intentionally separate from product implementation work
 
 Branch name suggestion:
-chore/add-codex-manager-skill
+chore/add-engineering-manager-skill
 
 PR title suggestion:
-Add reusable Codex manager skill
+Add reusable engineering manager skill
 
 Do not modify app/product code in this PR.
 ```
