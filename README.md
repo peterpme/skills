@@ -23,6 +23,7 @@ This symlinks every `SKILL.md`-bearing directory under `skills/` (excluding `dep
 
 Skills for daily code work.
 
+- **[engineering-manager](./skills/engineering/engineering-manager/SKILL.md)** — Coordinate complex engineering work with specialist agents or human reviewers, validation gates, PR handling, and final independent audits.
 - **[continuity](./skills/engineering/continuity/SKILL.md)** — Learn, record, audit, and apply codebase patterns consistently across a repository.
 
 ### Productivity
