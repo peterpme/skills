@@ -3,6 +3,7 @@
   "skills": [
     "./skills/engineering/engineering-manager",
     "./skills/engineering/continuity",
+    "./skills/engineering/composition-first-refactor",
     "./skills/productivity/morning-recap",
     "./skills/productivity/study-repo"
   ]
