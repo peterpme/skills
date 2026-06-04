@@ -1,10 +1,10 @@
 ---
-name: composition-first-refactor
-description: Composition-first workflow for focused React and React Native refactors. Use when the user asks to refactor a specific screen, component, feature, or PR and wants the agent to review first, ask architecture questions, sketch data flow and component tree separately, reason about render triggers, and wait for approval before editing code.
+name: component-data-refactor
+description: Component and data architecture workflow for focused React and React Native refactors. Use when the user asks to refactor a specific screen, component, feature, or PR and wants the agent to review first, ask architecture questions, sketch data flow and component tree separately, reason about render triggers, and wait for approval before editing code.
 argument-hint: "<target code, PR, screen, component, or feature>"
 ---
 
-# Composition-First Refactor
+# Component + Data Refactor
 
 Use this skill for focused React or React Native refactors where component boundaries, data ownership, subscriptions, or list performance matter. Stay anchored to the specific code, PR, screen, component, or feature named by the user.
 
