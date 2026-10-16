@@ -1,32 +1,32 @@
 # Skills
 
-Personal agent skills. One folder per skill, directly at the repository root.
+Personal agent skills. One folder per skill at the repository root.
 
-- [ceo](ceo/SKILL.md): Turn the current work into a short decision brief.
+- [tldr](tldr/SKILL.md): Cut the last response down to a one-sentence summary, your decisions, and what is next.
+- [tldr-go](tldr-go/SKILL.md): Approve the last `/tldr` picks and have the agent do its next steps. Pass overrides like `/tldr-go 1 no, 2 B`.
 
 ## Install
 
-Requires Python 3.9 or newer.
-
 ```bash
 git clone git@github.com:peterpme/skills.git ~/skills
-python3 ~/skills/install.py
-python3 ~/skills/install.py --check
+cd ~/skills && npm run sync
 ```
 
-The installer creates per-skill symlinks in:
+`npm run sync` uses Vercel's [`skills`](https://github.com/vercel-labs/skills) CLI. It copies each skill into `~/.agents/skills` (read by Codex, Cursor, and Pi) and links it into `~/.claude/skills`. It records each install in `~/.agents/.skill-lock.json`.
 
-- `~/.agents/skills`, the shared skill store used by Codex.
-- `~/.claude/skills`.
-- `~/.cursor/skills`.
-- `~/.pi/agent/skills`.
+Edits are not live. Run `npm run sync` after changing a skill.
 
-Edits here are live through those links. Re-running the installer adds new skills and removes links to deleted skills from this repository. It preserves other installations and refuses to overwrite conflicting files or directories.
+## Change a skill
 
-## Add or remove a skill
+1. Edit `<name>/SKILL.md`.
+2. Commit, then run `npm run release`. It bumps the version, tags the commit, and syncs.
 
-Add `<name>/SKILL.md` at the root, or delete its folder, then run `install.py` again. Keep names lowercase with hyphens. Put any supporting files inside that skill's folder.
+To remove a skill, delete its folder and run `npx skills remove <name> --global`.
 
-Keep this list limited to skills you use. Removed skills remain in Git history.
+## Skill format
 
-Machine settings, agent extensions, and global instructions live in [dotfiles](https://github.com/peterpme/dotfiles), cloned separately at `~/dotfiles`.
+Follow the [Agent Skills spec](https://agentskills.io/specification): `name` matches the folder (lowercase, hyphens, up to 64 characters), and `description` is up to 1024 characters.
+
+Manual-only skills set `disable-model-invocation: true`. Claude Code, Cursor, and Pi honor it. Codex reads `agents/openai.yaml` with `policy.allow_implicit_invocation: false` instead, so add both.
+
+Machine settings and global instructions live in [dotfiles](https://github.com/peterpme/dotfiles), cloned at `~/dotfiles`.
