@@ -4,17 +4,20 @@ Personal agent skills. One folder per skill at the repository root.
 
 - [tldr](tldr/SKILL.md): Cut the last response down to a one-sentence summary, your decisions, and what is next.
 - [tldr-go](tldr-go/SKILL.md): Approve the last `/tldr` picks and have the agent do its next steps. Pass overrides like `/tldr-go 1 no, 2 B`.
+- [word-this](word-this/SKILL.md): Make a draft coherent while preserving your voice, casing, and prose. Invoke explicitly; automatic invocation is disabled.
 
 ## Install
 
 ```bash
-git clone git@github.com:peterpme/skills.git ~/skills
-cd ~/skills && npm run sync
+git clone git@github.com:peterpme/skills.git ~/Projects/skills
+cd ~/Projects/skills && npm run setup
 ```
 
-`npm run sync` uses Vercel's [`skills`](https://github.com/vercel-labs/skills) CLI. It copies each skill into `~/.agents/skills` (read by Codex, Cursor, and Pi) and links it into `~/.claude/skills`. It records each install in `~/.agents/.skill-lock.json`.
+`npm run setup` installs this checkout's Git hooks and symlinks each skill into the global skill folders for Claude Code, Codex, Cursor, Pi, and shared `.agents` discovery. Run setup once per clone; no dependencies need installing.
 
-Edits are not live. Run `npm run sync` after changing a skill.
+Edits are live through the symlinks. `git pull` automatically links new skills after a merge or rebase. Run `npm run sync` to sync manually. If a destination already contains a different folder or link, sync moves it to `~/.local/state/personal-skills/backups/` before linking; it does not delete those files.
+
+Hooks need Node on your PATH. A failed sync leaves the Git update in place; fix the reported error and run `npm run sync`. Hooks do not remove links for deleted skills. To remove one, delete its links from the global skill folders.
 
 ## Change a skill
 
@@ -24,7 +27,7 @@ Edits are not live. Run `npm run sync` after changing a skill.
 
 The repo has one version for all skills. To see what changed in one skill, run `git log -- <name>/`.
 
-To remove a skill, delete its folder and run `npx skills remove <name> --global`.
+To remove a skill, delete its folder and its links from the global skill folders listed in `scripts/sync-skills.mjs`.
 
 ### Evals
 

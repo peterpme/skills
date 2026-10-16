@@ -4,9 +4,10 @@
   "private": true,
   "description": "Personal agent skills",
   "scripts": {
-    "sync": "npx -y skills@1.7.2 add . --global --agent claude-code codex cursor pi --yes",
+    "sync": "node scripts/sync-skills.mjs",
     "list": "npx -y skills@1.7.2 list --global",
     "eval": "node evals/run.mjs",
-    "release": "git diff --quiet && [ \"$(git branch --show-current)\" = main ] && npm version patch -m 'Release skills %s' && git push --follow-tags && npm run sync"
+    "release": "git diff --quiet && [ \"$(git branch --show-current)\" = main ] && npm version patch -m 'Release skills %s' && git push --follow-tags && npm run sync",
+    "setup": "node scripts/setup.mjs"
   }
 }
