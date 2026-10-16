@@ -1,55 +1,32 @@
-# peterpme/skills
+# Skills
 
-My collection of agent skills (slash commands and behaviors) for Claude Code.
+Personal agent skills. One folder per skill, directly at the repository root.
+
+- [ceo](ceo/SKILL.md): Turn the current work into a short decision brief.
 
 ## Install
 
-### As a Claude Code plugin
-
-Install from this repo via the Claude Code plugin marketplace.
-
-### Locally (symlink for development)
+Requires Python 3.9 or newer.
 
 ```bash
-git clone git@github.com:peterpme/skills.git ~/projects/skills
-bash ~/projects/skills/scripts/link-skills.sh
+git clone git@github.com:peterpme/skills.git ~/skills
+python3 ~/skills/install.py
+python3 ~/skills/install.py --check
 ```
 
-This symlinks every `SKILL.md`-bearing directory under `skills/` (excluding `deprecated/`) into `~/.claude/skills/`.
+The installer creates per-skill symlinks in:
 
-## Reference
+- `~/.agents/skills`, the shared skill store used by Codex.
+- `~/.claude/skills`.
+- `~/.cursor/skills`.
+- `~/.pi/agent/skills`.
 
-### Engineering
+Edits here are live through those links. Re-running the installer adds new skills and removes links to deleted skills from this repository. It preserves other installations and refuses to overwrite conflicting files or directories.
 
-Skills for daily code work.
+## Add or remove a skill
 
-- **[engineering-manager](./skills/engineering/engineering-manager/SKILL.md)** — Coordinate complex engineering work with specialist agents or human reviewers, validation gates, PR handling, and final independent audits.
-- **[continuity](./skills/engineering/continuity/SKILL.md)** — Learn, record, audit, and apply codebase patterns consistently across a repository.
-- **[component-data-refactor](./skills/engineering/component-data-refactor/SKILL.md)** — Review a focused React or React Native refactor, sketch data flow and component tree, then wait for approval before coding.
+Add `<name>/SKILL.md` at the root, or delete its folder, then run `install.py` again. Keep names lowercase with hyphens. Put any supporting files inside that skill's folder.
 
-### Productivity
+Keep this list limited to skills you use. Removed skills remain in Git history.
 
-General workflow tools, not code-specific.
-
-- **[morning-recap](./skills/productivity/morning-recap/SKILL.md)** — Summarize PRs merged in a GitHub repo over the last N hours, excluding ones you've touched, and rank what's worth reviewing.
-- **[study-repo](./skills/productivity/study-repo/SKILL.md)** — Clone a GitHub repo and set up an interactive study session for reading and analyzing the codebase.
-
-### Misc
-
-Tools kept around but rarely used.
-
-_(none yet)_
-
-## Layout
-
-```
-skills/
-├── engineering/    # daily code work        (shippable)
-├── productivity/   # daily non-code         (shippable)
-├── misc/           # rare-use tools         (shippable)
-├── personal/       # tied to my own setup   (not promoted)
-├── in-progress/    # drafts                 (not promoted)
-└── deprecated/     # no longer used         (not linked)
-```
-
-Skills in `engineering/`, `productivity/`, and `misc/` are listed in this README and in `.claude-plugin/plugin.json`. The other buckets are not.
+Machine settings, agent extensions, and global instructions live in [dotfiles](https://github.com/peterpme/dotfiles), cloned separately at `~/dotfiles`.
