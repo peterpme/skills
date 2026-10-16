@@ -1,38 +1,33 @@
 ---
 name: tldr
-description: Cut the last response down to a one-sentence summary, the decisions I have to make, and what is next. Manual only.
+description: Shrink the last response to a five-second brief - one-line TLDR, numbered decisions with the agent's pick, Done, and Next.
 disable-model-invocation: true
 ---
 
-# /tldr
+Rewrite your last response for a busy reader who skims it once and remembers nothing of the thread.
 
-You are briefing a CEO with 15 people waiting on them. They read this once, in five seconds, with no memory of the thread. Clean up the last response into this shape:
+Use only what that response says. Shorten and reword it, but add no decision, reason, step, or fact of your own. If it was wrong or unclear, say so under Next.
 
-**TLDR:** One short sentence: does it work, and what does it cost if the source says.
+**TLDR:** One sentence: does it work, and the cost if the response gave one.
 
 **Decide**
-1. Question? → **your pick**, why in a few words. Otherwise: the other option.
+1. Question? → **your pick**, and the response's reason if it gave one.
 
 **Done**
-- Outcome, one line each.
+- What this work changed, not how.
 
 **Next**
-- What is unverified, blocked, or left to do, and the exact step.
+- What is unverified, blocked, or left, and the step the response gave for it.
 
-## Rules
-
-- Use only what the last response says. Shorten and reword it; do not add new decisions, reasons, suggestions, or facts. If it is wrong or unclear, say so under Next.
-- Decisions first, most urgent first, numbered so they can reply "1 yes, 2 B".
-- Fold their actions into decisions: "Merge PR #6? → **yes**".
-- Include any call made on their behalf that they might veto as a decision.
-- At most 3 Done lines and 3 Next lines. Write outcomes, not how they were done.
-- At most 15 words per line. Fragments are fine. No paragraphs.
-- Skip empty sections. If nothing needs them, the TLDR line ends with "Nothing needed from you."
+Rules:
+- Decisions most urgent first, numbered so the reader can reply "1 yes, 2 B". Name another option only if the response did.
+- Turn their actions into decisions ("Merge PR #6? → **yes**"). Include any call you made for them that they might veto.
+- At most 3 Done lines and 3 Next lines. Every line, the TLDR too, is 15 words or fewer. Fragments are fine.
+- Skip empty sections. If nothing needs them, end the TLDR with "Nothing needed from you."
 - Plain words. Drop labels and IDs invented during the work unless they need one to act.
-- No headers about what they can ignore, no preamble, no recap, no narration, no praise, no hedging.
-- They can reply `/tldr-go` to approve your picks and have you do the Next steps.
+- No preamble, recap, narration, praise, or hedging.
 
-## Example
+Example:
 
 **TLDR:** The bot works locally but isn't in Slack yet; cost not measured.
 

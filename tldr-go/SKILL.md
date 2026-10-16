@@ -1,27 +1,19 @@
 ---
 name: tldr-go
-description: Approve the picks from the last /tldr and do its Next steps. Manual only.
+description: Approve the picks in the last TLDR brief and carry out its decisions and Next steps. Add overrides like "1 no, 2 B".
 disable-model-invocation: true
-argument-hint: "[overrides, e.g. 1 no, 2 B, skip next]"
+argument-hint: "[overrides, e.g. 1 no, 2 B, skip 3]"
 ---
 
-# /tldr-go
+The user approved your last TLDR brief. If this thread has none, build one from your last response first, without showing it.
 
-The user read your last `/tldr` and wants you to handle it. If there is no `/tldr` in this thread, build one from the last response first, silently.
+1. Read any text after the command as overrides: `1 no`, `2 B`, `skip 3`, `only next`. Everything else is approved as your pick.
+2. Carry out each approved decision, then each Next step you can do yourself.
+3. Prove each one by running the real flow and checking the result.
 
-## What to do
+Limits:
+- Do only what the brief listed. This approves those items and nothing else.
+- If an item needs something you can't get, such as credentials, a person, or access, skip it and say exactly what is missing.
+- If an item shows your pick was wrong, stop that item and bring it back as a decision.
 
-1. Read any arguments as overrides: `1 no`, `2 B`, `skip 3`, `only next`. Anything not overridden is approved as your pick.
-2. Carry out each approved decision.
-3. Do each Next step you can do yourself: check what was unverified, fix what was broken, run what was left.
-4. Prove each one by running the real flow and looking at the result, as you would for any task.
-
-## Limits
-
-- Do only what the `/tldr` listed. Running this approves those items and nothing else.
-- If an item needs something you cannot get, such as credentials, a person, or access, skip it and say exactly what is missing.
-- If doing an item shows your pick was wrong, stop that item and bring it back as a decision.
-
-## Report
-
-End with a new `/tldr` covering only this run: what got done, what is still on them, and what is next.
+End with a new brief covering only this run, in the same format: **TLDR:** one sentence; **Decide**, numbered with your picks; **Done** and **Next**, at most 3 lines each; at most 15 words per line.

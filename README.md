@@ -18,10 +18,17 @@ Edits are not live. Run `npm run sync` after changing a skill.
 
 ## Change a skill
 
-1. Edit `<name>/SKILL.md`.
-2. Commit, then run `npm run release`. It bumps the version, tags the commit, and syncs.
+1. Edit `<name>/SKILL.md` on a branch and run `npm run sync` to try it.
+2. Run `npm run eval` to compare `tldr` on `main` with your working copy. Set `RUNS=5` before trusting a difference. Each run costs about $0.10 per fixture and version.
+3. Merge the PR, then on `main` run `npm run release`. It bumps the patch version in `package.json`, tags it `vX.Y.Z`, pushes the tag, and syncs.
+
+The repo has one version for all skills. To see what changed in one skill, run `git log -- <name>/`.
 
 To remove a skill, delete its folder and run `npx skills remove <name> --global`.
+
+### Evals
+
+`evals/fixtures/*.md` each hold a `TASK:` line and a long agent response. `evals/checks.json` sets per-fixture limits and patterns. `evals/run.mjs` replays each response, runs `/tldr` from each version, checks the format, and has Sonnet judge whether the brief adds anything not in the response. Output goes to `evals/.work/`.
 
 ## Skill format
 
