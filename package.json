@@ -1,0 +1,11 @@
+{
+  "name": "@peterpme/skills",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Personal agent skills",
+  "scripts": {
+    "sync": "npx -y skills@1.7.2 add . --global --agent claude-code codex cursor pi --yes",
+    "list": "npx -y skills@1.7.2 list --global",
+    "release": "npm version patch -m 'Release skills %s' && npm run sync"
+  }
+}
