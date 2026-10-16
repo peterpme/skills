@@ -1,0 +1,17 @@
+{
+  "already-live": {
+    "maxDecisions": 2,
+    "mustMatch": ["#42"],
+    "mustNotMatch": ["(puts?|goes|go|going|makes?)\\b[^.\\n]{0,30}\\blive", "\\*\\*Done\\*\\*[^*]*live (in|on) production"]
+  },
+  "long-report": {
+    "maxDecisions": 4,
+    "mustMatch": ["#311", "UTC|time ?zone|Toronto", "nightly|cron", "legacy"],
+    "mustNotMatch": []
+  },
+  "nothing-needed": {
+    "maxDecisions": 0,
+    "mustMatch": ["Nothing needed from you"],
+    "mustNotMatch": ["\\*\\*Decide\\*\\*", "\\*\\*Next\\*\\*"]
+  }
+}
