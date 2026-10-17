@@ -2,6 +2,7 @@
 
 Personal agent skills. One folder per skill at the repository root.
 
+- [finish-task](finish-task/SKILL.md): Complete project changes, verify the affected behavior, and open a draft PR.
 - [tldr](tldr/SKILL.md): Cut the last response down to a one-sentence summary, your decisions, and what is next.
 - [tldr-go](tldr-go/SKILL.md): Approve the last `/tldr` picks and have the agent do its next steps. Pass overrides like `/tldr-go 1 no, 2 B`.
 - [word-this](word-this/SKILL.md): Make a draft coherent while preserving your voice, casing, and prose. Invoke explicitly; automatic invocation is disabled.
@@ -40,3 +41,17 @@ Follow the [Agent Skills spec](https://agentskills.io/specification): `name` mat
 Manual-only skills set `disable-model-invocation: true`. Claude Code, Cursor, and Pi honor it. Codex reads `agents/openai.yaml` with `policy.allow_implicit_invocation: false` instead, so add both.
 
 Machine settings and global instructions live in [dotfiles](https://github.com/peterpme/dotfiles), cloned at `~/dotfiles`.
+
+### Global completion workflow
+
+Skill discovery alone does not require invocation. Add this to the canonical `~/dotfiles/agents/AGENTS.md` so project-change requests load `finish-task` across projects:
+
+```markdown
+## Completing project changes
+
+For every task that changes project files (code, configuration, or documentation), read and follow `~/.agents/skills/finish-task/SKILL.md` before implementation and through handoff. Skip questions, read-only reviews, and planning-only requests. If the skill is unavailable, report that and still follow the verification instructions below.
+
+Unless I explicitly say to stay local or avoid commits, pushing, or a PR, complete available verification, commit only the task's changes, push a task branch, and open a new draft PR. When continuing an existing PR, update it instead of opening a duplicate. Do not merge or deploy. Report blockers and unverified behavior plainly.
+```
+
+Run `npm run sync` from the persistent checkout after installing the skill. The global file is shared by Codex and Pi and imported by Claude Code; other agents must load these global instructions too for the same mandatory trigger. Existing sessions may need restarting to discover the new skill and instructions.
