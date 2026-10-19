@@ -6,35 +6,42 @@ disable-model-invocation: true
 
 # Trace
 
-Answer the user's question by tracing the current repository's implementation. Every substantive claim must come from inspected repository evidence. Use reasoning to connect that evidence, but never fill gaps with model memory, framework conventions, web searches, external documentation, or knowledge of other repositories. If the repo cannot establish something, say so.
+Research the repository internally. Return the answer the user is looking for.
 
-## Establish the version
+## What to return
 
-- Work in the existing checkout; do not create a worktree or branch for research. Respect an explicitly requested revision or offline session instead of updating it.
-- Inspect the repository root, branch, working-tree status, remotes, and configured upstream. For a clean branch with an upstream, run `git pull --ff-only` before searching. Do this once per research session, not for every follow-up.
-- Preserve local changes. If dirty, fetch the configured remote without merging; research the current files and identify the local changes relevant to the answer. If detached, missing an upstream, diverged, or unable to fetch/pull, report the limitation and continue at the available revision. Never stash, reset, rebase, switch branches, or guess a different remote branch to force an update.
-- Record the resulting commit and whether the checkout is dirty. Distinguish the checked-out revision from fetched remote code; never describe a fetch alone as updating the working files.
+- Answer every part of the question directly, in the user's terms. For a practical question, give the actual steps, settings, names, and commands. For an implementation question, explain how it works.
+- Default to a short answer and a few useful bullets, under 200 words. Expand only when the question needs it. Keep limitations that change what the user can do.
+- Keep Git revisions, research steps, evidence trails, orchestration details, and verification receipts internal. Do not include a source list, file names, code citations, or a "source of truth" explanation unless the user asks for sources or code locations.
+- Do not add "I didn't test this," "unverified," or research-summary sections. If necessary information is missing, state the specific unknown briefly where it affects the answer.
+- Use `/tldr`'s brevity and faithfulness as an optional final shortening pass when available; otherwise shorten directly. Do not send the long draft first, force a status-report template onto a question, or remove a requested answer or necessary caveat.
+- Before sending, remove sentences about your process or proof. Return only the useful answer.
 
-## Find the smallest complete path
+## Where the answer comes from
 
-1. Turn the question into concrete behavior to locate: a user action, command, route, symbol, setting, data field, or output. Ask only if ambiguity prevents a useful trace.
-2. Use `rg --files` and targeted `rg` searches to find likely entry points. Follow actual callers, imports, registrations, and dispatch wiring into the implementation. Avoid reading the whole repo or dumping large files.
-3. Trace the relevant path from input to observable result: conditions and defaults, transformations, side effects, persistence, return values, and failure paths as needed for the question. Follow the selected implementation through wrappers and configuration; a matching name or unused function is not proof that it runs.
-4. Read implementation before explanatory docs. Use comments, docs, examples, and tests as leads or corroboration; when they disagree, report what executable code does. Tests establish the covered cases, not every runtime condition.
-5. Check the branches or alternative callers that could change the answer. Stop when the question is answered and the important links are evidenced; expand only to resolve a concrete gap. A failed text search alone does not prove a feature is absent. Describe the searched scope when reporting that nothing was found.
+Use inspected code in the current repository as the sole evidence for every substantive claim. Reason from that evidence; never fill gaps with model memory, framework conventions, web searches, external documentation, or other repositories.
 
-Treat unavailable dependency internals, external services, deployment settings, generated files, and runtime data as boundaries. Trace what this repo passes to them and how it uses their results. A dependency name or pinned version does not establish its behavior. Inspect internals only if their source is actually present in this repo. Do not infer live production behavior or design intent from source alone.
+Keep the source locations internally so you can explain them if asked. Docs, comments, examples, and tests are leads or corroboration; executable code wins when they disagree. A dependency name or pinned version does not establish unavailable internals. Trace the repo's inputs to external systems and its handling of their outputs; leave missing internals or runtime configuration unknown.
 
-Research is read-only apart from the Git refresh. Do not install dependencies, change source, create cache/artifact directories, commit, or open a PR for a research question. Execute a local check only when needed, within existing authorization, and without production writes or external side effects.
+## Refresh the existing checkout
 
-## Keep the research cheap
+- Use the current checkout; do not create a worktree or branch for research. Respect an explicitly requested revision or offline session.
+- Inspect the root, branch, working-tree status, remotes, and upstream. On a clean branch with an upstream, run `git pull --ff-only` before searching, once per research session.
+- Preserve local edits. If dirty, fetch the configured remote without merging and research the current files, accounting for relevant local changes. If detached, missing an upstream, diverged, or unable to update, continue at the available revision. Mention the limitation only if it changes the answer.
+- Never stash, reset, rebase, switch branches, or guess another remote branch to force an update. Track the revision internally; fetching alone does not update working files.
 
-For a narrow lookup, search directly. When delegation would reduce work, prefer a single inexpensive Haiku/Luna-class researcher, adding parallel researchers only for independent paths. Discover available model IDs from the current tool catalog; use cost information when available rather than claiming a particular model is cheapest. Do not invent model IDs or silently substitute a premium model. If selection or delegation is unavailable, continue locally and state that limitation briefly.
+## Trace enough code to answer correctly
 
-Give each researcher the question, repository path and revision, a bounded search scope, the repo-only evidence rule, and a request for file/line citations, call paths, and unresolved gaps. All researchers share the checkout read-only; only the parent refreshes Git, before delegating. Reuse discovered paths across follow-ups, but reread the relevant code before relying on an earlier answer. Inspect the decisive code yourself before presenting delegated conclusions. Escalate only the specific unresolved reasoning problem when a cheaper pass cannot establish it.
+1. Locate the behavior the question describes: an action, route, command, setting, data field, or output. Use `rg --files` and targeted `rg` searches; avoid dumping the whole repo.
+2. Follow the real entry point through callers, imports, registration, dispatch, and configuration to the result. A matching name or unused function is not proof that it runs.
+3. Check the relevant defaults, branches, transformations, side effects, persistence, and errors. Before stating a restriction, follow its condition back to the caller and confirm it applies. Resolve conflicting paths instead of presenting both as general rules.
+4. Recover from a missing path by finding the implementation elsewhere; do not fall back to docs as proof. A failed search does not establish absence.
+5. Stop when each requested answer has a complete supporting path. Reuse discovered paths across follow-ups, but reread decisive code before relying on an earlier answer.
 
-## Return an evidence-backed answer
+Research is read-only apart from the Git refresh. Do not install dependencies, change source, create caches or artifact directories, commit, or open a PR for a research question. Run a local check only when needed and authorized, without production writes or external side effects.
 
-Lead with the answer in plain language. Include the shortest useful execution path and cite the exact files and line numbers supporting each substantive claim. Prefer clickable local source links; use commit-pinned GitHub links when sharing outside the checkout. Include the researched branch/commit and any update limitation in a compact note.
+## Keep research cheap
 
-Distinguish directly observed code from deductions, citing the premises for deductions. State what the repo cannot establish and the missing source or runtime input. Never turn an assumption, stale doc, prior answer, or researcher summary into a fact. Keep answers proportional to the question; do not produce a repo tour unless asked.
+Search directly for narrow questions. When delegation helps, prefer one inexpensive Haiku/Luna-class researcher; parallelize only independent paths. Discover actual available model IDs and cost information rather than inventing IDs or claiming an unverified cheapest model. If delegation is unavailable, continue locally.
+
+Give researchers the question, repository path and revision, bounded scope, repo-only evidence rule, and a request for internal file/line evidence, call paths, and gaps. Share the checkout read-only; only the parent refreshes Git, before delegation. Inspect decisive code yourself before accepting their conclusions. Escalate only a specific gap a cheaper pass cannot resolve. Keep this orchestration out of the answer.
