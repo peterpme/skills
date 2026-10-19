@@ -11,7 +11,7 @@ Research the repository internally. Return the answer the user is looking for.
 ## What to return
 
 - Answer every part of the question directly, in the user's terms. For a practical question, give the actual steps, settings, names, and commands. For an implementation question, explain how it works.
-- Default to a short answer and a few useful bullets, under 200 words. Expand only when the question needs it. Keep limitations that change what the user can do.
+- Lead with a short answer, then choose prose, steps, or a compact question-and-answer table to fit the question. A table works well for several related questions. Keep enough detail to make the answer usable, including limitations that change what the user can do; do not force a word limit.
 - Keep Git revisions, research steps, evidence trails, orchestration details, and verification receipts internal. Do not include a source list, file names, code citations, or a "source of truth" explanation unless the user asks for sources or code locations.
 - Do not add "I didn't test this," "unverified," or research-summary sections. If necessary information is missing, state the specific unknown briefly where it affects the answer.
 - Use `/tldr`'s brevity and faithfulness as an optional final shortening pass when available; otherwise shorten directly. Do not send the long draft first, force a status-report template onto a question, or remove a requested answer or necessary caveat.
