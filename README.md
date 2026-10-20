@@ -14,7 +14,7 @@ git clone git@github.com:peterpme/skills.git ~/Projects/skills
 cd ~/Projects/skills && npm run setup
 ```
 
-`npm run setup` installs this checkout's Git hooks and symlinks each skill into the global skill folders for Claude Code, Codex, Cursor, Pi, and shared `.agents` discovery. Run setup once per clone; no dependencies need installing.
+`npm run setup` installs this checkout's Git hooks and symlinks each skill into the global skill folders for Claude Code (both `~/.claude` and the second profile `~/.claude1`), Codex, Cursor, Pi, and shared `.agents` discovery. Run setup once per clone; no dependencies need installing.
 
 Edits are live through the symlinks. `git pull` automatically links new skills after a merge or rebase. Run `npm run sync` to sync manually. If a destination already contains a different folder or link, sync moves it to `~/.local/state/personal-skills/backups/` before linking; it does not delete those files.
 
