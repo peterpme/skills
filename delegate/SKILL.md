@@ -9,13 +9,16 @@ On a program of several tickets, plan and write tickets; let subagents investiga
 
 ## Pick the model and effort
 
-| Work | Model | Effort |
-| --- | --- | --- |
-| Read-only investigation: inventories, "find every place that…", log digging, spec or backend research | Grok 4.7, or Sonnet | Grok low/medium; Sonnet medium |
-| Implementation ticket | Grok 4.7 | high; xhigh for subtle or cross-cutting changes |
-| Deep correctness review of a PR or design | Fable or Opus ("Claude" provider), or Grok 4.7 | high; xhigh for Grok |
+Current routing (2026-10-20: Grok 4.7 capacity is running out — do not start new tasks on the `grok` provider; let running ones finish. Never use the `opencode` provider):
 
-Claude usage is scarce and Grok usage is plentiful: send routine work to Grok or Codex, not Claude subagents.
+| Work | Provider / model | Effort |
+| --- | --- | --- |
+| Implementation ticket | `claude-sonnet-5-5`, alternating `claudeAgent` and `claude1_` | high |
+| Read-only investigation: inventories, "find every place that…", log digging, spec or backend research | `claude-sonnet-5-5` (`claudeAgent` / `claude1_`) | medium |
+| Review of a PR or design | Sol (`gpt-6.1-sol`) on `codex` | xhigh |
+| Hardest reviews only | Opus (`claude-opus-5-5`) | high |
+
+When Grok 4.7 is available again: investigations on Grok low/medium, implementation on Grok high/xhigh.
 
 ## Write the ticket
 
@@ -29,6 +32,9 @@ A subagent starts with no context. Every ticket states:
 6. **Git**: signed commits only, never `--no-verify`, never edit git config; commit or leave uncommitted; do not push unless asked.
 7. **Report**: a line limit (15–35 lines) and exactly what to include (SHAs, counts, proof results, anything skipped).
 8. **Time box**: 25–45 minutes; "if stuck 10 minutes on one thing, write down where you are and report".
+9. **Stop condition**: the exact acceptance command that must pass (e.g. `yarn exchange-core:verify` → N passed), and "after the final report, end your turn — do not continue or start follow-up work".
+
+Keep implementation briefs tight: exact files to touch, nothing open-ended.
 
 Use worktree isolation when tasks edit files in parallel or the main checkout is in use; merge their commits yourself.
 
