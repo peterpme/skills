@@ -7,6 +7,8 @@ Personal agent skills. One folder per skill at the repository root.
 - [word-this](word-this/SKILL.md): Make a draft coherent while preserving your voice, casing, and prose. Invoke explicitly; automatic invocation is disabled.
 - [trace](trace/SKILL.md): Answer feature questions using the repository's docs and code. Invoke `$trace how does … work?`; automatic invocation is disabled.
 
+- [delegate](delegate/SKILL.md): Hand work to subagents with the right model and effort, a cold-start ticket, a time box, stall checks, and proof you verify yourself.
+
 ## Install
 
 ```bash
