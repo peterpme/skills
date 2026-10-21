@@ -6,6 +6,7 @@ Personal agent skills. One folder per skill at the repository root.
 - [tldr-go](tldr-go/SKILL.md): Approve the last `/tldr` picks and have the agent do its next steps. Pass overrides like `/tldr-go 1 no, 2 B`.
 - [word-this](word-this/SKILL.md): Make a draft coherent while preserving your voice, casing, and prose. Invoke explicitly; automatic invocation is disabled.
 - [trace](trace/SKILL.md): Answer feature questions using the repository's docs and code. Invoke `$trace how does … work?`; automatic invocation is disabled.
+- [t3-loadbalancer](t3-loadbalancer/SKILL.md): Read each Claude account's 5-hour usage from T3's provider logs and move T3 threads between `claude1_`, `claudeAgent` and cursor as accounts run low or recover.
 
 ## Install
 
