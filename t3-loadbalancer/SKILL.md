@@ -5,7 +5,7 @@ description: Keep Peter's running T3 Code threads moving by reading each Claude 
 
 # T3 load balancer
 
-One run = read usage, list threads, move what needs moving, report. Your only write action is `t3_thread_configure` (model selection). Never edit code, answer agents, interrupt, cancel, restart or settle threads. Never use the `opencode` provider or any `opencode/...` model.
+One run = read usage, apply the stop rule, list threads, move what needs moving, report. Your write actions are `t3_thread_configure` (model selection) and, only under the stop rule below, `t3_thread_interrupt`. Never edit code, answer agents, cancel, restart or settle threads. Never use the `opencode` provider or any `opencode/...` model.
 
 ## 1. Read usage
 
@@ -24,6 +24,16 @@ It prints, per provider instance (`claude1_`, `claudeAgent`), the latest `five_h
 - The numbers are an estimate from logs, not the UI panel. If Peter gives a different number, trust Peter.
 
 An account is **out** when five-hour OR weekly remaining is under 2%. It is **recovered** when five-hour remaining is over 50% (and weekly is over 2%).
+
+## 1b. Stop rule (Peter, 2026-10-20: overrides the move rules below)
+
+If any Claude account's five-hour OR weekly `remaining_pct` is under 2%, or `status: rejected`, or `is_using_overage: true`, immediately stop all work. Do not move threads instead.
+
+1. Run `t3_thread_list` for every project (statuses running, starting, queued, preparing, waiting; `includeSubagents: true`).
+2. Call `t3_thread_interrupt` on every thread in the list except this Load Balancer thread. Reason: `load-balancer stop rule: <account> <window> at <n>% remaining`. Use `clientRequestId` `lb-stop-<threadId>-<UTC time to the minute>`. Include threads on healthy accounts.
+3. List the threads again. Interrupt any that are still running.
+4. Do not resume, restart or reconfigure anything. Append `{ts, action:"stop", account, window, remaining, threads:[...]}` to `~/.t3/loadbalancer/moves.json`.
+5. Report the stop first: which account tripped, its numbers, which threads were interrupted, and that Peter has to resume them. While the account stays under 2%, later runs only report; they do not interrupt again.
 
 ## 2. List threads
 
@@ -66,7 +76,7 @@ Keep a ledger at `~/.t3/loadbalancer/moves.json` (create the dir): a JSON array 
 
 ## 5. Report (to this thread, every run)
 
-Keep it short. Lead with whether anything moved.
+Keep it short. Lead with whether anything moved or stopped. When nothing changed, one line (account percentages and 'no action') is enough.
 
 - Usage table: Tom, Jerry: five-hour remaining %, weekly remaining %, reset time, reading age.
 - Moves this run (table: thread, from, to, effort, applied-now or next-turn) or "none".
