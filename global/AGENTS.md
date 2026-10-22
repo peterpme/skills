@@ -1,6 +1,6 @@
 # Global agent instructions
 
-Canonical file: `global/AGENTS.md` in the skills repo (`~/skills`). `npm run sync` links it to `~/.codex/AGENTS.md`, `~/.pi/agent/AGENTS.md` and `~/.grok/AGENTS.md` and `~/.claude/AGENTS.md`, which `global/CLAUDE.md` (linked to `~/.claude/CLAUDE.md`) imports. Cursor holds a pasted copy of "Reporting results" as a user rule. Grok truncates this file at 10,000 characters, so keep it shorter than that.
+Canonical file: `global/AGENTS.md` in the skills repo (`~/skills`). `npm run sync` links it as `~/.codex/AGENTS.md`, `~/.pi/agent/AGENTS.md`, `~/.grok/AGENTS.md` and `~/.claude/CLAUDE.md`; each harness only reads its own path. Cursor holds a pasted copy of "Reporting results" as a user rule. Grok truncates this file at 10,000 characters, so keep it shorter than that.
 
 ## Reporting results
 
@@ -40,11 +40,16 @@ When a required flow cannot be exercised, say `implemented, unverified` for that
 
 ## Shell and tools
 
-Commands run in zsh 5.9 on macOS. In Claude Code my zshrc removes prezto's aliases and wrapper functions and makes zsh behave like bash for overwrites, globs and word splitting. Other harnesses may get plain zsh, where `$var` does not split and an unmatched glob is an error. Either way:
+Commands run in zsh 5.9 on macOS. In Claude Code and Grok my zshrc removes prezto's aliases and wrapper functions and makes zsh behave like bash for overwrites, globs and word splitting. Codex may run plain zsh, where `$var` does not split and an unmatched glob is an error. Either way:
 
 - Write scripts longer than one line for bash (`bash -c '…'` or a `#!/usr/bin/env bash` file). Never assign `<(cmd)` to a variable; zsh closes it before it is read.
 - `sed`, `awk`, `xargs`, `date`, `stat` and `readlink` are the BSD versions. Use `sed -i ''` and `sed -E`; awk has no `a[x][y]` or `gensub`; use `gdate` for `date -d`. `timeout` exists. Use `jq` for JSON and `python3 -I` for other structured data.
 - Search with `fd` and `rg`. `~/.rgrc` cuts displayed lines at 100 columns and hides `.env` files, lockfiles and `*.map`; counts from `-c` and `-o` are still correct. Pass `-M 0` to see full lines, `--pcre2` for lookaround, and `--glob '<file>'` to search a hidden file. Do not use `--no-config` just to count.
-- Keep tool output small: `git diff --stat` before a full diff, `gh … --json <fields> --jq '<filter>'` instead of full JSON, and `| tail -n 40` on build, test and typecheck logs.
+- Keep tool output small. Read files with your file-read tool or a line range (`sed -n '120,180p'`), not whole-file `cat`. Use `git diff --stat` before a full diff, `gh … --json <fields> --jq '<filter>'` instead of full JSON, and `| tail -n 40` on build, test and typecheck logs.
+- Don't prefix commands with `cd <dir> &&` when you are already in that directory; use absolute paths instead.
 - Commands you give me to paste run in my interactive shell, where `rm`, `cp` and `mv` prompt, `ls` is eza, `cat` is bat, and `^ # ~ ( |` must be quoted.
 - Also installed: `ast-grep` (`sg`), `jq`, `gh`, `delta`, `fzf`, Homebrew `python3`, and node and yarn via vite-plus.
+
+## Session logs
+
+Categorized logs of past sessions live in `~/Documents/Claude/session-logs/`, with categories in `categories.json`. When a topic clearly matches a category (home assistant, backpack work, DIY projects, etc.), read the 1-3 most relevant recent logs and use their decisions and open threads. Skip them for unrelated or one-off questions.

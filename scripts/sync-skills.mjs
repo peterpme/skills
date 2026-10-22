@@ -6,10 +6,9 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const home = process.env.SKILLS_HOME || homedir();
 const destinations = [".agents/skills", ".claude/skills", ".codex/skills", ".pi/agent/skills", ".cursor/skills"];
-// Global instructions shared by every harness. ~/.claude/CLAUDE.md imports ~/.claude/AGENTS.md.
+// One instruction file for every harness; each reads only its own path, and Claude only reads CLAUDE.md.
 const globalFiles = {
-  "global/AGENTS.md": [".codex/AGENTS.md", ".pi/agent/AGENTS.md", ".grok/AGENTS.md", ".claude/AGENTS.md"],
-  "global/CLAUDE.md": [".claude/CLAUDE.md"],
+  "global/AGENTS.md": [".codex/AGENTS.md", ".pi/agent/AGENTS.md", ".grok/AGENTS.md", ".claude/CLAUDE.md"],
 };
 const backupRoot = join(home, ".local/state/personal-skills/backups", `${Date.now()}-${process.pid}`);
 const stat = async (path) => lstat(path).catch((error) => {

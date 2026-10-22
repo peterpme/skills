@@ -14,7 +14,7 @@ git clone git@github.com:peterpme/skills.git ~/Projects/skills
 cd ~/Projects/skills && npm run setup
 ```
 
-`npm run setup` installs this checkout's Git hooks and symlinks each skill into the global skill folders for Claude Code, Codex, Cursor, Pi, and shared `.agents` discovery. It also links the global instructions in `global/`: `AGENTS.md` to `~/.codex/`, `~/.pi/agent/`, `~/.grok/` and `~/.claude/`, and `CLAUDE.md`, which imports it, to `~/.claude/`. Run setup once per clone; no dependencies need installing.
+`npm run setup` installs this checkout's Git hooks and symlinks each skill into the global skill folders for Claude Code, Codex, Cursor, Pi, and shared `.agents` discovery. It also links `global/AGENTS.md` as `~/.codex/AGENTS.md`, `~/.pi/agent/AGENTS.md`, `~/.grok/AGENTS.md` and `~/.claude/CLAUDE.md`. Run setup once per clone; no dependencies need installing.
 
 Edits are live through the symlinks. `git pull` automatically links new skills after a merge or rebase. Run `npm run sync` to sync manually. If a destination already contains a different folder or link, sync moves it to `~/.local/state/personal-skills/backups/` before linking; it does not delete those files.
 
@@ -42,6 +42,6 @@ Manual-only skills set `disable-model-invocation: true`. Claude Code, Cursor, an
 
 ## Global instructions
 
-`global/AGENTS.md` holds the instructions every harness reads; edit it here, not in the linked copies. Grok truncates it at 10,000 characters. `global/CLAUDE.md` holds the Claude-only additions. Cursor stores user rules in its settings, so paste changes to "Reporting results" there by hand.
+`global/AGENTS.md` is the one instruction file every harness reads; edit it here, not through the links. There is no shared global path: Codex, Pi and Grok each read `AGENTS.md` from their own home folder, and Claude Code only reads `~/.claude/CLAUDE.md`. Grok truncates it at 10,000 characters. Cursor stores user rules in its settings, so paste changes to "Reporting results" there by hand.
 
 Machine settings, including the zsh setup agents rely on, live in [dotfiles](https://github.com/peterpme/dotfiles), cloned at `~/dotfiles`.
