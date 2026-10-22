@@ -14,7 +14,7 @@ git clone git@github.com:peterpme/skills.git ~/Projects/skills
 cd ~/Projects/skills && npm run setup
 ```
 
-`npm run setup` installs this checkout's Git hooks and symlinks each skill into the global skill folders for Claude Code, Codex, Cursor, Pi, and shared `.agents` discovery. Run setup once per clone; no dependencies need installing.
+`npm run setup` installs this checkout's Git hooks and symlinks each skill into the global skill folders for Claude Code, Codex, Cursor, Pi, and shared `.agents` discovery. It also links the global instructions in `global/`: `AGENTS.md` to `~/.codex/`, `~/.pi/agent/`, `~/.grok/` and `~/.claude/`, and `CLAUDE.md`, which imports it, to `~/.claude/`. Run setup once per clone; no dependencies need installing.
 
 Edits are live through the symlinks. `git pull` automatically links new skills after a merge or rebase. Run `npm run sync` to sync manually. If a destination already contains a different folder or link, sync moves it to `~/.local/state/personal-skills/backups/` before linking; it does not delete those files.
 
@@ -40,4 +40,8 @@ Follow the [Agent Skills spec](https://agentskills.io/specification): `name` mat
 
 Manual-only skills set `disable-model-invocation: true`. Claude Code, Cursor, and Pi honor it. Codex reads `agents/openai.yaml` with `policy.allow_implicit_invocation: false` instead, so add both.
 
-Machine settings and global instructions live in [dotfiles](https://github.com/peterpme/dotfiles), cloned at `~/dotfiles`.
+## Global instructions
+
+`global/AGENTS.md` holds the instructions every harness reads; edit it here, not in the linked copies. Grok truncates it at 10,000 characters. `global/CLAUDE.md` holds the Claude-only additions. Cursor stores user rules in its settings, so paste changes to "Reporting results" there by hand.
+
+Machine settings, including the zsh setup agents rely on, live in [dotfiles](https://github.com/peterpme/dotfiles), cloned at `~/dotfiles`.
