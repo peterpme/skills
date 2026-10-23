@@ -1,0 +1,94 @@
+#!/usr/bin/env python3
+"""pr-status [PR] [-R owner/repo] [--json]
+
+One compact view of a pull request: state, draft, mergeability, review
+decision, head commit, CI counts with only the non-passing checks listed, and
+the number of unresolved review threads. PR defaults to the current branch's.
+Exit 0 when CI is green, 1 when a check failed, 8 while checks are pending.
+"""
+import argparse
+import json
+import subprocess
+import sys
+import time
+
+FIELDS = "number,title,url,state,isDraft,mergeable,mergeStateStatus,reviewDecision,baseRefName,headRefName,headRefOid,statusCheckRollup"
+PASS = {"SUCCESS", "NEUTRAL"}
+SKIP = {"SKIPPED"}
+FAIL = {"FAILURE", "ERROR", "CANCELLED", "TIMED_OUT", "ACTION_REQUIRED", "STARTUP_FAILURE", "STALE"}
+
+
+def gh(*args):
+    result = subprocess.run(["gh", *args], capture_output=True, text=True)
+    if result.returncode != 0:
+        sys.exit(result.stderr.strip() or f"gh {' '.join(args)} failed")
+    return result.stdout
+
+
+def check_rows(rollup):
+    # A re-run or second trigger lists the same check twice; keep the newest.
+    latest = {}
+    for c in rollup or []:
+        key = (c.get("__typename"), c.get("workflowName"), c.get("name") or c.get("context"))
+        when = c.get("startedAt") or c.get("completedAt") or ""
+        if key not in latest or when >= (latest[key].get("startedAt") or latest[key].get("completedAt") or ""):
+            latest[key] = c
+    rows = []
+    for c in latest.values():
+        if c.get("__typename") == "StatusContext":
+            name, state, url = c.get("context"), c.get("state") or "PENDING", c.get("targetUrl")
+        else:
+            name = c.get("name")
+            if c.get("workflowName") and c.get("workflowName") != name:
+                name = f"{c['workflowName']} / {name}"
+            state = c.get("conclusion") or c.get("status") or "PENDING"
+            url = c.get("detailsUrl")
+        bucket = "pass" if state in PASS else "skipped" if state in SKIP else "fail" if state in FAIL else "pending"
+        rows.append((bucket, state, name, url or ""))
+    return rows
+
+
+def unresolved_threads(repo, number):
+    owner, name = repo.split("/", 1)
+    query = """query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){
+      pullRequest(number:$number){reviewThreads(first:100){nodes{isResolved isOutdated}}}}}"""
+    out = gh("api", "graphql", "-f", f"query={query}", "-F", f"owner={owner}", "-F", f"name={name}", "-F", f"number={number}")
+    nodes = json.loads(out)["data"]["repository"]["pullRequest"]["reviewThreads"]["nodes"]
+    return sum(1 for n in nodes if not n["isResolved"])
+
+
+def main():
+    parser = argparse.ArgumentParser(usage=__doc__.splitlines()[0], description=__doc__.split("\n", 2)[2])
+    parser.add_argument("pr", nargs="?")
+    parser.add_argument("-R", "--repo")
+    parser.add_argument("--json", action="store_true", help="print the collected data as JSON")
+    args = parser.parse_args()
+
+    view = ["pr", "view", *([args.pr] if args.pr else []), "--json", FIELDS]
+    if args.repo:
+        view += ["-R", args.repo]
+    pr = json.loads(gh(*view))
+    if pr["mergeable"] == "UNKNOWN":  # GitHub computes this lazily; the first read often says UNKNOWN
+        time.sleep(3)
+        pr = json.loads(gh(*view))
+    repo = args.repo or pr["url"].split("github.com/", 1)[1].rsplit("/pull/", 1)[0]
+    rows = check_rows(pr.pop("statusCheckRollup"))
+    counts = {b: sum(1 for r in rows if r[0] == b) for b in ("pass", "skipped", "fail", "pending")}
+    threads = unresolved_threads(repo, pr["number"])
+
+    if args.json:
+        print(json.dumps({**pr, "checks": counts, "unresolvedThreads": threads,
+                          "notPassing": [{"state": s, "name": n, "url": u} for b, s, n, u in rows if b in ("fail", "pending")]}))
+    else:
+        draft = " draft" if pr["isDraft"] else ""
+        print(f"#{pr['number']} {pr['state']}{draft}  {pr['title']}")
+        print(f"  {repo}  {pr['baseRefName']} <- {pr['headRefName']}@{pr['headRefOid'][:7]}")
+        print(f"  mergeable={pr['mergeable']} ({pr['mergeStateStatus']})  review={pr['reviewDecision'] or 'NONE'}  unresolved threads={threads}")
+        print(f"  checks: {counts['pass']} pass, {counts['fail']} fail, {counts['pending']} pending, {counts['skipped']} skipped")
+        for bucket, state, name, url in sorted(r for r in rows if r[0] in ("fail", "pending")):
+            print(f"    {state:<10} {name}  {url}")
+    sys.exit(1 if counts["fail"] else 8 if counts["pending"] else 0)
+
+
+if __name__ == "__main__":
+    main()
