@@ -1,0 +1,70 @@
+#!/usr/bin/env python3
+"""pr-threads [PR] [-R owner/repo] [--all] [--width N]
+
+Unresolved review threads on a pull request, one block per thread:
+path:line, author, whether the code moved since (outdated), the first comment
+trimmed to --width characters, the reply count and the thread's URL.
+PR defaults to the current branch's. --all includes resolved threads.
+"""
+import argparse
+import json
+import re
+import subprocess
+import sys
+
+QUERY = """query($owner:String!,$name:String!,$number:Int!,$after:String){repository(owner:$owner,name:$name){
+  pullRequest(number:$number){reviewThreads(first:100,after:$after){pageInfo{hasNextPage endCursor}
+    nodes{isResolved isOutdated path line originalLine
+      comments(first:50){totalCount nodes{author{login} body url}}}}}}}"""
+
+
+def gh(*args):
+    result = subprocess.run(["gh", *args], capture_output=True, text=True)
+    if result.returncode != 0:
+        sys.exit(result.stderr.strip() or f"gh {' '.join(args)} failed")
+    return result.stdout
+
+
+def main():
+    parser = argparse.ArgumentParser(usage=__doc__.splitlines()[0], description=__doc__.split("\n", 2)[2])
+    parser.add_argument("pr", nargs="?")
+    parser.add_argument("-R", "--repo")
+    parser.add_argument("--all", action="store_true")
+    parser.add_argument("--width", type=int, default=240)
+    args = parser.parse_args()
+
+    view = ["pr", "view", *([args.pr] if args.pr else []), "--json", "number,url"]
+    if args.repo:
+        view += ["-R", args.repo]
+    pr = json.loads(gh(*view))
+    owner, name = pr["url"].split("github.com/", 1)[1].rsplit("/pull/", 1)[0].split("/", 1)
+
+    threads, after = [], None
+    while True:
+        call = ["api", "graphql", "-f", f"query={QUERY}", "-F", f"owner={owner}", "-F", f"name={name}", "-F", f"number={pr['number']}"]
+        if after:
+            call += ["-f", f"after={after}"]
+        page = json.loads(gh(*call))["data"]["repository"]["pullRequest"]["reviewThreads"]
+        threads += page["nodes"]
+        if not page["pageInfo"]["hasNextPage"]:
+            break
+        after = page["pageInfo"]["endCursor"]
+
+    shown = [t for t in threads if args.all or not t["isResolved"]]
+    print(f"#{pr['number']}: {sum(not t['isResolved'] for t in threads)} unresolved of {len(threads)} threads")
+    for t in shown:
+        first = t["comments"]["nodes"][0]
+        body = " ".join(re.sub(r"<[^>]+>", " ", first["body"]).split())  # drop bot HTML badges
+        if len(body) > args.width:
+            body = body[: args.width - 1] + "…"
+        flags = [f for f, on in (("resolved", t["isResolved"]), ("outdated", t["isOutdated"])) if on]
+        line = t["line"] or t["originalLine"] or "?"
+        replies = t["comments"]["totalCount"] - 1
+        print(f"\n{t['path']}:{line}  @{(first['author'] or {}).get('login', 'ghost')}"
+              f"{'  [' + ', '.join(flags) + ']' if flags else ''}{f'  +{replies} replies' if replies else ''}")
+        print(f"  {body}")
+        print(f"  {first['url']}")
+
+
+if __name__ == "__main__":
+    main()

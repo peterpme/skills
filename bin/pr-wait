@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# pr-wait [PR] [-R owner/repo] [--timeout SECONDS] [--interval SECONDS]
+#
+# Block until a PR's checks stop pending, then print pr-status. For each failed
+# GitHub Actions job, also print the last 40 lines of its failed-step log.
+# Exit 0 when green, 1 when a check failed, 124 on timeout (default 1800s).
+set -uo pipefail
+
+pr=() repo=() timeout=1800 interval=30
+while (($#)); do
+  case $1 in
+    -R | --repo) repo=(-R "$2"); shift 2 ;;
+    --timeout) timeout=$2; shift 2 ;;
+    --interval) interval=$2; shift 2 ;;
+    -h | --help) sed -n '2,7p' "$0" | cut -c3-; exit 0 ;;
+    *) pr=("$1"); shift ;;
+  esac
+done
+
+here=$(dirname "$0")
+deadline=$((SECONDS + timeout))
+while :; do
+  "$here/pr-status" ${pr[@]+"${pr[@]}"} ${repo[@]+"${repo[@]}"} >/dev/null 2>&1
+  code=$?
+  # 8 = pending; anything else (0 green, 1 failed, or a gh error) ends the wait.
+  [[ $code -ne 8 ]] && break
+  if ((SECONDS >= deadline)); then
+    "$here/pr-status" ${pr[@]+"${pr[@]}"} ${repo[@]+"${repo[@]}"}
+    echo "pr-wait: still pending after ${timeout}s" >&2
+    exit 124
+  fi
+  sleep "$interval"
+done
+
+"$here/pr-status" ${pr[@]+"${pr[@]}"} ${repo[@]+"${repo[@]}"}
+code=$?
+if [[ $code -eq 1 ]]; then
+  # Failed Actions runs at the PR's head commit: show only the failing steps' tails.
+  json=$("$here/pr-status" ${pr[@]+"${pr[@]}"} ${repo[@]+"${repo[@]}"} --json)
+  nwo=$(jq -r '.url | capture("github.com/(?<r>[^/]+/[^/]+)/pull").r' <<<"$json")
+  jq -r '.notPassing[].url' <<<"$json" | sed -nE 's#.*/actions/runs/([0-9]+)/job/([0-9]+).*#\1 \2#p' | sort -u |
+    while read -r run job; do
+      echo
+      echo "--- failed log: run $run job $job"
+      gh run view "$run" -R "$nwo" --job "$job" --log-failed 2>/dev/null | tail -n 40 | cut -f3- | sed -E "s/^[0-9T:.-]+Z //" | cut -c1-300
+    done
+fi
+exit "$code"
