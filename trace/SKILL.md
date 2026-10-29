@@ -29,11 +29,10 @@ A dependency name or pinned version does not establish unavailable internals. Re
 
 Before any search, bring the checkout up to date with the remote, once per research session. Answers from stale code are wrong answers. Skip this only for an explicitly requested revision or offline session.
 
-- Use the current checkout; do not create a worktree or branch for research. Inspect the root, branch, working-tree status, remotes, upstream, and the remote's default branch (`git symbolic-ref refs/remotes/<remote>/HEAD`, usually `origin/main`).
-- Run `git fetch <remote>` first.
-- Clean branch with an upstream: run `git pull --ff-only`.
-- Clean branch or detached HEAD without an upstream, such as an agent worktree branch: if HEAD has no commits missing from the remote default branch (`git merge-base --is-ancestor HEAD <remote>/<default>`), run `git merge --ff-only <remote>/<default>`.
-- Dirty, diverged, or with local commits: do not move HEAD. Research the current files, and check `git diff HEAD...<remote>/<default> -- <relevant paths>` so newer upstream changes to the feature are reflected in the answer.
+- Research in the current checkout, normally the main branch. Do not create a worktree or branch. Inspect the branch, working-tree status, and upstream.
+- Clean branch with an upstream, the usual case (`main` tracking `origin/main`): run `git pull --ff-only`.
+- Dirty or diverged: run `git fetch` and do not move HEAD. Research the current files, and check `git diff HEAD...@{u} -- <relevant paths>` so newer upstream changes to the feature are reflected in the answer.
+- Detached or without an upstream: fetch, and compare the relevant paths against the remote default branch (usually `origin/main`) the same way.
 - If fetching fails, continue at the available revision. Mention the limitation only if it changes the answer.
 - Never stash, reset, rebase, or switch branches to force an update. Fetching alone does not update working files. Track the revision internally.
 
