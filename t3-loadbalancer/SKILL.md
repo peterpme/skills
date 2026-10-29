@@ -39,7 +39,7 @@ If any Claude account's five-hour OR weekly `remaining_pct` is under 2%, or `sta
 
 `t3_project_list`, then `t3_thread_list` per project with `statuses: ["running","starting","queued","preparing","waiting"]`, `includeSubagents: true`, `limit: 100`. Record `threadId`, `providerInstanceId`, `model`. Read the current options with `t3_thread_configuration`.
 
-Priority threads (move first): `bda0885f-92a9-4fea-8d5e-dbed0c16dc72` (Build Trustworthy Agent Workflows), `760e86c6-1b74-4e93-97fb-b8207b8d74d2` (Map and Secure Backpack API Operations), `32f8a70c-738a-4ea5-a637-54be3960b9cd` (Evaluate SEC Parser Against Gold Data), and all their subagents (`parentThreadId` chain). Leave this Load Balancer thread alone unless its own account is out.
+Priority threads (move first): the thread IDs listed in `~/.t3/loadbalancer-priority.md` (kept outside this public repo), and all their subagents (`parentThreadId` chain). If the file is missing, treat no thread as priority. Leave this Load Balancer thread alone unless its own account is out.
 
 ## 3. Decide
 

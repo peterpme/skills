@@ -59,4 +59,4 @@ Commands run in zsh 5.9 on macOS. In Claude Code and Grok my zshrc removes prezt
 
 ## Session logs
 
-Categorized logs of past sessions live in `~/Documents/Claude/session-logs/`, with categories in `categories.json`. When a topic clearly matches a category (home assistant, backpack work, DIY projects, etc.), read the 1-3 most relevant recent logs and use their decisions and open threads. Skip them for unrelated or one-off questions.
+Categorized logs of past sessions live in `~/Documents/Claude/session-logs/`, with categories in `categories.json`. When a topic clearly matches a category (home assistant, work projects, DIY projects, etc.), read the 1-3 most relevant recent logs and use their decisions and open threads. Skip them for unrelated or one-off questions.

@@ -158,4 +158,4 @@ Read [cloudflare](references/cloudflare.md) only for Workers work. Nothing else 
 
 ## Provenance
 
-Copied from `backpack-exchange/social-trades` (`.agents/skills/effect-v4`) at `d543116aec`. Update both copies when either changes.
+A copy of this skill also lives in a work repository. Update both copies when either changes.
