@@ -42,8 +42,8 @@ When a required flow cannot be exercised, say `implemented, unverified` for that
 
 Commands run in zsh 5.9 on macOS. In Claude Code and Grok my zshrc removes prezto's aliases and wrapper functions and makes zsh behave like bash for overwrites, globs and word splitting. Codex may run plain zsh, where `$var` does not split and an unmatched glob is an error. Either way:
 
-- Write scripts longer than one line for bash (`bash -c '…'` or a `#!/usr/bin/env bash` file). Never assign `<(cmd)` to a variable; zsh closes it before it is read.
-- `sed`, `awk`, `xargs`, `date`, `stat` and `readlink` are the BSD versions. Use `sed -i ''` and `sed -E`; awk has no `a[x][y]` or `gensub`; use `gdate` for `date -d`. `timeout` exists. Use `jq` for JSON and `python3 -I` for other structured data.
+- Write scripts longer than one line for bash (`bash -c '…'` or a `#!/usr/bin/env bash` file). `bash` on PATH is Homebrew bash 5; `#!/bin/bash` runs Apple's bash 3.2, which has no `mapfile`, `${x,,}` or `declare -A`. Never assign `<(cmd)` to a variable; zsh closes it before it is read.
+- `sed`, `awk`, `xargs`, `date`, `stat` and `readlink` are the BSD versions. Use `sed -i ''` and `sed -E`; awk has no `a[x][y]` or `gensub`; use `gdate` for `date -d`. `head` has no `-z`. GNU versions exist only as `gdate`, `ghead`, `gstat`, `greadlink` and `gtimeout`. `timeout` exists. Use `jq` for JSON and `python3 -I` for other structured data.
 - Search with `fd` and `rg`. `~/.rgrc` cuts displayed lines at 100 columns and hides `.env` files, lockfiles and `*.map`; counts from `-c` and `-o` are still correct. Pass `-M 0` to see full lines, `--pcre2` for lookaround, and `--glob '<file>'` to search a hidden file. Do not use `--no-config` just to count.
 - Keep tool output small. Read files with your file-read tool or a line range (`sed -n '120,180p'`), not whole-file `cat`. Use `git diff --stat` before a full diff, `gh … --json <fields> --jq '<filter>'` instead of full JSON, and `| tail -n 40` on build, test and typecheck logs.
 - Use these helpers instead of hand-written `gh`/`git` pipelines and poll loops; each has `--help`:
@@ -55,7 +55,7 @@ Commands run in zsh 5.9 on macOS. In Claude Code and Grok my zshrc removes prezt
   - `prune-worktrees`: list idle worktrees (dry run); `--apply` removes them.
 - Don't prefix commands with `cd <dir> &&` when you are already in that directory; use absolute paths instead.
 - Commands you give me to paste run in my interactive shell, where `rm`, `cp` and `mv` prompt, `ls` is eza, `cat` is bat, and `^ # ~ ( |` must be quoted.
-- Also installed: `ast-grep` (`sg`), `jq`, `gh`, `delta`, `fzf`, Homebrew `python3`, and node and yarn via vite-plus.
+- Also installed: `ast-grep` (`sg`), `jq`, `gh`, `delta`, `fzf`, Homebrew `python3` (bare: no Pillow, numpy or other packages), `uv`, and node and yarn via vite-plus. For a one-off script that needs packages, run `uv run -q --with <pkg> python -I script.py` instead of installing them. `exiftool` is not installed; read EXIF with Pillow.
 
 ## Session logs
 
