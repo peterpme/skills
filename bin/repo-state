@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# repo-state [BASE] [--fetch]
+#
+# One line about the current checkout: branch and commit, commits ahead of and
+# behind BASE (default: origin's default branch), staged/unstaged/untracked/
+# conflicted file counts, and whether this is a linked worktree. --fetch updates
+# BASE from origin first. Then the 5 newest commits not in BASE.
+set -uo pipefail
+
+base="" fetch=0
+for arg in "$@"; do
+  case $arg in
+    --fetch) fetch=1 ;;
+    -h | --help) sed -n '2,7p' "$0" | cut -c3-; exit 0 ;;
+    *) base=$arg ;;
+  esac
+done
+
+git rev-parse --git-dir >/dev/null 2>&1 || { echo "repo-state: not a git repository" >&2; exit 2; }
+if [[ -z $base ]]; then
+  base=$(git symbolic-ref -q --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main)
+fi
+if ((fetch)); then git fetch -q origin "${base#origin/}" 2>/dev/null || echo "repo-state: fetch of $base failed" >&2; fi
+
+branch=$(git symbolic-ref -q --short HEAD || echo "(detached)")
+sha=$(git rev-parse --short HEAD)
+if git rev-parse -q --verify "$base" >/dev/null; then
+  read -r behind ahead < <(git rev-list --left-right --count "$base...HEAD")
+  rel="ahead=$ahead behind=$behind of $base"
+else
+  rel="base $base not found"
+fi
+
+staged=0 unstaged=0 untracked=0 conflicted=0
+while IFS= read -r line; do
+  x=${line:0:1} y=${line:1:1}
+  if [[ $x == "?" ]]; then ((untracked++)); continue; fi
+  if [[ $x == U || $y == U || $x$y == AA || $x$y == DD ]]; then ((conflicted++)); continue; fi
+  [[ $x != " " ]] && ((staged++))
+  [[ $y != " " ]] && ((unstaged++))
+done < <(git status --porcelain=v1 2>/dev/null)
+
+kind=main
+[[ $(git rev-parse --git-dir) != "$(git rev-parse --git-common-dir)" ]] && kind=worktree
+echo "$branch@$sha  $rel  staged=$staged unstaged=$unstaged untracked=$untracked conflicted=$conflicted  $kind $(git rev-parse --show-toplevel)"
+if [[ $rel == ahead=* ]] && ((ahead > 0)); then
+  git log --oneline -5 "$base..HEAD" | cut -c1-120
+fi
