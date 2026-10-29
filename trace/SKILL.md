@@ -25,12 +25,17 @@ Use docs for user-facing terminology, commands, examples, and task steps. Check 
 
 A dependency name or pinned version does not establish unavailable internals. Repository docs can provide supported setup instructions for external tools without their internals being present. Trace the repo's inputs to external systems and its handling of their outputs when relevant; leave missing internals or runtime configuration unknown.
 
-## Refresh the existing checkout
+## Pull the latest code first
 
-- Use the current checkout; do not create a worktree or branch for research. Respect an explicitly requested revision or offline session.
-- Inspect the root, branch, working-tree status, remotes, and upstream. On a clean branch with an upstream, run `git pull --ff-only` before searching, once per research session.
-- Preserve local edits. If dirty, fetch the configured remote without merging and research the current files, accounting for relevant local changes. If detached, missing an upstream, diverged, or unable to update, continue at the available revision. Mention the limitation only if it changes the answer.
-- Never stash, reset, rebase, switch branches, or guess another remote branch to force an update. Track the revision internally; fetching alone does not update working files.
+Before any search, bring the checkout up to date with the remote, once per research session. Answers from stale code are wrong answers. Skip this only for an explicitly requested revision or offline session.
+
+- Use the current checkout; do not create a worktree or branch for research. Inspect the root, branch, working-tree status, remotes, upstream, and the remote's default branch (`git symbolic-ref refs/remotes/<remote>/HEAD`, usually `origin/main`).
+- Run `git fetch <remote>` first.
+- Clean branch with an upstream: run `git pull --ff-only`.
+- Clean branch or detached HEAD without an upstream, such as an agent worktree branch: if HEAD has no commits missing from the remote default branch (`git merge-base --is-ancestor HEAD <remote>/<default>`), run `git merge --ff-only <remote>/<default>`.
+- Dirty, diverged, or with local commits: do not move HEAD. Research the current files, and check `git diff HEAD...<remote>/<default> -- <relevant paths>` so newer upstream changes to the feature are reflected in the answer.
+- If fetching fails, continue at the available revision. Mention the limitation only if it changes the answer.
+- Never stash, reset, rebase, or switch branches to force an update. Fetching alone does not update working files. Track the revision internally.
 
 ## Find the answer efficiently
 
