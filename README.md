@@ -16,13 +16,13 @@ The repo also holds the global agent instructions (`global/AGENTS.md`) and agent
 ## Install
 
 ```bash
-git clone git@github.com:peterpme/skills.git ~/skills
+git clone https://github.com/peterpme/skills.git ~/skills
 cd ~/skills && npm run setup
 ```
 
-`npm run setup` installs this checkout's Git hooks and symlinks each skill into the global skill folders for Claude Code, Codex, Cursor, Pi, and shared `.agents` discovery. It also links each `bin/` command into `~/.local/bin`, and `global/AGENTS.md` as `~/.codex/AGENTS.md`, `~/.pi/agent/AGENTS.md`, `~/.grok/AGENTS.md` and `~/.claude/CLAUDE.md`. Run setup once per clone; no dependencies need installing.
+`npm run setup` installs this checkout's Git hooks and symlinks each skill into the global skill folders for Claude Code, Codex, Cursor, Pi, and shared `.agents` discovery. It also links each `bin/` command into `~/.local/bin`, and `global/AGENTS.md` as `~/.codex/AGENTS.md`, `~/.pi/agent/AGENTS.md`, `~/.grok/AGENTS.md` and `~/.claude/CLAUDE.md`. Setup also installs a job that runs `git pull --ff-only` every 30 minutes: a launchd agent on macOS, a systemd user timer on Linux. Its log is `~/.local/state/personal-skills/pull.log`. Run setup once per clone; no dependencies need installing.
 
-Edits are live through the symlinks. `git pull` automatically links new skills after a merge or rebase. Run `npm run sync` to sync manually. If a destination already contains a different folder or link, sync moves it to `~/.local/state/personal-skills/backups/` before linking; it does not delete those files.
+Edits are live through the symlinks. A merged PR reaches every machine within 30 minutes. `git pull` automatically links new skills after a merge or rebase. Run `npm run sync` to sync manually. If a destination already contains a different folder or link, sync moves it to `~/.local/state/personal-skills/backups/` before linking; it does not delete those files.
 
 Hooks need Node on your PATH. A failed sync leaves the Git update in place; fix the reported error and run `npm run sync`. Hooks do not remove links for deleted skills. To remove one, delete its links from the global skill folders.
 

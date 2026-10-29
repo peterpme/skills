@@ -40,7 +40,7 @@ When a required flow cannot be exercised, say `implemented, unverified` for that
 
 ## Shell and tools
 
-Commands run in zsh 5.9 on macOS. In Claude Code and Grok my zshrc removes prezto's aliases and wrapper functions and makes zsh behave like bash for overwrites, globs and word splitting. Codex may run plain zsh, where `$var` does not split and an unmatched glob is an error. Either way:
+On the laptop and Mac mini, commands run in zsh 5.9 on macOS. On Linux machines such as the home agents box, the shell is bash with GNU tools, so skip the macOS notes below. In Claude Code and Grok my zshrc removes prezto's aliases and wrapper functions and makes zsh behave like bash for overwrites, globs and word splitting. Codex may run plain zsh, where `$var` does not split and an unmatched glob is an error. Either way:
 
 - Write scripts longer than one line for bash (`bash -c '…'` or a `#!/usr/bin/env bash` file). `bash` on PATH is Homebrew bash 5; `#!/bin/bash` runs Apple's bash 3.2, which has no `mapfile`, `${x,,}` or `declare -A`. Never assign `<(cmd)` to a variable; zsh closes it before it is read.
 - `sed`, `awk`, `xargs`, `date`, `stat` and `readlink` are the BSD versions. Use `sed -i ''` and `sed -E`; awk has no `a[x][y]` or `gensub`; use `gdate` for `date -d`. `head` has no `-z`. GNU versions exist only as `gdate`, `ghead`, `gstat`, `greadlink` and `gtimeout`. `timeout` exists. Use `jq` for JSON and `python3 -I` for other structured data.
@@ -56,6 +56,10 @@ Commands run in zsh 5.9 on macOS. In Claude Code and Grok my zshrc removes prezt
 - Don't prefix commands with `cd <dir> &&` when you are already in that directory; use absolute paths instead.
 - Commands you give me to paste run in my interactive shell, where `rm`, `cp` and `mv` prompt, `ls` is eza, `cat` is bat, and `^ # ~ ( |` must be quoted.
 - Also installed: `ast-grep` (`sg`), `jq`, `gh`, `delta`, `fzf`, Homebrew `python3` (bare: no Pillow, numpy or other packages), `uv`, and node and yarn via vite-plus. For a one-off script that needs packages, run `uv run -q --with <pkg> python -I script.py` instead of installing them. `exiftool` is not installed; read EXIF with Pillow.
+
+## Home infrastructure
+
+My home setup (the cliproxy hub, Proxmox, Home Assistant, the Mac mini, the home agents box, Tailscale and the router) is documented in the private repo `peterpme/home`, cloned at `~/Projects/home` on the laptop. Before you inspect or change any of it, run `git -C ~/Projects/home pull --ff-only` and read the README and the matching doc. When you change the setup, update that doc in the same task. Never write secrets there; each doc says where its secrets live. Without a checkout, read it with `gh` or ask me.
 
 ## Session logs
 

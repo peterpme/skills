@@ -15,3 +15,4 @@ if (current && current !== ".githooks") {
 execFileSync("git", ["config", "--local", "core.hooksPath", ".githooks"], { cwd: root });
 await import("./sync-skills.mjs");
 console.log("Installed hooks: git pull now syncs skills after merge or rebase.");
+await import("./autoupdate.mjs");
