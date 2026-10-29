@@ -25,12 +25,16 @@ Use docs for user-facing terminology, commands, examples, and task steps. Check 
 
 A dependency name or pinned version does not establish unavailable internals. Repository docs can provide supported setup instructions for external tools without their internals being present. Trace the repo's inputs to external systems and its handling of their outputs when relevant; leave missing internals or runtime configuration unknown.
 
-## Refresh the existing checkout
+## Pull the latest code first
 
-- Use the current checkout; do not create a worktree or branch for research. Respect an explicitly requested revision or offline session.
-- Inspect the root, branch, working-tree status, remotes, and upstream. On a clean branch with an upstream, run `git pull --ff-only` before searching, once per research session.
-- Preserve local edits. If dirty, fetch the configured remote without merging and research the current files, accounting for relevant local changes. If detached, missing an upstream, diverged, or unable to update, continue at the available revision. Mention the limitation only if it changes the answer.
-- Never stash, reset, rebase, switch branches, or guess another remote branch to force an update. Track the revision internally; fetching alone does not update working files.
+Before any search, bring the checkout up to date with the remote, once per research session. Answers from stale code are wrong answers. Skip this only for an explicitly requested revision or offline session.
+
+- Research in the current checkout, normally the main branch. Do not create a worktree or branch. Inspect the branch, working-tree status, and upstream.
+- Clean branch with an upstream, the usual case (`main` tracking `origin/main`): run `git pull --ff-only`.
+- Dirty or diverged: run `git fetch` and do not move HEAD. Research the current files, and check `git diff HEAD...@{u} -- <relevant paths>` so newer upstream changes to the feature are reflected in the answer.
+- Detached or without an upstream: fetch, and compare the relevant paths against the remote default branch (usually `origin/main`) the same way.
+- If fetching fails, continue at the available revision. Mention the limitation only if it changes the answer.
+- Never stash, reset, rebase, or switch branches to force an update. Fetching alone does not update working files. Track the revision internally.
 
 ## Find the answer efficiently
 
