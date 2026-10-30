@@ -10,6 +10,7 @@ Personal agent skills. One folder per skill at the repository root.
 - [delegate](delegate/SKILL.md): Delegate investigations, tickets and reviews with model and effort routing, self-contained briefs and stall checks.
 - [t3-loadbalancer](t3-loadbalancer/SKILL.md): Move running T3 Code threads between Claude accounts and Cursor as 5-hour usage runs low or recovers.
 - [effect-v4](effect-v4/SKILL.md): Effect v4 reference for writing, reviewing and testing Effect TypeScript code.
+- [new-repo](new-repo/SKILL.md): Create or standardize a GitHub repo: branch ruleset with one required `ci` check, cached Rust or TypeScript (Vite+) CI, Dependabot, and Railway deploys gated on CI. `scripts/github-setup` applies the settings.
 
 The repo also holds the global agent instructions (`global/AGENTS.md`) and agent helper commands (`bin/`).
 

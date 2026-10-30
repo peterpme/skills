@@ -1,0 +1,6 @@
+# Pin an exact release so CI, Docker and every machine build with the same
+# compiler and clippy lints. Bump it in its own PR.
+[toolchain]
+channel = "1.99.1"
+components = ["clippy", "rustfmt"]
+profile = "minimal"

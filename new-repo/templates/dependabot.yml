@@ -1,0 +1,40 @@
+# .github/dependabot.yml. Keep the ecosystems the repo uses: github-actions
+# always; cargo and rust-toolchain for Rust; npm for TypeScript (it also reads
+# pnpm and yarn lockfiles); docker when there is a Dockerfile.
+# cooldown skips releases younger than a week, since most compromised
+# packages are pulled within days. It never delays security updates.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+    cooldown: { default-days: 7 }
+    groups:
+      actions: { patterns: ["*"] }
+
+  - package-ecosystem: cargo
+    directory: /
+    schedule: { interval: weekly }
+    cooldown: { default-days: 7 }
+    groups:
+      cargo-minor:
+        update-types: [minor, patch]
+
+  # Bumps the channel in rust-toolchain.toml. Bump the cargo-chef image tag in
+  # the Dockerfile in the same PR so the two compilers match.
+  - package-ecosystem: rust-toolchain
+    directory: /
+    schedule: { interval: weekly }
+
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: weekly }
+    cooldown: { default-days: 7 }
+    groups:
+      npm-minor:
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker
+    directory: /
+    schedule: { interval: weekly }
+    cooldown: { default-days: 7 }
