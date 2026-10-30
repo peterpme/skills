@@ -36,32 +36,16 @@ jobs:
         with:
           cache: true
           cache-save: ${{ github.ref == 'refs/heads/main' }}
-      # oxfmt, oxlint and type-aware lint plus full type checking (tsgolint on
-      # the TypeScript 7 toolchain). Warnings fail the build.
+      # oxfmt and oxlint. Warnings fail the build.
       - run: vp check --deny-warnings
+      # Type check with tsrs, Cloudflare's Rust port of the TypeScript
+      # compiler: the `typecheck` script, `tsrs --noEmit`. Exits 2 on errors.
+      - run: vp run typecheck
       - run: vp test
       # The package.json build script: `vp build` for apps, `vp pack` for libraries.
       - run: vp run build
 
-  # Cloudflare's Rust port of the TypeScript compiler. Experimental, so it
-  # reports but never blocks; compare its output with `vp check` before
-  # trusting it. Delete this job if it gets noisy.
-  tsrs:
-    name: tsrs (advisory)
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-      - uses: voidzero-dev/setup-vp@v1.22.0
-        with:
-          cache: true
-          cache-save: false
-      - run: vp dlx tsrs --noEmit
-
-  # The only check the branch ruleset requires. Add every blocking job to
+  # The only check the branch ruleset requires. Add every job to
   # `needs`; then jobs can be added, renamed or skipped without editing the
   # ruleset.
   ci:

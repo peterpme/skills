@@ -1,6 +1,6 @@
 ---
 name: new-repo
-description: Create a new GitHub repository, or bring an existing one up to standard, with branch protection, one required CI check, cached Rust (clippy, rustfmt, nextest, cargo-deny) or TypeScript (Vite+ with oxfmt, oxlint, type checks) CI, Dependabot, and Railway deploys gated on CI. Use when creating a repo, setting up GitHub Actions or branch rules, or adding CI to a Rust or TypeScript project.
+description: Create a new GitHub repository, or bring an existing one up to standard, with branch protection, one required CI check, cached Rust (BeautifulRust clippy lints, rustfmt, nextest, cargo-deny) or TypeScript (Vite+ with oxfmt and oxlint, tsrs type checking) CI, Dependabot, and Railway deploys gated on CI. Use when creating a repo, setting up GitHub Actions or branch rules, or adding CI to a Rust or TypeScript project.
 ---
 
 # New repo
@@ -13,8 +13,8 @@ Templates live in `templates/` next to this file. Copy them, then edit names and
 
 - Ask for the name and visibility if the user did not give them. Default to private under `peterpme`.
 - Scaffold the project first so the first push already contains CI:
-  - Rust: `cargo init`, then copy `templates/rust/rust-toolchain.toml` and set `channel` to the current stable release (`rustup check`).
-  - TypeScript: `vp create` (Vite+), for example `vp create vite:application --no-interactive --package-manager pnpm`. Then run `vp check --fix`; a fresh scaffold does not pass its own format check. Keep `typeAware: true` and `typeCheck: true` under `lint.options` in `vite.config.ts`.
+  - Rust: `cargo init`, then copy `templates/rust/rust-toolchain.toml` and set `channel` to the current stable release (`rustup check`). Add the lints from section 2.
+  - TypeScript: `vp create` (Vite+), for example `vp create vite:application --no-interactive --package-manager pnpm`. Then switch type checking to tsrs: `vp remove typescript`, `vp add -D tsrs`, add `"typecheck": "tsrs --noEmit"` to the package.json scripts, and merge `templates/ts/vite.config.ts` into the scaffolded `vite.config.ts`. Run `vp check --fix` last; a fresh scaffold does not pass its own format check.
 - Copy the CI files (section 2), commit, then `gh repo create OWNER/NAME --private --source . --push`.
 
 For an existing repository, skip creation and go to section 2.
@@ -26,6 +26,9 @@ For an existing repository, skip creation and go to section 2.
 | Rust | `templates/rust/ci.yml` | `.github/workflows/ci.yml` |
 | Rust | `templates/rust/nextest.toml` | `.config/nextest.toml` |
 | Rust | `templates/rust/deny.toml` | `deny.toml` |
+| Rust | `templates/rust/clippy.toml` | `clippy.toml` |
+| Rust | `templates/rust/lints.toml` | the end of `Cargo.toml` (`[workspace.lints]` in a workspace root, with `[lints] workspace = true` in each member) |
+| TypeScript | `templates/ts/vite.config.ts` | merged into `vite.config.ts` |
 | TypeScript | `templates/ts/ci.yml` | `.github/workflows/ci.yml` |
 | Both | `templates/dependabot.yml` | `.github/dependabot.yml`, keeping only the ecosystems the repo uses |
 
@@ -40,13 +43,15 @@ What the templates do, and the rules to keep when editing them:
 - **Every job has `timeout-minutes`.** The default is 6 hours, which a hung build would burn from the monthly Actions minutes.
 - **Tags, not SHAs.** Actions are pinned to release tags and Dependabot bumps them weekly after a 7-day cooldown. Pin to commit SHAs instead for public or high-value repos.
 
+Rust lints come from [BeautifulRust](https://github.com/morganlinton/BeautifulRust) (`lints/`, MIT, vendored at a pinned commit; the header says where to refresh it). They turn on clippy's pedantic group plus rules such as no `unwrap()` outside tests, a reason on every `#[expect]`, a `// SAFETY:` comment on every `unsafe` block, no `bool` parameters and no lossy `as` casts. Applications delete the lines marked `[lib]`. Set `rust-version` in `Cargo.toml` to the toolchain's minor version (for example `"1.99"`); the suppression lints switch off below 1.81. Fix what they flag rather than allowing it; when a suppression is right, use `#[expect(lint, reason = "...")]`.
+
 Rust checks: `cargo fmt --check`, `cargo clippy --all-targets --all-features -- -D warnings`, `cargo nextest` plus doctests, `cargo deny` (advisories, licenses, duplicate crates, sources) and `cargo machete` (unused dependencies). `actions-rust-lang/setup-rust-toolchain` installs the version in `rust-toolchain.toml` and caches `~/.cargo` and `target/` with `Swatinem/rust-cache`, keyed per job and per `Cargo.lock`. `taiki-e/install-action` installs prebuilt tool binaries in seconds instead of compiling them. Doctests run only when a `src/lib.rs` exists, since `cargo test --doc` fails on binary-only crates. If `cargo machete` flags a crate that is only used through a macro, list it under `[package.metadata.cargo-machete] ignored`. Set `publish = false` in each crate's `Cargo.toml` unless it is published, or `cargo deny` fails on the missing license.
 
-TypeScript checks: `vp check --deny-warnings` runs oxfmt, oxlint, type-aware lint and the full type check (tsgolint on the TypeScript 7 Go toolchain), then `vp test` and the `build` script. `voidzero-dev/setup-vp` installs Vite+, Node and the package manager and caches the dependency store. Pin it to an exact tag; its `@v1` tag stopped updating at v1.15.0. Don't install oxlint, oxfmt or vitest directly; Vite+ wraps them.
+TypeScript checks: `vp check --deny-warnings` runs oxfmt and oxlint, `vp run typecheck` runs **tsrs**, then `vp test` and the `build` script. tsrs is Cloudflare's Rust port of the TypeScript compiler: it takes `tsc` flags and `tsconfig.json`, and exits 2 on type errors. It is pinned as a dev dependency, so Dependabot updates it and every run uses the same version. It is still experimental and has no language server, so editors keep using their bundled TypeScript. `voidzero-dev/setup-vp` installs Vite+, Node and the package manager and caches the dependency store. Pin it to an exact tag; its `@v1` tag stopped updating at v1.15.0. Don't install oxlint, oxfmt or vitest directly; Vite+ wraps them.
 
-The TypeScript template also runs **tsrs**, Cloudflare's Rust port of the TypeScript compiler (`vp dlx tsrs --noEmit`, exit 2 on type errors), as a non-blocking job. It is experimental, so it is not in `ci`'s `needs`. Make it blocking only after it has matched `vp check` on this repo for a while.
+Keep `typeAware` and `typeCheck` off in `vite.config.ts`: both run the TypeScript 7 toolchain, and tsrs replaces them. That gives up oxlint's type-aware rules such as `no-floating-promises`. Vite+ still installs TypeScript 7 as its own dependency, but nothing in check, test or build runs it. Libraries generate `.d.ts` files with oxc (`pack.dts.generator: "oxc"`), which needs explicit return types on exported functions and fails the build with TS9007 when one is missing.
 
-Verify locally before pushing: Rust with `cargo fmt --all --check && cargo clippy --workspace --all-targets --all-features --locked -- -D warnings && cargo nextest run && cargo deny check && cargo machete`, TypeScript with `vp check --deny-warnings && vp test && vp run build`.
+Verify locally before pushing: Rust with `cargo fmt --all --check && cargo clippy --workspace --all-targets --all-features --locked -- -D warnings && cargo nextest run && cargo deny check && cargo machete`, TypeScript with `vp check --deny-warnings && vp run typecheck && vp test && vp run build`.
 
 ## 3. Apply GitHub settings
 
@@ -82,5 +87,5 @@ Show the user the evidence, not a summary of steps:
 1. The settings and ruleset read back from the API: `gh api repos/OWNER/NAME --jq '{allow_squash_merge,allow_merge_commit,allow_rebase_merge,delete_branch_on_merge}'` and `gh api repos/OWNER/NAME/rulesets/ID`.
 2. `ci` green on the first `main` run, and `gh cache list` showing the saved caches.
 3. A direct `git push origin main` rejected with `GH013: Repository rule violations`.
-4. A PR containing a deliberate failure (a clippy warning, or a type error) with `ci` failing and the merge blocked. Close it and delete its branch afterwards.
+4. A PR containing a deliberate failure (an `unwrap()` or clippy warning, or a type error) with `ci` failing and the merge blocked. Close it and delete its branch afterwards.
 5. For Railway, a deploy that waited for CI, and its healthcheck passing.
