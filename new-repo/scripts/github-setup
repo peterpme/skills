@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+# github-setup OWNER/REPO [--ruleset FILE] [--check NAME]... [--dry-run]
+#
+# Applies the standard GitHub settings to a repository: squash-only merges,
+# auto-merge, branch cleanup, read-only workflow token, Dependabot alerts and
+# security updates, secret scanning where the plan allows it, and a branch
+# ruleset on the default branch. Safe to rerun; the ruleset is updated in place.
+#
+# Ruleset source, first match wins: --ruleset FILE, .github/rulesets/default.json
+# in the current directory, then this skill's templates/ruleset.json.
+# --check replaces the required status checks (repeat it for several).
+set -euo pipefail
+
+repo="" ruleset="" dry=0 checks=()
+while (($#)); do
+  case $1 in
+    --ruleset) ruleset=$2; shift 2 ;;
+    --check) checks+=("$2"); shift 2 ;;
+    --dry-run) dry=1; shift ;;
+    -h | --help) sed -n '2,11p' "$0" | cut -c3-; exit 0 ;;
+    */*) repo=$1; shift ;;
+    *) echo "github-setup: unexpected argument: $1" >&2; exit 2 ;;
+  esac
+done
+[[ -n $repo ]] || { echo "usage: github-setup OWNER/REPO [--ruleset FILE] [--check NAME]... [--dry-run]" >&2; exit 2; }
+
+here=$(cd "$(dirname "$0")/.." && pwd)
+if [[ -z $ruleset ]]; then
+  if [[ -f .github/rulesets/default.json ]]; then ruleset=.github/rulesets/default.json; else ruleset=$here/templates/ruleset.json; fi
+fi
+[[ -f $ruleset ]] || { echo "github-setup: ruleset file not found: $ruleset" >&2; exit 2; }
+
+body=$(cat "$ruleset")
+if ((${#checks[@]})); then
+  jq -e 'any(.rules[]; .type == "required_status_checks")' <<<"$body" >/dev/null ||
+    { echo "github-setup: --check given but $ruleset has no required_status_checks rule" >&2; exit 2; }
+  body=$(jq --args '(.rules[] | select(.type == "required_status_checks") | .parameters.required_status_checks)
+    = [$ARGS.positional[] | {context: ., integration_id: 15368}]' <<<"$body" "${checks[@]}")
+fi
+name=$(jq -r .name <<<"$body")
+
+read -r visibility default_branch < <(gh api "repos/$repo" --jq '"\(.visibility) \(.default_branch)"')
+# The CI templates trigger on pushes to main, which saves caches and lets
+# Railway wait for CI. Another default branch silently loses both.
+[[ $default_branch == main ]] ||
+  { echo "github-setup: default branch is '$default_branch'; rename it to main first (gh api -X POST repos/$repo/branches/$default_branch/rename -f new_name=main)" >&2; exit 1; }
+
+# In dry-run mode, print each write instead of making it, and prefix results.
+done_=""
+if ((dry)); then done_="would set: "; fi
+run() {
+  if ((dry)); then echo "  gh api $*"; else gh api "$@" >/dev/null; fi
+}
+
+run -X PATCH "repos/$repo" --input - <<'JSON'
+{
+  "allow_squash_merge": true,
+  "allow_merge_commit": false,
+  "allow_rebase_merge": false,
+  "allow_auto_merge": true,
+  "allow_update_branch": true,
+  "delete_branch_on_merge": true,
+  "squash_merge_commit_title": "PR_TITLE",
+  "squash_merge_commit_message": "PR_BODY",
+  "has_wiki": false,
+  "has_projects": false
+}
+JSON
+echo "${done_}merge settings: squash only, auto-merge on, delete merged branches"
+
+run -X PUT "repos/$repo/actions/permissions/workflow" \
+  -f default_workflow_permissions=read -F can_approve_pull_request_reviews=false
+echo "${done_}workflow token: read-only, cannot approve PRs"
+
+run -X PUT "repos/$repo/vulnerability-alerts"
+run -X PUT "repos/$repo/automated-security-fixes"
+echo "${done_}dependabot: alerts and security updates on"
+
+secret='{"security_and_analysis": {"secret_scanning": {"status": "enabled"}, "secret_scanning_push_protection": {"status": "enabled"}}}'
+if ((dry)); then
+  run -X PATCH "repos/$repo" --input - <<<"$secret"
+  echo "${done_}secret scanning: on, with push protection, if the plan allows it"
+else
+  err=$(gh api -X PATCH "repos/$repo" --input - <<<"$secret" 2>&1 >/dev/null) || true
+  state=$(gh api "repos/$repo" --jq '.security_and_analysis.secret_scanning.status // "unavailable"')
+  if [[ $state == enabled ]]; then
+    echo "secret scanning: on, with push protection"
+  else
+    echo "secret scanning: $state for this $visibility repo${err:+ (${err%%$'\n'*})}"
+  fi
+fi
+if [[ $visibility == public ]]; then
+  run -X PUT "repos/$repo/private-vulnerability-reporting"
+  echo "${done_}private vulnerability reporting: on"
+fi
+
+id=$(gh api --paginate "repos/$repo/rulesets" | jq -rs --arg name "$name" 'first(add[] | select(.name == $name) | .id) // empty')
+if [[ -n $id ]]; then
+  run -X PUT "repos/$repo/rulesets/$id" --input - <<<"$body"
+  echo "${done_}ruleset '$name' updated (id $id)"
+else
+  run -X POST "repos/$repo/rulesets" --input - <<<"$body"
+  echo "${done_}ruleset '$name' created"
+fi
+echo "${done_}required checks: $(jq -r '[.rules[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | join(", ")' <<<"$body")"

@@ -1,0 +1,61 @@
+name: CI
+
+# Runs on pushes to main too: that run saves the caches PRs restore, and
+# Railway's "Wait for CI" only works when a workflow runs on push.
+# Never add a workflow-level `paths:` filter. A required check that never
+# starts blocks the PR forever; skip jobs inside the workflow instead.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A new push to a PR cancels its older run. Each main commit gets its own
+# group, so every merge is checked (and deployable) even when several land
+# close together.
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      # Installs Vite+, the Node version from package.json and the package
+      # manager, then runs `vp install`. Caches the dependency store keyed on
+      # the lockfile; only main saves it.
+      - uses: voidzero-dev/setup-vp@v1.22.0
+        with:
+          cache: true
+          cache-save: ${{ github.ref == 'refs/heads/main' }}
+      # oxfmt and oxlint. Warnings fail the build.
+      - run: vp check --deny-warnings
+      # Type check with tsrs, Cloudflare's Rust port of the TypeScript
+      # compiler: the `typecheck` script, `tsrs --noEmit`. Exits 2 on errors.
+      - run: vp run typecheck
+      - run: vp test
+      # The package.json build script: `vp build` for apps, `vp pack` for libraries.
+      - run: vp run build
+
+  # The only check the branch ruleset requires. Add every job to
+  # `needs`; then jobs can be added, renamed or skipped without editing the
+  # ruleset.
+  ci:
+    name: ci
+    if: always()
+    needs: [check]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: All required jobs passed or were skipped
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: jq -e 'all(.[]; .result == "success" or .result == "skipped")' <<<"$NEEDS"
