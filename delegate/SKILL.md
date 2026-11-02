@@ -15,7 +15,8 @@ Current routing (2026-10-20): do not start new Grok tasks through any provider; 
 | --- | --- | --- |
 | Implementation ticket | `claude-sonnet-5-5`, alternating `claudeAgent` and `claude1_` | high |
 | Read-only investigation: inventories, "find every place that…", log digging, spec or backend research | `claude-sonnet-5-5` (`claudeAgent` / `claude1_`) | medium |
-| Review of a PR or design | Sol (`gpt-6.1-sol`) on `codex` | xhigh |
+| Review of a PR, design or contract | Sol (`gpt-6.1-sol`) on `codex` | xhigh |
+| Second independent diff reviewer, or reviewer of a GPT-written contract | `claude-fable-5-1` on `claudeAgent` / `claude1_` | high |
 | Hardest reviews only | `claude-opus-5-5` on `claudeAgent` / `claude1_` | high |
 
 After Peter lifts the Grok pause: investigations on Grok low/medium, implementation on Grok high/xhigh, subject to the live catalog's supported options.
@@ -65,6 +66,6 @@ Use `delegate_task` with `isolation: "worktree"` when tasks edit files in parall
 
 ## Verify before you merge
 
-Read the diff and proof yourself. Compare the claimed result with the independent expected result and re-run the affected flow and required checks on the final combined artifact. Passing checks or a subagent's report alone do not prove the behavior. Mark blocked claims `implemented, unverified` with the missing prerequisite.
+Do not review the code yourself when orchestrating; independent reviewers do that (see `orchestrate` steps 5 and 6). Read the proof and gate evidence yourself. Compare the claimed result with the independent expected result and re-run the affected flow and required checks on the final combined artifact. Passing checks or a subagent's report alone do not prove the behavior. Mark blocked claims `implemented, unverified` with the missing prerequisite.
 
 Integrate the child's commits locally only within the authorized task. A skill does not authorize merging a pull request: follow the user's merge instructions and the repository's completion workflow. If local integration changes the target branch or its dependencies, repeat the affected verification there before handoff. Never report a subagent's claim as verified until you have inspected the evidence.
