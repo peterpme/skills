@@ -63,10 +63,10 @@ Lead with the answer:
 
 Backed up before removal: <tree → backup folder, or none>
 Watch: <trees with tracked edits that will be removed at 14 days, with idle days, or none>
-Needs your call: <FAILED items, or the biggest remaining items with commands when free space is low, or none>
+Needs your call: <FAILED items, or the biggest remaining items with commands when free space is low>
 ```
 
-When nothing was removed and free space is fine, report one line.
+Write the `Needs your call:` line only when something there needs Peter; otherwise leave it out. When nothing was removed and free space is fine, report one line. Scheduled runs keep Peter's feed clean: where the machine has a cleanup for scheduled-run threads, a run thread is deleted a few minutes after it finishes unless its report has a `Needs your call:` line. `history.log` keeps the record.
 
 ## Set up on a machine
 
@@ -81,6 +81,7 @@ Every machine with T3 Code gets its own daily run, because the cleanup is local.
    - `schedule: {type: "fixed_time", timeOfDay: "07:00"}`;
    - this prompt, with any `--root` arguments added:
 
-     > Run the clean-disk skill: one scheduled `disk-clean --apply` run on this machine, then the report. If `disk-clean` is not on PATH, say so in one line and stop.
+     > [t3-sentinel-run] Run the clean-disk skill: one scheduled `disk-clean --apply` run on this machine, then the report. If `disk-clean` is not on PATH, say so in one line and stop.
 
-4. Report the next run time.
+4. If `~/.t3/sentinel/config.json` exists, add the returned `scheduledTaskId` to its `cleanup_task_ids` list, so finished run threads are deleted. The `[t3-sentinel-run]` tag keeps the watchdog from treating the run as agent work.
+5. Report the next run time.
