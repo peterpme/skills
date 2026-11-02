@@ -44,5 +44,5 @@ for (const [file, targets] of Object.entries(globalFiles)) {
 
 // Agent helper commands: bin/<name> -> ~/.local/bin/<name> (on PATH via ~/.zprofile).
 for (const entry of await readdir(join(root, "bin"), { withFileTypes: true })) {
-  if (entry.isFile() && !entry.name.startsWith(".")) await link(join(root, "bin", entry.name), join(".local/bin", entry.name), "file");
+  if ((entry.isFile() || entry.isSymbolicLink()) && !entry.name.startsWith(".")) await link(join(root, "bin", entry.name), join(".local/bin", entry.name), "file");
 }

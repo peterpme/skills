@@ -1,13 +1,14 @@
 ---
 name: clean-disk
 description: Free disk space on Peter's machines with `disk-clean`, which removes dead or idle agent git worktrees (T3 Code, Claude, Codex, Cursor), Rust target folders not built in a week, idle Xcode DerivedData and old trash-cli items, and prunes pnpm and uv caches. Use for the scheduled Disk cleanup run, when a machine is low on disk space, when asked to delete stale worktrees or cargo targets, or when asked to set up daily disk cleanup on a machine.
+compatibility: macOS or Linux with git, gh and python3. Reads T3 Code's local database when present.
 ---
 
 # Clean disk
 
 Goal: no machine runs out of disk because of agent leftovers, and Peter never has to ask. One run is `disk-clean --apply`, then a short report.
 
-`disk-clean` (in `~/skills/bin`, on PATH after `npm run sync`) holds every deletion rule. Run `disk-clean --help` for them. Do not delete things by hand that the script would not delete. In particular:
+`disk-clean` (`scripts/disk-clean` in this skill, linked onto PATH as `disk-clean` by `npm run sync`) holds every deletion rule. Run `disk-clean --help` for them. Do not delete things by hand that the script would not delete. In particular:
 
 - Never remove a main checkout, delete a branch, or touch `~/Downloads`, `~/Documents`, Photos or the Finder trash (`~/.Trash`).
 - Never `rm -rf` a worktree. The script uses `git worktree remove`, saves uncommitted changes first, and keeps the branch.
