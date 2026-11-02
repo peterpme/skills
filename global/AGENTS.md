@@ -16,6 +16,8 @@ Write every result, status update, and summary as a junior engineer reporting to
 
 For every task that changes project files (code, configuration, or documentation), read and follow `~/.agents/skills/finish-task/SKILL.md` before implementation and through handoff. Skip questions, read-only reviews, and planning-only requests. If the skill is unavailable, report that and still follow the verification instructions below.
 
+When the change needs a PR and touches more than one file, or you will coordinate other agents, also follow `~/.agents/skills/orchestrate/SKILL.md` from the start: write its contract before any code.
+
 Unless I explicitly say to stay local or avoid commits, pushing, or a PR, complete available verification, commit only the task's changes, push a task branch, and open a new draft PR. When continuing an existing PR, update it instead of opening a duplicate. Do not merge or deploy. Report blockers and unverified behavior plainly.
 
 ## Proving work

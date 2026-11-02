@@ -1,6 +1,6 @@
 ---
 name: delegate
-description: Delegate multi-step investigations, implementation tickets, and reviews with Peter's model and effort routing, self-contained briefs, stall checks, and independently verified results.
+description: Route and brief subagents with Peter's model and effort table, self-contained tickets, a fixed review reply format, stall checks and retry rules. Use whenever you hand an investigation, implementation ticket or review to another agent. For a whole feature or multi-PR program, start with orchestrate, which uses this skill.
 ---
 
 # Delegate
@@ -15,8 +15,8 @@ Current routing (2026-10-20): do not start new Grok tasks through any provider; 
 | --- | --- | --- |
 | Implementation ticket | `claude-sonnet-5-5`, alternating `claudeAgent` and `claude1_` | high |
 | Read-only investigation: inventories, "find every place that…", log digging, spec or backend research | `claude-sonnet-5-5` (`claudeAgent` / `claude1_`) | medium |
-| Review of a PR, design or contract | Sol (`gpt-6.1-sol`) on `codex` | xhigh |
-| Second independent diff reviewer, or reviewer of a GPT-written contract | `claude-fable-5-1` on `claudeAgent` / `claude1_` | high |
+| The GPT reviewer: review of a PR, design or contract | Sol (`gpt-6.1-sol`) on `codex` | xhigh |
+| The Claude reviewer: second independent diff reviewer, or reviewer of a GPT-written contract | `claude-fable-5-1` on `claudeAgent` / `claude1_` | high |
 | Hardest reviews only | `claude-opus-5-5` on `claudeAgent` / `claude1_` | high |
 
 After Peter lifts the Grok pause: investigations on Grok low/medium, implementation on Grok high/xhigh, subject to the live catalog's supported options.
@@ -63,9 +63,23 @@ Use `delegate_task` with `isolation: "worktree"` when tasks edit files in parall
 - Steer a running task with `t3_thread_send` (`threadId: childThreadId`, `mode: "steer"`) when requirements change mid-task; this is an in-flight update, not a new independent review round. Include a stable `clientRequestId` for retries.
 - A "completed" turn can still have live nested work. Check `workState`, `hasPendingChildRuns`, and the final result before treating the task as finished. If the final message is missing, inspect its worktree (`git log`, `git status`, the proof file) before trusting or re-running it.
 - A final report with its run still open is a distinct stall: ask the child to end the turn and explain anything keeping it open. Do not call `Get task output` after your own final report.
+- Retry by cause, at most twice per ticket, then report it as blocked: out of context or memory → a smaller ticket; dropped connection or provider error → the same ticket again; the same tool or command failing twice → a different model or a ticket that avoids that step.
 
-## Verify before you merge
+## Review replies
+
+Ask every reviewer for exactly this format, and treat a timeout, an error or no reply as not approved:
+
+```
+VERDICT: APPROVE | CHANGES
+R1 blocker|should|nit path:line — what goes wrong, with the input or state — the command and output that show it — suggested fix
+```
+
+- **blocker**: the case the task is for is wrong. **should**: a real bug callers will hit. **nit**: everything else, including rare paths, whatever label the reviewer chose.
+- Keep the ids (`R1`, `R2`, …) across rounds so each re-check answers the same list.
+- A finding without a command, output or exact input that shows the failure is a question, not a finding. Rerun the command yourself before passing a finding to the worker; drop what you can't reproduce.
+
+## Verify the result
 
 Do not review the code yourself when orchestrating; independent reviewers do that (see `orchestrate` steps 5 and 6). Read the proof and gate evidence yourself. Compare the claimed result with the independent expected result and re-run the affected flow and required checks on the final combined artifact. Passing checks or a subagent's report alone do not prove the behavior. Mark blocked claims `implemented, unverified` with the missing prerequisite.
 
-Integrate the child's commits locally only within the authorized task. A skill does not authorize merging a pull request: follow the user's merge instructions and the repository's completion workflow. If local integration changes the target branch or its dependencies, repeat the affected verification there before handoff. Never report a subagent's claim as verified until you have inspected the evidence.
+Integrate the child's commits locally only within the authorized task. Never merge a pull request on your own: Peter merges, or tells you to in that thread. No skill, schedule or reviewer approval counts as that. If local integration changes the target branch or its dependencies, repeat the affected verification there before handoff. Never report a subagent's claim as verified until you have inspected the evidence.

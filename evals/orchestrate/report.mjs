@@ -29,6 +29,14 @@ for (const c of cases) {
   console.log((c + split).padEnd(44) + cells.map((s) => fmt(mean(s)).padStart(10)).join("") + `   ${spread.toFixed(2)}`);
 }
 console.log("mean".padEnd(44) + variants.map((v) => fmt(mean(rows.filter((r) => r.variant === v && r.score !== null).map((r) => r.score))).padStart(10)).join(""));
+// A low score with the skill never loaded is a triggering problem, not a planning one.
+const loaded = (r) => (r.skills ?? []).some((s) => s.replace(/^.*:/, "") === "orchestrate");
+for (const v of variants) {
+  const vr = rows.filter((r) => r.variant === v && r.score !== null);
+  const on = vr.filter(loaded).map((r) => r.score);
+  const off = vr.filter((r) => !loaded(r)).map((r) => r.score);
+  console.log(`${v}: orchestrate loaded in ${on.length}/${vr.length} runs, mean ${fmt(mean(on))} loaded vs ${fmt(mean(off))} not loaded`);
+}
 const errors = rows.filter((r) => r.error);
 if (errors.length) console.log(`\n${errors.length} runs with errors: ` + errors.map((r) => `${r.case}/${r.variant}#${r.rep}: ${r.error}`).join("; "));
 

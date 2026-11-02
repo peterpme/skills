@@ -1,6 +1,6 @@
 ---
 name: orchestrate
-description: Build what Peter asked for without him having to steer, by writing a contract (his goal, his decisions, acceptance checks, slices, defaults for open questions) before any code, having it reviewed once by the other model family, building through workers, reviewing each diff with two independent reviewers against the contract, and handing over only PRs that pass a ready gate. Use for any feature, fix or refactor bigger than a small single-file change, for multi-PR programs, and whenever you coordinate subagents.
+description: Ask once, get finished PRs. Turns a build request into a written contract (Peter's goal, his decisions, acceptance checks, slices, defaults for open questions), has it reviewed once by the other model family, builds through workers, reviews each diff by risk, and hands over only PRs that pass a ready gate. Use for a feature, fix or refactor that needs a PR and more than one file, for multi-PR programs, and whenever you coordinate several workers. Not for a one-file fix (finish-task) or one-off research or review (delegate).
 ---
 
 # Orchestrate
@@ -52,7 +52,7 @@ When Peter adds or changes a decision mid-task, update the contract right away a
 
 ## 2. Contract review, once
 
-Send the contract to one reviewer from the other model family: if a Claude model wrote it, Sol (`gpt-6.1-sol` on `codex`, `reasoningEffort: xhigh`); if GPT wrote it, Fable (`claude-fable-5-1`, `effort: high`). Give it the contract path, the repo and revision, and the request thread or Peter's words. Ask exactly:
+Send the contract to one reviewer from the other model family, routed with `delegate`'s table: the GPT reviewer if a Claude model wrote it, the Claude reviewer if GPT wrote it. Give it the contract path, the repo and revision, and the request thread or Peter's words. Ask exactly:
 
 - Which acceptance check is missing, or would pass while the result is still wrong?
 - Which part contradicts one of Peter's decisions, the repo's rules, or earlier review feedback?
@@ -63,7 +63,7 @@ Settle each point yourself: accept it and change the contract, or reject it with
 
 ## 3. Build through workers
 
-On anything with several slices or workers, you are the orchestrator: you write briefs, enforce the contract and run the gate. You do not implement or review code yourself. Keep as many workers running as Peter asked for, refilling a slot as soon as one finishes. Follow `delegate` for routing, briefs and stall checks. Each brief adds:
+On anything with several slices or workers, you are the orchestrator: you write briefs, enforce the contract and run the gate. You do not implement or review code yourself. Take the first slice all the way through the ready gate before starting the rest, so a wrong assumption costs one slice, not all of them. Then keep as many workers running as Peter asked for, refilling a slot as soon as one finishes. Follow `delegate` for routing, briefs and stall checks. Each brief adds:
 
 - the contract path and which slice this is;
 - the acceptance checks this slice must show, with expected results copied from the contract;
@@ -83,12 +83,15 @@ When a slice's CI is green, review it with depth matched to risk:
 
 | Change | Reviewers |
 |---|---|
-| Deleting dead code, pure moves, docs | One: Sol (`gpt-6.1-sol`, `xhigh`) |
-| Behavior changes | Two in parallel: Sol and Fable (`claude-fable-5-1`, `high`) |
-| Security, keys, money or auth | Sol and Fable at their highest effort, plus a check that only the intended files changed |
+| Deleting dead code, pure moves, docs | One: the GPT reviewer |
+| Behavior changes | Two in parallel: the GPT reviewer and the Claude reviewer |
+| Security, keys, money or auth | Both at their highest effort, plus a check that only the intended files changed |
 
-If Peter named the reviewers or their number, use his. Reviewers never see each other's findings. Give each the PR, the contract, and the commit SHA. Ask for findings only when they come with a concrete failure: input or state, what goes wrong, file and line. Also ask for contract violations: a decision ignored, scope crept, an acceptance check missing or faked, or a size cap exceeded.
+Models and efforts come from `delegate`'s table. If Peter named the reviewers or their number, use his. Reviewers never see each other's findings. Give each the PR, the contract, and the commit SHA, and ask for `delegate`'s review reply format: a verdict, then findings with severity, file and line, and the command and output that show the failure. Also ask for contract violations: a decision ignored, scope crept, an acceptance check missing or faked, or a size cap exceeded.
 
+- Rerun each finding's command before passing it on. Drop what doesn't reproduce.
+- Fix blockers and should-fix findings. Nits are optional, and declined ones go in the PR body as follow-ups.
+- Compare `git diff --shortstat` before and after review. If review made the diff bigger, cut back to what the contract needs before the next round.
 - The worker fixes every confirmed finding.
 - Each reviewer then re-checks only its own findings against the new SHA, in a new `delegate_task` round with the findings and responses.
 - At most two rounds. You decide what is left. Drop pure taste. If a disagreement changes what Peter gets, put it under "Needs your call".
@@ -104,7 +107,7 @@ A PR is ready only when all of these hold. Check them with the helpers, not from
 - The size is within the cap, or the PR body says why it can't be split.
 - The PR body states why it exists, what changed, the proof table, the reviewers with their model and reviewed SHA, and any codemod used.
 
-Then hand over in one message: one line per PR in merge order (`#n title: what it does, proof in one phrase`), followed by "Needs your call" with only what truly needs him, and what is unverified. Draft status and merging follow Peter's global instructions.
+Never merge on your own: Peter merges, or tells you to in that thread. No reviewer approval counts as that. Then hand over in one message: one line per PR in merge order (`#n title: what it does, proof in one phrase`), followed by "Needs your call" with only what truly needs him, and what is unverified. Draft status and merging follow Peter's global instructions.
 
 ## 7. Close out
 
