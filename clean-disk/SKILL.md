@@ -72,7 +72,7 @@ Write the `Needs your call:` line only when something there needs Peter; otherwi
 
 Every machine with T3 Code gets its own daily run, because the cleanup is local.
 
-1. Confirm `disk-clean --help` works. If it doesn't, run `git -C ~/skills pull --ff-only && npm --prefix ~/skills run sync`.
+1. Confirm `disk-clean --help` works. If it doesn't, run `git -C ~/skills pull --ff-only && npm --prefix ~/skills run sync`. If it still doesn't, this skill isn't merged to `main` yet: stop, because every scheduled run would fail.
 2. Run `disk-clean` (a dry run) and check that the removals make sense for this machine. Add `--root` dirs if repos live elsewhere.
 3. Call `schedule_task` with:
    - `projectId`: the "No project" (scratch) project from `t3_project_list`;
@@ -81,7 +81,7 @@ Every machine with T3 Code gets its own daily run, because the cleanup is local.
    - `schedule: {type: "fixed_time", timeOfDay: "07:00"}`;
    - this prompt, with any `--root` arguments added:
 
-     > [t3-sentinel-run] Run the clean-disk skill: one scheduled `disk-clean --apply` run on this machine, then the report. If `disk-clean` is not on PATH, say so in one line and stop.
+     > [t3-sentinel-run] Run the clean-disk skill: one scheduled `disk-clean --apply` run on this machine, then the report. If `disk-clean` is not on PATH, reply in one line starting with "Needs your call:" that the skill isn't installed, and stop.
 
 4. If `~/.t3/sentinel/config.json` exists, add the returned `scheduledTaskId` to its `cleanup_task_ids` list, so finished run threads are deleted. The `[t3-sentinel-run]` tag keeps the watchdog from treating the run as agent work.
 5. Report the next run time.
