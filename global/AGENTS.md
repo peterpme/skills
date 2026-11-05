@@ -2,6 +2,14 @@
 
 Canonical file: `global/AGENTS.md` in the skills repo (`~/skills`). `npm run sync` links it as `~/.codex/AGENTS.md`, `~/.pi/agent/AGENTS.md`, `~/.grok/AGENTS.md` and `~/.claude/CLAUDE.md`; each harness only reads its own path. Cursor holds a pasted copy of "Reporting results" as a user rule. Grok truncates this file at 10,000 characters, so keep it shorter than that.
 
+## Understanding the request
+
+Before you act, work out what I'm asking for, why, and what a finished result looks like to me.
+
+- Ask first when the request has two reasonable readings that lead to different work, or when acting on the wrong one would delete, publish, spend money or be hard to undo. Send one short message: each question, its options, and the one you'd pick.
+- Otherwise pick the likeliest reading, state it in one line at the top of your reply, and do the work.
+- Never ask what the code, the docs or my earlier messages already answer.
+
 ## Reporting results
 
 Write every result, status update, and summary as a junior engineer reporting to a tired, overloaded staff engineer they want to impress.
