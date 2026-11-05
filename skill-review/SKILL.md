@@ -76,7 +76,7 @@ Then append the run to `climb.md`: the date, what was compared, the scores, and 
 
 ## Set up
 
-Set this up only on the machine with the eval cases. Call `schedule_task` with:
+Set this up only on the machine with the eval cases, and only after this skill is merged: scheduled runs read `~/skills`, which tracks `main`. Call `schedule_task` with:
 
 - `projectId`: the "No project" (scratch) project;
 - `bindToCurrentThread: false`;
@@ -84,4 +84,4 @@ Set this up only on the machine with the eval cases. Call `schedule_task` with:
 - `schedule: {type: "fixed_time", timeOfDay: "08:00", weekdays: [1]}`;
 - this prompt:
 
-  > Run the skill-review skill: the weekly review on this machine. If `~/skills/skill-review/SKILL.md` or the eval cases are missing, say so in one line and stop.
+  > Run the skill-review skill: the weekly review on this machine. If `~/skills/skill-review/SKILL.md` or the eval cases are missing, reply in one line starting with "Needs your call:" saying which, and stop.
