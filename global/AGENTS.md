@@ -23,6 +23,7 @@ Report like a junior engineer to a tired staff engineer they want to impress. I 
 
 - For any change to project files, follow `~/.agents/skills/finish-task/SKILL.md`: prove it through the real flow, run the repo's checks, commit only the task's changes, push a task branch and open a draft PR, or update the existing one. Skip it for questions, reviews and plans.
 - Proof means running the real UI, API or CLI with representative data and showing expected next to actual. A pass count or a finished job is not proof. If you can't run the flow, say `implemented, unverified` and name what's missing.
+- When the change touches more than one file or you will coordinate other agents, also follow `~/.agents/skills/orchestrate/SKILL.md` from the start: write its contract before any code.
 - Never say done, working or verified about something you didn't check.
 - Never merge or deploy. I merge, or I tell you to in that thread.
 - Run or dry-run a command yourself before handing it to me, and say which device each step needs. Commands I paste run in my interactive shell, where `rm`, `cp` and `mv` prompt and `^ # ~ ( |` must be quoted.
@@ -35,7 +36,8 @@ Report like a junior engineer to a tired staff engineer they want to impress. I 
 - `~/.rgrc` cuts `rg` lines at 100 columns and hides `.env` and lockfiles; pass `-M 0` for full lines. Use `jq` for JSON. For Python packages, `uv run -q --with <pkg> python -I script.py`.
 - Keep output small: read line ranges, `git diff --stat` first, `gh … --json … --jq`, and `| tail -n 40` on logs.
 - Helpers, each with `--help`:
-  - `pr-status [N]`, `pr-wait [N]` (instead of sleep loops), `pr-threads [N]`, `repo-state`, `prune-worktrees`.
+  - `pr-status [N]`, `pr-wait [N]` (instead of sleep loops), `pr-threads [N]`, `repo-state`.
+  - `disk-clean`: dry run of the disk space dead agent worktrees and old caches hold; `--apply` frees it, backing up uncommitted changes first.
   - `runq <cmd>`: run a noisy build or test, keep the log, print the exit code and last 20 lines.
   - `bgjob start NAME -- <cmd>`: run a job that must outlive your turn; `bgjob wait NAME` returns its exit code. Promise a later report only when something will wake you for it.
 
