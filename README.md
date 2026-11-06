@@ -49,7 +49,7 @@ Manual-only skills set `disable-model-invocation: true`. Claude Code, Cursor, an
 
 ## Global instructions
 
-`global/AGENTS.md` is the one instruction file every harness reads; edit it here, not through the links. There is no shared global path: Codex, Pi and Grok each read `AGENTS.md` from their own home folder, and Claude Code only reads `~/.claude/CLAUDE.md`. Grok truncates it at 10,000 characters. Cursor stores user rules in its settings, so paste changes to "Reporting results" there by hand.
+`global/AGENTS.md` is the one instruction file every harness reads; edit it here, not through the links. There is no shared global path: Codex, Pi and Grok each read `AGENTS.md` from their own home folder, and Claude Code only reads `~/.claude/CLAUDE.md`. Cursor stores user rules in its settings, so paste changes to "Reporting results" there by hand.
 
 ## Agent helpers
 
