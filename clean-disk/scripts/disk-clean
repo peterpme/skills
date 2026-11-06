@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""disk-clean [--apply] [--only worktrees|cargo|caches] [--days 3] [--root DIR]... [-v]
+''''exec python3 "$0" "$@" #'''
+# Line 2 hands `bash disk-clean` or `sh disk-clean` to Python before the shell reads the docstring below.
+from __future__ import annotations
+__doc__ = """disk-clean [--apply] [--only worktrees|cargo|caches] [--days 3] [--root DIR]... [-v]
 
 Free disk space from regenerable things. Default is a dry run; --apply deletes.
 
@@ -24,7 +27,6 @@ add more.
 State: ~/.local/state/disk-clean/ (history.log, backups/ kept 60 days).
 Exit 0 ok, 1 something failed to delete, 2 usage error.
 """
-from __future__ import annotations
 
 import datetime as dt
 import json
