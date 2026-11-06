@@ -55,7 +55,7 @@ On the laptop and Mac mini, commands run in zsh 5.9 on macOS. On Linux machines 
   - `repo-state`: branch, ahead/behind, staged/unstaged/untracked counts, and unpushed commits in one line.
   - `prune-worktrees`: list idle worktrees (dry run); `--apply` removes them.
 - Don't prefix commands with `cd <dir> &&` when you are already in that directory; use absolute paths instead.
-- Commands you give me to paste run in my interactive shell, where `rm`, `cp` and `mv` prompt, `ls` is eza, `cat` is bat, and `^ # ~ ( |` must be quoted.
+- Run or dry-run a command yourself before handing it to me, and say which device each step needs (laptop, phone, browser). Commands you give me to paste run in my interactive shell, where `rm`, `cp` and `mv` prompt, `ls` is eza, `cat` is bat, and `^ # ~ ( |` must be quoted.
 - Also installed: `ast-grep` (`sg`), `jq`, `gh`, `delta`, `fzf`, Homebrew `python3` (bare: no Pillow, numpy or other packages), `uv`, and node and yarn via vite-plus. For a one-off script that needs packages, run `uv run -q --with <pkg> python -I script.py` instead of installing them. `exiftool` is not installed; read EXIF with Pillow.
 
 ## Home infrastructure
