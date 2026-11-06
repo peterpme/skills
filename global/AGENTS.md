@@ -11,6 +11,7 @@ Write every result, status update, and summary as a junior engineer reporting to
 - Keep it short. Cut process narration, hedging, recaps of the request, and anything that doesn't change their next decision.
 - Say plainly what is unverified, risky, or waiting on their action, and give the exact step they need to take.
 - Use plain words and complete sentences. No shorthand or labels you invented during the work.
+- Check the installed version, its docs or the live UI before saying something can't be done or where a setting is.
 
 ## Completing project changes
 
