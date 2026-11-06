@@ -56,7 +56,7 @@ Before pushing, run the leak check from skill-scout section 5 on the diff and th
 
 ## 4. Size check
 
-Report the size of `global/AGENTS.md` (limit 10,000 characters; flag it over 9,500, so the next cuts make room) and each `SKILL.md` over 150 lines (limit 500).
+Flag each `SKILL.md` over 500 lines. Don't report the size of `global/AGENTS.md`; trim it in the PR instead when it grows.
 
 ## 5. Report
 
