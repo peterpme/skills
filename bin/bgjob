@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# bgjob start NAME [--] COMMAND [ARGS...] | status NAME | wait NAME [-t SECS] | list
+#
+# Run a job that must outlive this shell, the agent's turn and any harness time
+# limit. `start` launches COMMAND in its own session (nohup + setsid), records
+# its pid, and writes the exit code to a done file when it ends. `status` prints
+# running, done (exit N) or died, plus the log tail. `wait` blocks until it ends
+# (default 600s, exit 124 on timeout) and exits with the job's code. It polls the
+# pid, so it never matches itself the way `pgrep -f` does. Jobs live in
+# <git root>/.verification/jobs/NAME/ (or ~/.local/state/bgjob outside a repo).
+# On another machine, run bgjob there over ssh, so ssh returns at once.
+set -uo pipefail
+
+usage() { sed -n '2,11p' "$0" | cut -c3-; }
+if root=$(git rev-parse --show-toplevel 2>/dev/null); then
+  base=$root/.verification/jobs
+else
+  base=$HOME/.local/state/bgjob
+fi
+
+alive() { [[ -s $1/pid ]] && kill -0 "$(cat "$1/pid")" 2>/dev/null; }
+
+state() {
+  local d=$1
+  if [[ -f $d/exit ]]; then
+    echo "done (exit $(cat "$d/exit"))"
+  elif alive "$d"; then
+    echo "running (pid $(cat "$d/pid"), $(($(date +%s) - $(cat "$d/started")))s)"
+  else
+    echo "died (no exit code; see log)"
+  fi
+}
+
+cmd=${1:-}; shift || true
+case $cmd in
+  start)
+    name=${1:?bgjob: start needs NAME}; shift
+    [[ ${1:-} == -- ]] && shift
+    (($#)) || { echo "bgjob: no command given" >&2; exit 2; }
+    d=$base/$name
+    if [[ -d $d ]] && alive "$d" && [[ ! -f $d/exit ]]; then
+      echo "bgjob: $name is already running (pid $(cat "$d/pid"))" >&2; exit 1
+    fi
+    rm -rf "$d"; mkdir -p "$d"
+    printf '%q ' "$@" >"$d/cmd"; date +%s >"$d/started"
+    # shellcheck disable=SC2016 # expands in the child shell
+    runner='"$@"; echo $? >"$BGJOB_D/exit.tmp"; mv "$BGJOB_D/exit.tmp" "$BGJOB_D/exit"'
+    if command -v setsid >/dev/null; then
+      BGJOB_D=$d nohup setsid bash -c "$runner" bgjob "$@" </dev/null >"$d/log" 2>&1 &
+    else
+      BGJOB_D=$d nohup perl -MPOSIX -e 'POSIX::setsid(); exec @ARGV' bash -c "$runner" bgjob "$@" </dev/null >"$d/log" 2>&1 &
+    fi
+    echo $! >"$d/pid"; disown 2>/dev/null || true
+    echo "started $name pid=$(cat "$d/pid") log=$d/log"
+    ;;
+  status)
+    name=${1:?bgjob: status needs NAME}; d=$base/$name
+    [[ -d $d ]] || { echo "bgjob: no job $name in $base" >&2; exit 2; }
+    echo "$name: $(state "$d")  log=$d/log"
+    tail -n 5 "$d/log" | cut -c1-300
+    ;;
+  wait)
+    name=${1:?bgjob: wait needs NAME}; shift; d=$base/$name; limit=600
+    [[ ${1:-} == -t ]] && limit=$2
+    [[ -d $d ]] || { echo "bgjob: no job $name in $base" >&2; exit 2; }
+    end=$(($(date +%s) + limit))
+    while [[ ! -f $d/exit ]] && alive "$d" && (($(date +%s) < end)); do sleep 2; done
+    echo "$name: $(state "$d")  log=$d/log"
+    tail -n 10 "$d/log" | cut -c1-300
+    if [[ -f $d/exit ]]; then exit "$(cat "$d/exit")"; fi
+    if alive "$d"; then exit 124; fi
+    exit 125
+    ;;
+  list)
+    [[ -d $base ]] || exit 0
+    for d in "$base"/*/; do d=${d%/}; echo "$(basename "$d"): $(state "$d")"; done
+    ;;
+  -h | --help | "") usage ;;
+  *) echo "bgjob: unknown command $cmd" >&2; usage >&2; exit 2 ;;
+esac
