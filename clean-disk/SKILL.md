@@ -1,7 +1,7 @@
 ---
 name: clean-disk
-description: Free disk space on Peter's machines with `disk-clean`, which removes dead or idle agent git worktrees (T3 Code, Claude, Codex, Cursor), Rust target folders not built in a week, idle Xcode DerivedData and old trash-cli items, and prunes pnpm and uv caches. Use for the scheduled Disk cleanup run, when a machine is low on disk space, when asked to delete stale worktrees or cargo targets, or when asked to set up daily disk cleanup on a machine.
-compatibility: macOS or Linux with git, gh and python3. Reads T3 Code's local database when present.
+description: Free disk space on Peter's machines with `disk-clean`, which removes merged or idle agent git worktrees (T3 Code, Claude, Codex, Cursor), Rust target folders not built in a week, build folders through Mole's `mo purge`, idle or orphaned Xcode DerivedData, replaced simulator runtimes and old trash-cli items, and empties uv, Gradle, Yarn and npm caches that pass a size cap. Use for the scheduled Disk cleanup run, when a machine is low on disk space, when asked to delete stale worktrees or cargo targets, or when asked to set up daily disk cleanup on a machine.
+compatibility: macOS or Linux with git, gh and python3. Uses Mole (`mo`) and Xcode's `simctl` when installed. Reads T3 Code's local database when present.
 ---
 
 # Clean disk
@@ -12,7 +12,7 @@ Goal: no machine runs out of disk because of agent leftovers, and Peter never ha
 
 - Never remove a main checkout, delete a branch, or touch `~/Downloads`, `~/Documents`, Photos or the Finder trash (`~/.Trash`).
 - Never `rm -rf` a worktree. The script uses `git worktree remove`, saves uncommitted changes first, and keeps the branch.
-- Do not run `mo clean` (Mole). It hung for over 10 minutes on the laptop.
+- Do not run `mo clean` (Mole). It stops at its developer-tools step (after Corepack) and never finishes; seen twice on the laptop on 2026-11-06, with and without uv whitelisted. `disk-clean` runs `mo purge --yes`, which finishes in about a minute.
 - `~/Library/Developer/CoreDevice/DeviceFS` is a mounted view of a connected iPhone, not local data. Ignore its size.
 - Put `gtimeout 120` on any `du` you run yourself.
 
@@ -25,10 +25,9 @@ Goal: no machine runs out of disk because of agent leftovers, and Peter never ha
    | Item | Command |
    |---|---|
    | `node_modules` in a main checkout not touched for 30+ days | `rm -rf <repo>/node_modules` (reinstall later) |
-   | `~/.cache/uv` | `uv cache clean` |
    | `~/Library/pnpm` | `pnpm store prune` already ran; the rest is in use |
-   | `~/Library/Developer/CoreSimulator` | `xcrun simctl delete <udid>` for simulators no longer needed |
-   | `~/.gradle/caches` | `rm -rf ~/.gradle/caches` |
+   | `~/Library/Developer/CoreSimulator/Devices` | `xcrun simctl delete <udid>` for simulators no longer needed |
+   | `~/.android/avd` | delete AVDs no longer needed in Android Studio's Device Manager |
    | Docker | `docker system prune` |
    | `~/.Trash` | Empty Trash in Finder |
    | `~/.rustup/toolchains` | `rustup toolchain uninstall <old nightly>` |
@@ -39,10 +38,29 @@ Goal: no machine runs out of disk because of agent leftovers, and Peter never ha
 
 The script only touches worktrees under agent paths: `~/.t3/worktrees`, `<repo>/.claude/worktrees`, `~/.codex/worktrees`, `.codex-worktrees` and `~/.cursor/worktrees`. Sibling clones such as `~/Projects/x/repo-feature` are left alone.
 
-- **Kept:** the tree is locked, a process is running in it, its branch has an open PR, or its T3 thread is still open and the tree isn't dead.
-- **Dead:** the branch's PR is merged or closed, the T3 thread is deleted or archived, or the tree has no tracked edits and HEAD is already in the default branch. A dead tree is removed once it has been idle for a day.
-- **Idle:** other trees are removed after 3 days idle. Trees with tracked edits wait 14 days and show as `watch` until then.
+A tree is removed once it has been idle long enough for its kind. Idle time counts from the newest of: a file edit in the tree, a commit, checkout or reset (the last reflog entry), and activity in its T3 thread. The index file's timestamp is not used, because background `git status` calls refresh it.
+
+| Kind | Removed after | Meaning |
+|---|---|---|
+| Merged | 1 idle day | The branch's PR is merged or closed, the T3 thread is deleted or archived, or (with no tracked edits) every commit is already in origin's default branch or a `production`, `release/*`, `stable` or `<app>-production-<version>` branch. Squash and rebase merges count. |
+| Clean | 3 idle days (`--days`) | No uncommitted or untracked files. Removing it loses nothing because the branch stays, so an open PR or open T3 thread doesn't keep it. |
+| Dirty | 14 idle days | Shown as `watch` from day 3. Changes are backed up before removal. |
+
+- **Never removed:** locked trees, and trees a process is running in.
 - **Backups:** before a tree with uncommitted changes is removed, the changes are saved to `~/.local/state/disk-clean/backups/<date>-<repo>-<tree>/` and kept 60 days. A detached commit that no branch holds is saved on a `rescued/<tree>-<sha>` branch.
+
+## Cache rules
+
+| Item | Rule |
+|---|---|
+| Project build folders | `mo purge --yes`: Mole's purge of `build`, `dist`, `Pods`, `.venv` and similar in projects with no file changed in 7 days |
+| Xcode DerivedData | Removed when its project folder is gone (such as a removed worktree) or it has been idle 7 days |
+| trash-cli trash | Items deleted 3+ days ago |
+| Simulator runtimes | Removed when unused for 14 days and a newer runtime of the same family exists (a device-specific runtime such as `iOS-27-2-iPhone19-4` is its own family) |
+| Simulators | `xcrun simctl delete unavailable` |
+| pnpm | `pnpm store prune` |
+| uv | `uv cache prune`, waiting at most 60 s for uv's lock. A long-running `uvx` MCP server holds that lock; then archives older than 14 days are removed directly. |
+| Size caps | Emptied when over the cap and not in use: uv 10 GB, Gradle 10 GB (skipped while a Gradle daemon runs), Yarn global cache 5 GB, npm 5 GB |
 
 To restore one, follow `README.txt` in its backup folder: `git worktree add <dir> <branch>`, then `git -C <dir> apply --index changes.patch` and `tar -xzf untracked.tar.gz -C <dir>`. To keep a tree out of cleanup, `git worktree lock <path>`.
 
@@ -59,7 +77,7 @@ Lead with the answer:
 |---|---|---|
 | Worktrees (dead or idle) | | |
 | Rust target folders | | |
-| DerivedData, trash, caches | | |
+| Build folders (Mole), DerivedData, runtimes, trash, caches | | |
 
 Backed up before removal: <tree → backup folder, or none>
 Watch: <trees with tracked edits that will be removed at 14 days, with idle days, or none>
