@@ -51,6 +51,7 @@ On the laptop and Mac mini, commands run in zsh 5.9 on macOS. On Linux machines 
   - `pr-wait [N]`: block until CI finishes, then print `pr-status` plus failed-job log tails. Use instead of `sleep` loops.
   - `pr-threads [N]`: unresolved review threads as `path:line @author comment url`.
   - `runq <cmd>`: run a noisy build, test or typecheck; keeps the full log and prints the exit code and last 20 lines.
+  - `bgjob start NAME -- <cmd>`: run a job that must outlive your turn or a harness time limit; `bgjob wait NAME` blocks with a timeout and returns its exit code. Promise a later report only when something will wake you for it.
   - `repo-state`: branch, ahead/behind, staged/unstaged/untracked counts, and unpushed commits in one line.
   - `prune-worktrees`: list idle worktrees (dry run); `--apply` removes them.
 - Don't prefix commands with `cd <dir> &&` when you are already in that directory; use absolute paths instead.

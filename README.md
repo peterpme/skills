@@ -53,6 +53,6 @@ Manual-only skills set `disable-model-invocation: true`. Claude Code, Cursor, an
 
 ## Agent helpers
 
-`bin/` holds small commands that replace the `gh` and `git` pipelines agents kept rewriting: `pr-status`, `pr-wait`, `pr-threads`, `runq` and `repo-state`. Each prints a compact summary and has `--help`. `global/AGENTS.md` lists them, which is how agents learn they exist; shell aliases would not work, because agent shells drop them. Keep the output short, since every line lands in an agent's context.
+`bin/` holds small commands that replace the `gh` and `git` pipelines agents kept rewriting: `pr-status`, `pr-wait`, `pr-threads`, `runq`, `bgjob` and `repo-state`. Each prints a compact summary and has `--help`. `global/AGENTS.md` lists them, which is how agents learn they exist; shell aliases would not work, because agent shells drop them. Keep the output short, since every line lands in an agent's context.
 
 Machine settings, including the zsh setup agents rely on, live in [dotfiles](https://github.com/peterpme/dotfiles), cloned at `~/dotfiles`.
