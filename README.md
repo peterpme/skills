@@ -11,6 +11,7 @@ Personal agent skills. One folder per skill at the repository root.
 - [t3-loadbalancer](t3-loadbalancer/SKILL.md): Move running T3 Code threads between Claude accounts and Cursor as 5-hour usage runs low or recovers.
 - [effect-v4](effect-v4/SKILL.md): Effect v4 reference for writing, reviewing and testing Effect TypeScript code.
 - [new-repo](new-repo/SKILL.md): Create or standardize a GitHub repo: branch ruleset with one required `ci` check, cached Rust (BeautifulRust lints) or TypeScript (Vite+, tsrs) CI, Dependabot, and Railway deploys gated on CI. `scripts/github-setup` applies the settings.
+- [clean-disk](clean-disk/SKILL.md): Daily on each machine, free disk space from dead or idle agent worktrees, stale Rust `target/` folders and old caches. `bin/disk-clean` holds the rules and backs up uncommitted changes first.
 
 The repo also holds the global agent instructions (`global/AGENTS.md`) and agent helper commands (`bin/`).
 
@@ -53,6 +54,6 @@ Manual-only skills set `disable-model-invocation: true`. Claude Code, Cursor, an
 
 ## Agent helpers
 
-`bin/` holds small commands that replace the `gh` and `git` pipelines agents kept rewriting: `pr-status`, `pr-wait`, `pr-threads`, `runq`, `bgjob` and `repo-state`. Each prints a compact summary and has `--help`. `global/AGENTS.md` lists them, which is how agents learn they exist; shell aliases would not work, because agent shells drop them. Keep the output short, since every line lands in an agent's context.
+`bin/` holds small commands that replace the `gh` and `git` pipelines agents kept rewriting: `pr-status`, `pr-wait`, `pr-threads`, `runq`, `bgjob`, `repo-state` and `disk-clean`. Each prints a compact summary and has `--help`. `global/AGENTS.md` lists them, which is how agents learn they exist; shell aliases would not work, because agent shells drop them. Keep the output short, since every line lands in an agent's context.
 
 Machine settings, including the zsh setup agents rely on, live in [dotfiles](https://github.com/peterpme/dotfiles), cloned at `~/dotfiles`.

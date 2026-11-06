@@ -1,0 +1,514 @@
+#!/usr/bin/env python3
+''''exec python3 "$0" "$@" #'''
+# Line 2 hands `bash disk-clean` or `sh disk-clean` to Python before the shell reads the docstring below.
+from __future__ import annotations
+__doc__ = """disk-clean [--apply] [--only worktrees|cargo|caches] [--days 3] [--root DIR]... [-v]
+
+Free disk space from regenerable things. Default is a dry run; --apply deletes.
+
+worktrees  Agent git worktrees (T3 Code, Claude, Codex, Cursor paths) that are
+           dead or idle. Dead: the branch's PR is merged or closed, its T3
+           thread is deleted or archived, or it has no tracked edits and HEAD is
+           already in origin's default branch. Removed once idle 1 day if dead,
+           else --days (3). Trees with
+           tracked edits wait 14 days unless dead. Never removed: locked trees,
+           trees a process is running in, trees with an open PR, trees whose T3
+           thread is still open (unless dead). Branches are kept. Uncommitted
+           changes are saved to the backups folder first, and a detached commit
+           no ref holds gets a rescued/<name>-<sha> branch.
+cargo      Rust target/ folders (CACHEDIR.TAG) not built in 7 days.
+caches     Xcode DerivedData projects idle 7 days, trash-cli items deleted over
+           7 days ago, unavailable simulators, `pnpm store prune`, `uv cache
+           prune`.
+
+Default roots: ~/Projects ~/.t3/worktrees ~/skills ~/dotfiles ~/.codex/worktrees
+~/.cursor/worktrees ~/.claude/worktrees. --root and DISK_CLEAN_ROOTS (colon-separated)
+add more.
+State: ~/.local/state/disk-clean/ (history.log, backups/ kept 60 days).
+Exit 0 ok, 1 something failed to delete, 2 usage error.
+"""
+
+import datetime as dt
+import json
+import os
+import re
+import shutil
+import sqlite3
+import subprocess
+import sys
+import tarfile
+import time
+from pathlib import Path
+
+HOME = Path.home()
+DAY = 86400
+NOW = time.time()
+STATE = Path(os.environ.get("DISK_CLEAN_STATE", HOME / ".local/state/disk-clean"))
+DEFAULT_ROOTS = ["~/Projects", "~/.t3/worktrees", "~/skills", "~/dotfiles", "~/.codex/worktrees",
+                 "~/.cursor/worktrees", "~/.claude/worktrees"]
+AGENT_MARKERS = ("/.t3/worktrees/", "/.claude/worktrees/", "/.codex/worktrees/", "/.codex-worktrees/",
+                 "/.cursor/worktrees/")
+SKIP_DIRS = {"node_modules", "target", ".git", "build", "dist", ".next", ".turbo", ".venv", "venv",
+             "Pods", "vendor", "__pycache__", "coverage", ".cache", ".yarn", ".gradle", "DerivedData"}
+DIRTY_DAYS = 14
+CARGO_DAYS = 7
+CACHE_DAYS = 7
+BACKUP_CAP = 200 * 2**20
+BACKUP_KEEP_DAYS = 60
+
+
+# Read-only git calls must not refresh the index, or the scan itself makes trees look recently used.
+ENV = {**os.environ, "GIT_OPTIONAL_LOCKS": "0"}
+
+
+def sh(args, cwd=None, timeout=120):
+    try:
+        p = subprocess.run(args, cwd=cwd, text=True, capture_output=True, timeout=timeout, env=ENV)
+        return p.returncode, p.stdout.strip(), p.stderr.strip()
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return 99, "", str(e)
+
+
+def git(path, *args, timeout=60):
+    return sh(["git", "-C", str(path), *args], timeout=timeout)
+
+
+def short(path):
+    s = str(path)
+    return "~" + s[len(str(HOME)):] if s.startswith(str(HOME)) else s
+
+
+def gb(n):
+    return f"{n / 1e9:.1f} GB" if n >= 1e9 else f"{n / 1e6:.0f} MB"
+
+
+def du(path):
+    code, out, _ = sh(["du", "-sk", str(path)], timeout=600)
+    try:
+        return int(out.split()[0]) * 1024
+    except (ValueError, IndexError):
+        return 0
+
+
+def mtime(p):
+    try:
+        return p.stat().st_mtime
+    except OSError:
+        return 0.0
+
+
+def under(path, parent):
+    try:
+        return Path(path).resolve().is_relative_to(Path(parent).resolve())
+    except OSError:
+        return False
+
+
+def process_cwds():
+    cwds = set()
+    proc = Path("/proc")
+    if proc.is_dir():
+        for p in proc.iterdir():
+            if p.name.isdigit():
+                try:
+                    cwds.add(os.readlink(p / "cwd"))
+                except OSError:
+                    pass
+        return cwds
+    code, out, _ = sh(["lsof", "-nP", "-w", "-d", "cwd", "-Fn"], timeout=90)
+    return {line[1:] for line in out.splitlines() if line.startswith("n/")}
+
+
+# ---------- worktrees ----------
+
+def t3_threads():
+    """worktree path -> most-alive T3 thread state: open > settled > archived > deleted."""
+    db = Path(os.environ.get("T3CODE_HOME", HOME / ".t3")) / "userdata/statev2.sqlite"
+    rank = {"open": 3, "settled": 2, "archived": 1, "deleted": 0}
+    states = {}
+    try:
+        con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+        rows = con.execute(
+            "select json_extract(payload_json,'$.worktreePath'), deleted_at, archived_at,"
+            " json_extract(payload_json,'$.settledAt') from orchestration_v2_projection_threads"
+            " where json_extract(payload_json,'$.worktreePath') is not null")
+        for path, deleted, archived, settled in rows:
+            s = "deleted" if deleted else "archived" if archived else "settled" if settled else "open"
+            if rank[s] > rank.get(states.get(path), -1):
+                states[path] = s
+    except sqlite3.Error:
+        pass
+    return states
+
+
+def find_repos(roots):
+    commons = set()
+    for root in roots:
+        for dirpath, dirnames, _ in os.walk(root):
+            if ".git" in dirnames or os.path.isfile(os.path.join(dirpath, ".git")):
+                code, out, _ = git(dirpath, "rev-parse", "--path-format=absolute", "--git-common-dir")
+                if code == 0:
+                    commons.add(Path(out))
+                dirnames.clear()
+                continue
+            dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")]
+    return sorted(commons)
+
+
+def list_worktrees(common):
+    code, out, _ = sh(["git", "--git-dir", str(common), "worktree", "list", "--porcelain"])
+    trees, cur = [], {}
+    for line in out.splitlines() + [""]:
+        if not line:
+            if "worktree" in cur:
+                trees.append(cur)
+            cur = {}
+            continue
+        key, _, val = line.partition(" ")
+        cur[key] = val or True
+    return trees
+
+
+def pr_states(common, cache={}):
+    """branch -> (state, number) from GitHub; {} when unknown."""
+    code, url, _ = sh(["git", "--git-dir", str(common), "remote", "get-url", "origin"])
+    m = re.search(r"github\.com[:/]([^/]+/[^/]+?)(?:\.git)?$", url)
+    if not m:
+        return {}
+    repo = m.group(1)
+    if repo not in cache:
+        code, out, _ = sh(["gh", "pr", "list", "-R", repo, "--state", "all", "--limit", "400",
+                           "--json", "headRefName,state,number"], timeout=60)
+        best = {}
+        for pr in json.loads(out) if code == 0 and out else []:
+            prev = best.get(pr["headRefName"])
+            if prev is None or pr["state"] == "OPEN" or (prev[0] != "OPEN" and pr["number"] > prev[1]):
+                best[pr["headRefName"]] = (pr["state"], pr["number"])
+        cache[repo] = best
+    return cache[repo]
+
+
+def last_used(path, gitdir):
+    newest = max(mtime(path), *(mtime(gitdir / f) for f in ("HEAD", "index", "logs/HEAD")))
+    cutoff = NOW - DAY
+    if newest >= cutoff:
+        return newest
+    for dirpath, dirnames, files in os.walk(path):
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
+        for f in files:
+            t = mtime(Path(dirpath) / f)
+            if t > newest:
+                newest = t
+    return newest
+
+
+def default_ref(path):
+    for ref in ("origin/HEAD", "origin/main", "origin/master"):
+        if git(path, "rev-parse", "-q", "--verify", ref)[0] == 0:
+            return ref
+    return None
+
+
+def inspect_tree(wt, common, threads, cwds, days):
+    path = Path(wt["worktree"])
+    branch = wt.get("branch", "").removeprefix("refs/heads/") if isinstance(wt.get("branch"), str) else ""
+    row = {"path": path, "common": common, "branch": branch or "(detached)", "size": 0}
+    if wt.get("locked"):
+        return {**row, "action": "keep", "why": "locked"}
+    if any(c == str(path) or c.startswith(str(path) + "/") for c in cwds):
+        return {**row, "action": "keep", "why": "a process is running in it"}
+    code, status, _ = git(path, "status", "--porcelain=v1", "-z", "--untracked-files=all")
+    if code != 0:
+        return {**row, "action": "keep", "why": "git status failed"}
+    entries = [e for e in status.split("\0") if e]
+    tracked = [e for e in entries if not e.startswith("??")]
+    untracked = [e[3:] for e in entries if e.startswith("??")]
+    pr = pr_states(common).get(branch) if branch else None
+    if pr and pr[0] == "OPEN":
+        return {**row, "action": "keep", "why": f"PR #{pr[1]} open"}
+
+    dead = None
+    if pr:
+        dead = f"PR #{pr[1]} {pr[0].lower()}"
+    thread = threads.get(str(path))
+    if not dead and thread in ("deleted", "archived"):
+        dead = f"T3 thread {thread}"
+    ref = default_ref(path)
+    if not dead and not tracked and ref and git(path, "merge-base", "--is-ancestor", "HEAD", ref)[0] == 0:
+        dead = f"HEAD is in {ref}"
+    if not dead and thread == "open":
+        return {**row, "action": "keep", "why": "T3 thread open"}
+
+    gitdir = Path(git(path, "rev-parse", "--absolute-git-dir")[1] or common)
+    idle = max(0.0, NOW - last_used(path, gitdir)) / DAY
+    need = 1 if dead else DIRTY_DAYS if tracked else days
+    row.update(idle=idle, tracked=len(tracked), untracked=untracked)
+    if idle < need:
+        if tracked and not dead and idle >= days:
+            return {**row, "action": "watch",
+                    "why": f"{len(tracked)} tracked edits, idle {idle:.0f}d, removed with backup at {DIRTY_DAYS}d"}
+        return {**row, "action": "keep", "why": f"used {idle:.1f}d ago"}
+    if untracked:
+        total = sum(mtime_size(path / u) for u in untracked)
+        if total > BACKUP_CAP:
+            return {**row, "action": "watch", "why": f"untracked files total {gb(total)}, too big to back up"}
+    why = dead or f"idle {idle:.0f}d"
+    if tracked or untracked:
+        why += f", backup of {len(tracked)} edits + {len(untracked)} new files"
+    return {**row, "action": "remove", "why": why}
+
+
+def mtime_size(p):
+    try:
+        return p.stat().st_size
+    except OSError:
+        return 0
+
+
+def backup(row):
+    path = row["path"]
+    repo = row["common"].parent.name if row["common"].name == ".git" else row["common"].name.removesuffix(".git")
+    dest = STATE / "backups" / f"{dt.date.today()}-{repo}-{path.name}"
+    dest.mkdir(parents=True, exist_ok=True)
+    code, patch, err = git(path, "diff", "HEAD", "--binary")
+    if code != 0:
+        raise RuntimeError(f"git diff failed: {err}")
+    (dest / "changes.patch").write_text(patch + "\n" if patch else "")
+    if row["untracked"]:
+        with tarfile.open(dest / "untracked.tar.gz", "w:gz") as tar:
+            for rel in row["untracked"]:
+                tar.add(path / rel, arcname=rel, recursive=False)
+    head = git(path, "rev-parse", "HEAD")[1]
+    (dest / "README.txt").write_text(
+        f"worktree {path}\nbranch {row['branch']}\nHEAD {head}\n\n"
+        f"Restore: git worktree add <dir> {row['branch'] if row['branch'] != '(detached)' else head}\n"
+        "  then: git -C <dir> apply --index changes.patch; tar -xzf untracked.tar.gz -C <dir>\n")
+    return dest
+
+
+def rescue_detached(row):
+    path = row["path"]
+    if row["branch"] != "(detached)":
+        return None
+    code, refs, _ = git(path, "for-each-ref", "--contains", "HEAD", "--count=1", "refs/heads", "refs/remotes")
+    if code == 0 and refs:
+        return None
+    sha = git(path, "rev-parse", "--short", "HEAD")[1]
+    name = f"rescued/{path.name}-{sha}"
+    code, _, err = git(path, "branch", name, "HEAD")
+    if code != 0:
+        raise RuntimeError(f"could not save detached commit: {err}")
+    return name
+
+
+def worktrees(roots, days, apply, verbose):
+    threads, cwds = t3_threads(), process_cwds()
+    me = Path.cwd().resolve()
+    rows, seen = [], set()
+    for common in find_repos(roots):
+        for wt in list_worktrees(common):
+            path = Path(wt["worktree"])
+            linked = (path / ".git").is_file() or wt.get("prunable") or not path.exists()
+            if path in seen or not linked or not any(m in str(path) + "/" for m in AGENT_MARKERS):
+                continue
+            seen.add(path)
+            if wt.get("prunable") or not path.exists():
+                rows.append({"path": path, "common": common, "branch": "", "action": "prune",
+                             "why": "folder already gone", "size": 0})
+                continue
+            if me == path or me.is_relative_to(path):
+                continue
+            rows.append(inspect_tree(wt, common, threads, cwds, days))
+
+    for r in rows:
+        if r["action"] in ("remove", "watch"):
+            r["size"] = du(r["path"])
+    failed = 0
+    if apply:
+        for r in rows:
+            if r["action"] != "remove":
+                continue
+            try:
+                notes = []
+                if (b := rescue_detached(r)):
+                    notes.append(f"saved commit on {b}")
+                if r.get("tracked") or r.get("untracked"):
+                    notes.append(f"backup {short(backup(r))}")
+                code, _, err = sh(["git", "--git-dir", str(r["common"]), "worktree", "remove", "--force",
+                                   str(r["path"])], timeout=900)
+                if code != 0:
+                    raise RuntimeError(err.splitlines()[-1] if err else "git worktree remove failed")
+                r["why"] += "".join(f"; {n}" for n in notes)
+            except Exception as e:  # report and keep going
+                failed += 1
+                r["action"], r["why"] = "FAILED", f"{r['why']}; {e}"
+        for common in {r["common"] for r in rows if r["action"] == "prune"}:
+            sh(["git", "--git-dir", str(common), "worktree", "prune"])
+
+    removed = [r for r in rows if r["action"] == "remove"]
+    print(f"worktrees: remove {len(removed)} ({gb(sum(r['size'] for r in removed))}), "
+          f"keep {sum(r['action'] in ('keep', 'watch') for r in rows)}")
+    order = {"FAILED": 0, "remove": 1, "watch": 2, "prune": 3, "keep": 4}
+    for r in sorted(rows, key=lambda r: (order[r["action"]], -r["size"])):
+        if r["action"] == "keep" and not verbose:
+            continue
+        size = gb(r["size"]) if r["size"] else ""
+        print(f"  {r['action']:<7} {size:>8}  {short(r['path'])}  {r['branch']}  ({r['why']})")
+    return sum(r["size"] for r in removed), failed, {str(r["path"]) for r in removed}
+
+
+# ---------- cargo ----------
+
+def cargo(roots, apply, skip_under):
+    found = []
+    for root in roots:
+        for dirpath, dirnames, _ in os.walk(root):
+            if "target" in dirnames and (Path(dirpath) / "target/CACHEDIR.TAG").exists():
+                found.append(Path(dirpath) / "target")
+            dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and d != ".git"]
+    rows, failed = [], 0
+    for t in sorted(set(found)):
+        if any(under(t, s) for s in skip_under):
+            continue
+        stamps = [mtime(t)] + [mtime(p) for p in t.glob("*")] + [mtime(p) for p in t.glob("*/.fingerprint")]
+        idle = (NOW - max(stamps)) / DAY
+        if idle < CARGO_DAYS:
+            size = du(t)
+            if size > 10e9:
+                rows.append(("keep", size, t, f"built {idle:.1f}d ago"))
+            continue
+        rows.append(("remove", du(t), t, f"not built for {idle:.0f}d"))
+    for i, (action, size, t, why) in enumerate(rows):
+        if apply and action == "remove":
+            try:
+                shutil.rmtree(t)
+            except OSError as e:
+                failed += 1
+                rows[i] = ("FAILED", size, t, f"{why}; {e}")
+    removed = [r for r in rows if r[0] == "remove"]
+    print(f"cargo: remove {len(removed)} target folders ({gb(sum(r[1] for r in removed))})")
+    for action, size, t, why in rows:
+        print(f"  {action:<7} {gb(size):>8}  {short(t)}  ({why})")
+    return sum(r[1] for r in removed), failed
+
+
+# ---------- caches ----------
+
+def caches(apply):
+    lines, freed, failed = [], 0, 0
+    derived = HOME / "Library/Developer/Xcode/DerivedData"
+    old = []
+    for d in derived.glob("*-*") if derived.is_dir() else []:
+        last = max([mtime(d)] + [mtime(d / p) for p in ("info.plist", "Logs/Build", "Build/Intermediates.noindex")])
+        if NOW - last > CACHE_DAYS * DAY:
+            old.append(d)
+    if old:
+        size = sum(du(d) for d in old)
+        freed += size
+        lines.append(f"  remove  {gb(size):>8}  Xcode DerivedData, {len(old)} projects idle {CACHE_DAYS}d+")
+        for d in old if apply else []:
+            shutil.rmtree(d, ignore_errors=True)
+
+    trash = HOME / ".local/share/Trash"
+    stale = []
+    for info in (trash / "info").glob("*.trashinfo") if trash.is_dir() else []:
+        m = re.search(r"DeletionDate=(\S+)", info.read_text(errors="ignore"))
+        try:
+            when = dt.datetime.fromisoformat(m.group(1)).timestamp() if m else mtime(info)
+        except ValueError:
+            when = mtime(info)
+        if NOW - when > CACHE_DAYS * DAY:
+            stale.append((info, trash / "files" / info.stem))
+    if stale:
+        size = sum(du(f) for _, f in stale if f.exists() or f.is_symlink())
+        freed += size
+        lines.append(f"  remove  {gb(size):>8}  {len(stale)} trash-cli items deleted {CACHE_DAYS}d+ ago")
+        for info, f in stale if apply else []:
+            try:
+                if f.is_dir() and not f.is_symlink():
+                    shutil.rmtree(f)
+                elif f.exists() or f.is_symlink():
+                    f.unlink()
+                info.unlink()
+            except OSError:
+                failed += 1
+
+    commands = []
+    if shutil.which("xcrun"):
+        commands.append(("unavailable simulators", ["xcrun", "simctl", "delete", "unavailable"]))
+    if shutil.which("pnpm"):
+        commands.append(("pnpm store prune", ["pnpm", "store", "prune"]))
+    if shutil.which("uv"):
+        commands.append(("uv cache prune", ["uv", "cache", "prune"]))
+    for label, cmd in commands:
+        if not apply:
+            lines.append(f"  run     {'':>8}  {label}")
+            continue
+        before = shutil.disk_usage(HOME).free
+        code, _, err = sh(cmd, cwd=HOME, timeout=900)
+        delta = shutil.disk_usage(HOME).free - before
+        status = gb(max(delta, 0)) if code == 0 else "FAILED"
+        failed += code != 0
+        lines.append(f"  ran     {status:>8}  {label}" + (f" ({err.splitlines()[-1]})" if code and err else ""))
+    print(f"caches: remove {gb(freed)} (prune commands report on --apply)")
+    print("\n".join(lines))
+    return freed, failed
+
+
+def prune_backups():
+    for d in (STATE / "backups").glob("*") if (STATE / "backups").is_dir() else []:
+        if NOW - mtime(d) > BACKUP_KEEP_DAYS * DAY:
+            shutil.rmtree(d, ignore_errors=True)
+
+
+def main(argv):
+    apply, verbose, only, days, roots = False, False, None, 3.0, []
+    it = iter(argv)
+    for a in it:
+        if a in ("-h", "--help"):
+            print(__doc__.strip())
+            return 0
+        elif a == "--apply":
+            apply = True
+        elif a in ("-v", "--verbose"):
+            verbose = True
+        elif a == "--only" and (v := next(it, "")) in ("worktrees", "cargo", "caches"):
+            only = v
+        elif a == "--days":
+            days = float(next(it, "3"))
+        elif a == "--root":
+            roots.append(next(it, ""))
+        else:
+            print(f"disk-clean: bad argument {a!r} (see --help)", file=sys.stderr)
+            return 2
+    extra = [r for r in os.environ.get("DISK_CLEAN_ROOTS", "").split(":") if r]
+    roots = [Path(r).expanduser() for r in DEFAULT_ROOTS + roots + extra]
+    roots = [r for r in roots if r.is_dir()]
+
+    start = shutil.disk_usage(HOME)
+    print(f"disk-clean {'APPLY' if apply else 'DRY RUN'}: {gb(start.free)} free of {gb(start.total)}")
+    planned, failed, gone = 0, 0, set()
+    if only in (None, "worktrees"):
+        n, f, gone = worktrees(roots, days, apply, verbose)
+        planned, failed = planned + n, failed + f
+    if only in (None, "cargo"):
+        n, f = cargo(roots, apply, gone)
+        planned, failed = planned + n, failed + f
+    if only in (None, "caches"):
+        n, f = caches(apply)
+        planned, failed = planned + n, failed + f
+    end = shutil.disk_usage(HOME)
+    if apply:
+        prune_backups()
+        msg = f"free space {gb(start.free)} -> {gb(end.free)}"
+        STATE.mkdir(parents=True, exist_ok=True)
+        with open(STATE / "history.log", "a") as log:
+            log.write(f"{dt.datetime.now():%Y-%m-%d %H:%M} {msg}, {failed} failed\n")
+    else:
+        msg = f"would free about {gb(planned)} plus prune commands; rerun with --apply"
+    print(("APPLY: " if apply else "DRY RUN: ") + msg + (f"; {failed} failed" if failed else ""))
+    return 1 if failed else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
