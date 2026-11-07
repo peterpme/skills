@@ -5,9 +5,10 @@
   "description": "Personal agent skills",
   "scripts": {
     "sync": "node scripts/sync-skills.mjs",
-    "list": "npx -y skills@1.7.2 list --global",
+    "list": "DISABLE_TELEMETRY=1 npx -y skills@1.7.6 list --global",
     "eval": "node evals/run.mjs",
     "release": "git diff --quiet && [ \"$(git branch --show-current)\" = main ] && npm version patch -m 'Release skills %s' && git push --follow-tags && npm run sync",
-    "setup": "node scripts/setup.mjs"
+    "setup": "node scripts/setup.mjs",
+    "cursor-rules": "node scripts/cursor-rules.mjs"
   }
 }
