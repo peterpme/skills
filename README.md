@@ -6,6 +6,7 @@ Personal agent skills. One folder per skill at the repository root.
 - [tldr-go](tldr-go/SKILL.md): Approve the last `/tldr` picks and have the agent do its next steps. Pass overrides like `/tldr-go 1 no, 2 B`.
 - [word-this](word-this/SKILL.md): Make a draft coherent while preserving your voice, casing, and prose. Invoke explicitly; automatic invocation is disabled.
 - [trace](trace/SKILL.md): Answer feature questions using the repository's docs and code. Invoke `$trace how does … work?`; automatic invocation is disabled.
+- [morning-brief](morning-brief/SKILL.md): Daily status run: applies the merge and 14-day rules to Peter's PRs, keeps the ledger current, posts one brief a day with only the decisions no rule covers.
 - [finish-task](finish-task/SKILL.md): Carry a project change through real-flow proof, required checks and a draft PR. `global/AGENTS.md` makes every harness load it.
 - [delegate](delegate/SKILL.md): Delegate investigations, tickets and reviews with model and effort routing, self-contained briefs and stall checks.
 - [orchestrate](orchestrate/SKILL.md): Build without Peter steering: a contract (his decisions, acceptance checks, slices, defaulted questions) reviewed once by the other model family, workers build, Sol and Fable review each diff, and only PRs that pass the ready gate reach him. `evals/orchestrate/` replays real tasks to score it.
