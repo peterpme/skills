@@ -27,7 +27,9 @@ git clone https://github.com/peterpme/skills.git ~/skills
 cd ~/skills && npm run setup
 ```
 
-`npm run setup` installs this checkout's Git hooks and symlinks each skill into the global skill folders for Claude Code, Codex, Cursor, Pi, and shared `.agents` discovery. It also links each `bin/` command into `~/.local/bin`, and `global/AGENTS.md` as `~/.codex/AGENTS.md`, `~/.pi/agent/AGENTS.md`, `~/.grok/AGENTS.md` and `~/.claude/CLAUDE.md`. Setup also installs a job that runs `git pull --ff-only` every 30 minutes: a launchd agent on macOS, a systemd user timer on Linux. Its log is `~/.local/state/personal-skills/pull.log`. Run setup once per clone; no dependencies need installing.
+`npm run setup` installs this checkout's Git hooks and symlinks each skill into the global skill folder of every harness: Claude Code (`~/.claude/skills`), Codex (`~/.codex/skills`), Cursor (`~/.cursor/skills`), Grok (`~/.grok/skills`), Pi (`~/.pi/agent/skills`) and the shared `~/.agents/skills`. It also links skills for OpenCode, GitHub Copilot, Droid, Gemini CLI and Windsurf when that harness's home folder exists. It links each `bin/` command into `~/.local/bin`, and `global/AGENTS.md` as `~/.codex/AGENTS.md`, `~/.pi/agent/AGENTS.md`, `~/.grok/AGENTS.md` and `~/.claude/CLAUDE.md`. Setup also installs a job that runs `git pull --ff-only` every 30 minutes: a launchd agent on macOS, a systemd user timer on Linux. Its log is `~/.local/state/personal-skills/pull.log`. Run setup once per clone; no dependencies need installing.
+
+`npm run list` shows what the [`skills` CLI](https://github.com/vercel-labs/skills) sees in the global folders. Sync does not use that CLI to install: it copies each skill into `~/.agents/skills` instead of linking the checkout, so edits would stop being live, and it has no support for the global instructions file or `bin/`. Its agent folder table (`docs/agents.md`) is where to look when adding a harness: add the folder to `destinations` or `optional` in `scripts/sync-skills.mjs`.
 
 Edits are live through the symlinks. A merged PR reaches every machine within 30 minutes. `git pull` automatically links new skills after a merge or rebase. Run `npm run sync` to sync manually. If a destination already contains a different folder or link, sync moves it to `~/.local/state/personal-skills/backups/` before linking; it does not delete those files.
 
@@ -55,7 +57,7 @@ Manual-only skills set `disable-model-invocation: true`. Claude Code, Cursor, an
 
 ## Global instructions
 
-`global/AGENTS.md` is the one instruction file every harness reads; edit it here, not through the links. There is no shared global path: Codex, Pi and Grok each read `AGENTS.md` from their own home folder, and Claude Code only reads `~/.claude/CLAUDE.md`. Cursor stores user rules in its settings, so paste changes to "Reporting results" there by hand.
+`global/AGENTS.md` is the one instruction file every harness reads; edit it here, not through the links. There is no shared global path: Codex, Pi and Grok each read `AGENTS.md` from their own home folder, and Claude Code only reads `~/.claude/CLAUDE.md`. Cursor stores user rules in its settings, not on disk, so it is the one harness sync cannot reach: after you change `global/AGENTS.md`, run `npm run cursor-rules`. It copies the file to the clipboard and prints the three clicks (Cursor Settings, Customize, Rules; select the User Rules text; paste).
 
 ## Agent helpers
 
