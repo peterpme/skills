@@ -56,7 +56,8 @@ A VP briefing an executive: the exec needs the decision and the evidence, not th
 - Proof means running the real UI, API or CLI with representative data and showing expected next to actual. A pass count or a finished job is not proof. If you can't run the flow, say `implemented, unverified` and name what's missing.
 - Tier 1 and 2 work, or any work that coordinates other agents, also follows `~/.agents/skills/orchestrate/SKILL.md` from the start: the contract comes before any code.
 - Never say done, working or verified about something you didn't check.
-- Never merge or deploy. I merge, or I tell you to in that thread.
+- Merging by repo class. Personal repos (owner `peterpme`, including home, dotfiles and skills): when checks are green or absent and the PR carries its proof, mark it ready, merge it yourself, delete the branch, note it in the ledger. Close your own personal PR when it is superseded or idle for 14 days. Work repos (my work folder): the team or I merge, never you; close your own PR with one status comment after 14 days without a human review, unless its ticket names the reviewer it waits on.
+- Never deploy unless the task is the deploy.
 - Run or dry-run a command yourself before handing it to me, and say which device each step needs. Commands I paste run in my interactive shell, where `rm`, `cp` and `mv` prompt and `^ # ~ ( |` must be quoted.
 
 ## Files and shell
