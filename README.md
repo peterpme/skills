@@ -10,12 +10,12 @@ Personal agent skills. One folder per skill at the repository root.
 - [finish-task](finish-task/SKILL.md): Carry a project change through real-flow proof, required checks and a draft PR. `global/AGENTS.md` makes every harness load it.
 - [delegate](delegate/SKILL.md): Delegate investigations, tickets and reviews with model and effort routing, self-contained briefs and stall checks.
 - [orchestrate](orchestrate/SKILL.md): Build without Peter steering: a contract (his decisions, acceptance checks, slices, defaulted questions) reviewed once by the other model family, workers build, Sol and Fable review each diff, and only PRs that pass the ready gate reach him. `evals/orchestrate/` replays real tasks to score it.
-- [skill-review](skill-review/SKILL.md): Weekly on the laptop, score the pending skill-scout PR against main on replays of real past tasks, add replay cases from the week's friction, and propose cuts that don't lower the score. Never merges.
+- [skill-review](skill-review/SKILL.md): Weekly: turns filed findings into one scored change and merges it when the replay eval says it helps; proposes cuts.
 - [t3-loadbalancer](t3-loadbalancer/SKILL.md): Move running T3 Code threads between Claude accounts and Cursor as 5-hour usage runs low or recovers.
 - [effect-v4](effect-v4/SKILL.md): Effect v4 reference for writing, reviewing and testing Effect TypeScript code.
 - [new-repo](new-repo/SKILL.md): Create or standardize a GitHub repo: branch ruleset with one required `ci` check, cached Rust (BeautifulRust lints) or TypeScript (Vite+, tsrs) CI, Dependabot, and Railway deploys gated on CI. `scripts/github-setup` applies the settings.
 - [clean-disk](clean-disk/SKILL.md): Daily on each machine, free disk space from merged or idle agent worktrees, stale Rust `target/` folders, build folders (through Mole), replaced simulator runtimes and oversized caches. `bin/disk-clean` holds the rules and backs up uncommitted changes first.
-- [skill-scout](skill-scout/SKILL.md): Every two hours on each machine, read new T3 Code turns for what frustrates Peter and what he looks for, and fold patterns that recur into the skills and the global default rules through one rolling draft PR. Never merges.
+- [skill-scout](skill-scout/SKILL.md): Daily read of this machine's T3 threads; recurring friction becomes finding issues in the private home ledger, never an open PR.
 
 The repo also holds the global agent instructions (`global/AGENTS.md`) and agent helper commands (`bin/`).
 
