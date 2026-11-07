@@ -37,30 +37,31 @@ Every issue you touch carries one area label (`backpack` or `personal`) and one 
 
 Style: BLUF and SITREP. The bottom line first, then fixed sections in a fixed order, every run, even when a section is empty (`none`). One item per line, vertical, never comma-joined, never a table, never a paragraph. Each line is slots, not a sentence: `repo#n · what · age or state · next step`, 12 words or fewer. Drop articles, greetings, narration and anything a rule already decided. Air traffic control reads back a clearance in the same word order every time; do the same, so Peter finds each thing in the same place each morning.
 
-One comment on the Morning brief issue, exactly this shape, starting at the first heading (GitHub shows the date, so no title or timestamp; markdown headings, bold refs, reply options in code spans, `_none_` for an empty section):
+One comment on the Morning brief issue, exactly this shape, starting at the first heading (GitHub shows the date, so no title or timestamp; markdown headings, every PR, issue and epic a markdown link, reply options in code spans, `_none_` for an empty section; never a line that says nothing changed or nothing happened, an empty section says that):
 
 ```
 ### Needs you
-1. **repo#n** · decision · `option` / `option` · pick **option**
+1. **[repo#n](url)** · decision · `option` / `option` · pick **option**
    (at most 5; only what no rule covers; each ends with the reply he can send)
 
 ### Your review
-- **repo#n** · author · what · age · CI ✅/❌ · who else approved
+- **[repo#n](url)** · author · what · age · CI ✅/❌ · who else approved
   (PRs where he is the requested reviewer, anywhere)
 
 ### Team review
-- **repo#n** · what · named reviewer · idle days
+- **[repo#n](url)** · what · named reviewer · idle days
   (his open work-org PRs waiting on the team)
 
 ### Blog
-- **repo#n** · title · draft · idle days
+- **[repo#n](url)** · title · draft · idle days
   (never merged, never closed, never counted as needing him)
 
 ### Other
-- anything else open that no rule settles: PRs in third-party repos, CI red, stale epics, Linear not connected
+- anything else open that no rule settles: PRs in third-party repos, CI red, Linear not connected
+- an epic only when it changed or is stale, one line each: link · what changed · next step
 
 ### Done
-- **repo#n** · merged or closed · when · what
+- **[repo#n](url)** · merged or closed · when · what
 ```
 
 Each open section is the full current state, so nothing from yesterday needs a "still open" list; add `new` after an item the last brief did not have. Done is different: it is a delta. Read the timestamp of your previous comment on the Morning brief issue and list only merges and closes after it, so he sees each one once. A Needs-you item leaves the list the run after he answers; apply his answer, note it on the epic, and never ask again. Fix stale epics with a comment on the epic, not here. Create no new issue except for a finding that fits no epic. Then reply in the thread with one line: the comment link, the number of Needs-you items, and the number of Done items. Stop.
