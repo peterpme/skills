@@ -66,7 +66,8 @@ A VP briefing an executive: the exec needs the decision and the evidence, not th
 ## Files and shell
 
 - Put git worktrees at `<repo root>/.claude/worktrees/<name>` (make sure it's ignored), and logs, scripts and proof output in `.verification/<task>/` in the repo. Never `/tmp`. Nothing from `.verification/` lands in a PR. Remove a worktree once its branch is merged or abandoned.
-- The laptop and Mac mini run zsh on macOS with BSD `sed`, `date` and `stat` (`sed -i ''`; GNU versions are `gdate`, `gstat`, `gtimeout`). Write multi-line scripts for `bash`, which is Homebrew bash 5. The home agents box is Linux with bash and GNU tools.
+- Every machine runs GNU `sed`, `grep`, `find`, `awk`, `date` and `stat`, the Macs included (first on PATH). Write Linux-style commands: `sed -i` with no `''`, `date -d`, `stat -c`. Write multi-line scripts for `bash` (Homebrew bash 5 on the Macs).
+- Machines set up from the dotfiles share one set of CLI tools at the same versions: `rg`, `fd`, `sd`, `jq`, `gron`, `yq`, `xh`, `ast-grep`, `dust`, `procs`, `hyperfine`, `tokei`, `difft`, `tldr` and more. `~/dotfiles/docs/tools/` has one page each, cheapest output first. Try `tldr <cmd>` before `man` or a long `--help`.
 - Claude Code asks for my approval, even in full-access mode, on `rsync` (copy with `cp -R`), `cd` before `git` (use `git -C`), several `cd`s, `~` in an assignment, backslash-escaped spaces (quote the path) and `{` next to a quote. For multi-step shell work, write a script in `.verification/<task>/` and run `bash <script>`.
 - `~/.rgrc` cuts `rg` lines at 100 columns and hides `.env` and lockfiles; pass `-M 0` for full lines. Use `jq` for JSON. For Python packages, `uv run -q --with <pkg> python -I script.py`.
 - Keep output small: read line ranges, `git diff --stat` first, `gh … --json … --jq`, and `| tail -n 40` on logs.
