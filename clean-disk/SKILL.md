@@ -18,6 +18,8 @@ Goal: no machine runs out of disk because of agent leftovers, and Peter never ha
 
 ## Run
 
+A scheduled run uses `disk-clean --apply --skip-if-free-over 100G`. Peter's rule: a machine with more than 100 GB free has nothing to gain, so the daily check ends in one line (`disk-clean SKIPPED: ...`, exit 0) without scanning or removing anything. A manual run, or any run Peter asks for, leaves the flag off and works as before. If the scheduled run prints `SKIPPED`, report that line and stop.
+
 1. Run `disk-clean --apply`. It prints each removal with its reason and size, then the free space before and after. When Peter asks interactively, apply right away too: everything it removes can be regenerated or is backed up.
 2. If anything is `FAILED`, read the reason. Fix it only if the fix is clearly safe, such as a stale `index.lock` with no git process running. Otherwise report it.
 3. If free space is still under 100 GB or 15% of the disk, measure the next biggest items with `gtimeout 120 du -sh` on these, and report the top ones with the exact command that would free each:
@@ -99,7 +101,7 @@ Every machine with T3 Code gets its own daily run, because the cleanup is local.
    - `schedule: {type: "fixed_time", timeOfDay: "07:00"}`;
    - this prompt, with any `--root` arguments added:
 
-     > [t3-sentinel-run] Run the clean-disk skill: one scheduled `disk-clean --apply` run on this machine, then the report. If `disk-clean` is not on PATH, reply in one line starting with "Needs your call:" that the skill isn't installed, and stop.
+     > [t3-sentinel-run] Run the clean-disk skill: one scheduled `disk-clean --apply --skip-if-free-over 100G` run on this machine, then the report (one line if it prints SKIPPED). If `disk-clean` is not on PATH, reply in one line starting with "Needs your call:" that the skill isn't installed, and stop.
 
 4. If `~/.t3/sentinel/config.json` exists, add the returned `scheduledTaskId` to its `cleanup_task_ids` list, so finished run threads are deleted. The `[t3-sentinel-run]` tag keeps the watchdog from treating the run as agent work.
 5. Report the next run time.
