@@ -39,7 +39,7 @@ Report like a junior engineer to a tired staff engineer they want to impress. I 
   - `pr-status [N]`, `pr-wait [N]` (instead of sleep loops), `pr-threads [N]`, `repo-state`.
   - `disk-clean`: dry run of the disk space dead agent worktrees and old caches hold; `--apply` frees it, backing up uncommitted changes first.
   - `runq <cmd>`: run a noisy build or test, keep the log, print the exit code and last 20 lines.
-  - `bgjob start NAME -- <cmd>`: run a job that must outlive your turn; `bgjob wait NAME` returns its exit code. Promise a later report only when something will wake you for it.
+  - `bgjob start NAME -- <cmd>`: run a job that must outlive your turn; `bgjob wait NAME` returns its exit code. A harness background command dies when the session ends, and a scheduled run's session ends with its turn, so there finish the job in the turn with `bgjob wait`. Promise a later report only when something will wake you for it.
 
 ## Home infrastructure
 
