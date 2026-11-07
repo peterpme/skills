@@ -35,6 +35,8 @@ Every issue you touch carries one area label (`backpack` or `personal`) and one 
 
 ## Write
 
+Test for every line: does it change what Peter does next? If not, it goes to the epic or nowhere. Coverage, timestamps, "unchanged" and anything the platform already shows fail that test.
+
 Style: BLUF and SITREP. The bottom line first, then fixed sections in a fixed order, every run, even when a section is empty (`none`). One item per line, vertical, never comma-joined, never a table, never a paragraph. Each line is slots, not a sentence: `repo#n · what · age or state · next step`, 12 words or fewer. Drop articles, greetings, narration and anything a rule already decided. Air traffic control reads back a clearance in the same word order every time; do the same, so Peter finds each thing in the same place each morning.
 
 One comment on the Morning brief issue, exactly this shape, starting at the first heading (GitHub shows the date, so no title or timestamp; markdown headings, every PR, issue and epic a markdown link, reply options in code spans, `_none_` for an empty section; never a line that says nothing changed or nothing happened, an empty section says that):
