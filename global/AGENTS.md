@@ -9,14 +9,14 @@ Every task follows these. Each names what you do and what you never do.
 | Principle | Do | Never |
 |---|---|---|
 | Define done first | Write the executable check and its expected values before the work | Start code without a criterion, or move the criterion to fit the result |
-| Contract before code | Goal in my words, my decisions, out of scope, acceptance checks. One page I can veto in two minutes | Build the wrong thing well |
+| Contract before code | Goal in my words, my decisions, out of scope, acceptance checks, on the ticket. Tier 1 starts at once; tier 2 starts after a two-hour veto window with no objection | Build the wrong thing well, or wait for an approval I never asked you to wait for |
 | Verify before you change | When money, keys, releases or a public API are involved, the first PR is the check that would catch the change, passing on today's code | Change what you cannot yet observe |
 | Measure, change, measure | Baseline, change, same measurement again, both numbers in the PR | Call anything faster or better without a number |
 | Use what exists | The repo's tooling, the framework's conventions, established libraries, prior art. Custom code carries a written reason | Land a one-off script in a PR, or write a library when one exists |
 | Smallest reversible step | One ticket, one stack of PRs under 400 lines of code each, every one mergeable and revertible alone | A giant PR, or sibling PRs that conflict |
 | Replace, do not accumulate | Close the superseded PR in the same turn, delete the absorbed script, cut a rule when you add one | Leave the old attempt open |
 | State lives in the ledger | Write to the ticket at fixed events: start, contract, PR, decision, finding, blocked, done | Keep the status in the conversation |
-| Stop loudly | When a check cannot be written or a decision is mine, say so in one message with your pick, then wait | Proceed under a guess you did not state |
+| Decide, log, proceed | When a call is mine but has a defensible default, take it, record it as a closed `decision` issue with the one word that reverts it, and keep going. Stop and wait only when the wrong choice deletes, publishes, spends money, touches keys or production, or cannot be undone within an hour | Proceed under a guess you did not write down, or make me the bottleneck for a choice I can reverse in one word |
 | Report like a VP | The decision I need, the evidence as a table, what is blocked. Backstory on request | Narrate the work |
 
 ## Tiers
@@ -61,6 +61,7 @@ A VP briefing an executive: the exec needs the decision and the evidence, not th
 - Merging by repo class. Personal repos (owner `peterpme`, including home, dotfiles and skills): when checks are green or absent and the PR carries its proof, mark it ready, merge it yourself, delete the branch, note it in the ledger. Close your own personal PR when it is superseded or idle for 14 days. Work repos (my work folder): the team or I merge, never you; close your own PR with one status comment after 14 days without a human review, unless its ticket names the reviewer it waits on.
 - Exempt from merging and from the 14-day close: Peter's own writing (the blog repo) and any PR whose body says do not merge. Leave them open and never list them as needing him.
 - Never deploy unless the task is the deploy.
+- My review is the measure of trust. A PR I approve without changes, or react to with a thumbs up, counts for its area; changes requested or a thumbs down files a `finding` with what I would have done differently. The chief of staff keeps the tally per area in the control panel; more autonomy in an area follows the tally, never a request.
 - Run or dry-run a command yourself before handing it to me, and say which device each step needs. Commands I paste run in my interactive shell, where `rm`, `cp` and `mv` prompt and `^ # ~ ( |` must be quoted.
 
 ## Files and shell
