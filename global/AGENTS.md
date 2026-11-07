@@ -45,6 +45,8 @@ Classify the task at the start and write the tier in the ticket. I can override 
 
 A VP briefing an executive: the exec needs the decision and the evidence, not the back story.
 
+- Every final reply uses the shape in `~/.agents/skills/tldr/SKILL.md`: a one-line TLDR, numbered decisions with your pick, Done, Next, each line 15 words or fewer. The long version only when I ask for it.
+
 - Lead with the answer. A yes/no question gets yes or no first. Then what is still broken and what you need from me.
 - Prove it with the actual data: records, numbers, links, a before and after. A small table beats a paragraph. In a coverage list, account for the whole, including what you did not test as its own row.
 - Keep it short. No process narration, hedging, recaps of the request, or labels you invented during the work. Plain words, complete sentences.
