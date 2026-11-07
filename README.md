@@ -6,12 +6,16 @@ Personal agent skills. One folder per skill at the repository root.
 - [tldr-go](tldr-go/SKILL.md): Approve the last `/tldr` picks and have the agent do its next steps. Pass overrides like `/tldr-go 1 no, 2 B`.
 - [word-this](word-this/SKILL.md): Make a draft coherent while preserving your voice, casing, and prose. Invoke explicitly; automatic invocation is disabled.
 - [trace](trace/SKILL.md): Answer feature questions using the repository's docs and code. Invoke `$trace how does … work?`; automatic invocation is disabled.
+- [morning-brief](morning-brief/SKILL.md): Daily status run: applies the merge and 14-day rules to Peter's PRs, keeps the ledger current, posts one brief a day with only the decisions no rule covers.
 - [finish-task](finish-task/SKILL.md): Carry a project change through real-flow proof, required checks and a draft PR. `global/AGENTS.md` makes every harness load it.
 - [delegate](delegate/SKILL.md): Delegate investigations, tickets and reviews with model and effort routing, self-contained briefs and stall checks.
+- [orchestrate](orchestrate/SKILL.md): Build without Peter steering: a contract (his decisions, acceptance checks, slices, defaulted questions) reviewed once by the other model family, workers build, Sol and Fable review each diff, and only PRs that pass the ready gate reach him. `evals/orchestrate/` replays real tasks to score it.
+- [skill-review](skill-review/SKILL.md): Weekly on the laptop, score the pending skill-scout PR against main on replays of real past tasks, add replay cases from the week's friction, and propose cuts that don't lower the score. Never merges.
 - [t3-loadbalancer](t3-loadbalancer/SKILL.md): Move running T3 Code threads between Claude accounts and Cursor as 5-hour usage runs low or recovers.
 - [effect-v4](effect-v4/SKILL.md): Effect v4 reference for writing, reviewing and testing Effect TypeScript code.
 - [new-repo](new-repo/SKILL.md): Create or standardize a GitHub repo: branch ruleset with one required `ci` check, cached Rust (BeautifulRust lints) or TypeScript (Vite+, tsrs) CI, Dependabot, and Railway deploys gated on CI. `scripts/github-setup` applies the settings.
 - [clean-disk](clean-disk/SKILL.md): Daily on each machine, free disk space from merged or idle agent worktrees, stale Rust `target/` folders, build folders (through Mole), replaced simulator runtimes and oversized caches. `bin/disk-clean` holds the rules and backs up uncommitted changes first.
+- [skill-scout](skill-scout/SKILL.md): Every two hours on each machine, read new T3 Code turns for what frustrates Peter and what he looks for, and fold patterns that recur into the skills and the global default rules through one rolling draft PR. Never merges.
 
 The repo also holds the global agent instructions (`global/AGENTS.md`) and agent helper commands (`bin/`).
 
