@@ -31,7 +31,7 @@ Classify the task at the start and write the tier in the ticket. I can override 
 
 ## Where state lives
 
-- Under my work folder (the home repo README names it): Linear. Elsewhere: issues in the private `home` repo at `~/Projects/home`. Create, update and close them yourself; I never approve a ledger entry.
+- Under my work folder (the home repo README names it): Linear. Elsewhere: issues in the private `home` repo at `~/Projects/home`. Create, update and close them yourself; I never approve a ledger entry. Every comment you write on a `home` issue ends with the HTML comment `<!-- agent -->` on its own line: gh posts as me, and the marker is how a watcher tells my answer from yours.
 - Knowledge about one codebase goes in that repo's agents file. Knowledge about a domain goes in its skill. A finding that lands in none of the three is a defect.
 - Past sessions are logged in `~/Documents/Claude/session-logs/` (categories in `categories.json`). When a topic clearly matches a category, read the 1-3 most recent relevant logs first.
 
