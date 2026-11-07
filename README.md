@@ -14,7 +14,7 @@ Personal agent skills. One folder per skill at the repository root.
 - [t3-loadbalancer](t3-loadbalancer/SKILL.md): Move running T3 Code threads between Claude accounts and Cursor as 5-hour usage runs low or recovers.
 - [effect-v4](effect-v4/SKILL.md): Effect v4 reference for writing, reviewing and testing Effect TypeScript code.
 - [new-repo](new-repo/SKILL.md): Create or standardize a GitHub repo: branch ruleset with one required `ci` check, cached Rust (BeautifulRust lints) or TypeScript (Vite+, tsrs) CI, Dependabot, and Railway deploys gated on CI. `scripts/github-setup` applies the settings.
-- [clean-disk](clean-disk/SKILL.md): Daily on each machine, free disk space from dead or idle agent worktrees, stale Rust `target/` folders and old caches. `bin/disk-clean` holds the rules and backs up uncommitted changes first.
+- [clean-disk](clean-disk/SKILL.md): Daily on each machine, free disk space from merged or idle agent worktrees, stale Rust `target/` folders, build folders (through Mole), replaced simulator runtimes and oversized caches. `bin/disk-clean` holds the rules and backs up uncommitted changes first.
 - [skill-scout](skill-scout/SKILL.md): Every two hours on each machine, read new T3 Code turns for what frustrates Peter and what he looks for, and fold patterns that recur into the skills and the global default rules through one rolling draft PR. Never merges.
 
 The repo also holds the global agent instructions (`global/AGENTS.md`) and agent helper commands (`bin/`).

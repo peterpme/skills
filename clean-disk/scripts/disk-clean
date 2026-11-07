@@ -6,20 +6,27 @@ __doc__ = """disk-clean [--apply] [--only worktrees|cargo|caches] [--days 3] [--
 
 Free disk space from regenerable things. Default is a dry run; --apply deletes.
 
-worktrees  Agent git worktrees (T3 Code, Claude, Codex, Cursor paths) that are
-           dead or idle. Dead: the branch's PR is merged or closed, its T3
-           thread is deleted or archived, or it has no tracked edits and HEAD is
-           already in origin's default branch. Removed once idle 1 day if dead,
-           else --days (3). Trees with
-           tracked edits wait 14 days unless dead. Never removed: locked trees,
-           trees a process is running in, trees with an open PR, trees whose T3
-           thread is still open (unless dead). Branches are kept. Uncommitted
-           changes are saved to the backups folder first, and a detached commit
-           no ref holds gets a rescued/<name>-<sha> branch.
+worktrees  Agent git worktrees (T3 Code, Claude, Codex, Cursor paths), by how
+           long since anyone used them (newest edit, commit or checkout, or T3
+           thread activity):
+             merged  1 day. Merged: its PR is merged or closed, its T3 thread
+                     is deleted or archived, or (with no tracked edits) every
+                     commit is already in origin's default branch or a
+                     production/release/stable branch, squash merges included.
+             clean   --days (3). No uncommitted or untracked files. An open PR
+                     or an open T3 thread does not keep it: the branch stays.
+             dirty   14 days, after saving the changes to the backups folder.
+           Never removed: locked trees and trees a process is running in.
+           Branches are kept, and a detached commit no ref holds gets a
+           rescued/<name>-<sha> branch.
 cargo      Rust target/ folders (CACHEDIR.TAG) not built in 7 days.
-caches     Xcode DerivedData projects idle 7 days, trash-cli items deleted over
-           7 days ago, unavailable simulators, `pnpm store prune`, `uv cache
-           prune`.
+caches     `mo purge --yes` (Mole: build folders in projects idle 7 days),
+           Xcode DerivedData idle 7 days or whose project is gone, trash-cli
+           items deleted 3+ days ago, simulator runtimes unused for 14 days
+           that a newer runtime replaces, unavailable simulators,
+           `pnpm store prune`, `uv cache prune`. Caches over their size cap are
+           emptied: uv 10 GB, Gradle 10 GB, Yarn 5 GB, npm 5 GB.
+           `mo clean` is not used: it hangs at its developer-tools step.
 
 Default roots: ~/Projects ~/.t3/worktrees ~/skills ~/dotfiles ~/.codex/worktrees
 ~/.cursor/worktrees ~/.claude/worktrees. --root and DISK_CLEAN_ROOTS (colon-separated)
@@ -53,6 +60,11 @@ SKIP_DIRS = {"node_modules", "target", ".git", "build", "dist", ".next", ".turbo
 DIRTY_DAYS = 14
 CARGO_DAYS = 7
 CACHE_DAYS = 7
+TRASH_DAYS = 3
+RUNTIME_DAYS = 14
+UV_ARCHIVE_DAYS = 14
+# Branches whose contents count as shipped, besides origin's default branch.
+SHIPPED_REF = re.compile(r"^(production|stable|release)$|^release[/-]|^[a-z]+-production-\d")
 BACKUP_CAP = 200 * 2**20
 BACKUP_KEEP_DAYS = 60
 
@@ -63,7 +75,8 @@ ENV = {**os.environ, "GIT_OPTIONAL_LOCKS": "0"}
 
 def sh(args, cwd=None, timeout=120):
     try:
-        p = subprocess.run(args, cwd=cwd, text=True, capture_output=True, timeout=timeout, env=ENV)
+        p = subprocess.run(args, cwd=cwd, text=True, capture_output=True, timeout=timeout, env=ENV,
+                           stdin=subprocess.DEVNULL)
         return p.returncode, p.stdout.strip(), p.stderr.strip()
     except (OSError, subprocess.TimeoutExpired) as e:
         return 99, "", str(e)
@@ -121,8 +134,18 @@ def process_cwds():
 
 # ---------- worktrees ----------
 
+def iso_ts(s):
+    try:
+        return dt.datetime.fromisoformat(s.replace("Z", "+00:00")).timestamp() if s else 0.0
+    except ValueError:
+        return 0.0
+
+
 def t3_threads():
-    """worktree path -> most-alive T3 thread state: open > settled > archived > deleted."""
+    """worktree path -> (most-alive thread state, newest activity of a live thread).
+
+    States rank open > settled > archived > deleted. Deleted and archived threads don't count as activity.
+    """
     db = Path(os.environ.get("T3CODE_HOME", HOME / ".t3")) / "userdata/statev2.sqlite"
     rank = {"open": 3, "settled": 2, "archived": 1, "deleted": 0}
     states = {}
@@ -130,12 +153,14 @@ def t3_threads():
         con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
         rows = con.execute(
             "select json_extract(payload_json,'$.worktreePath'), deleted_at, archived_at,"
-            " json_extract(payload_json,'$.settledAt') from orchestration_v2_projection_threads"
+            " json_extract(payload_json,'$.settledAt'), updated_at from orchestration_v2_projection_threads"
             " where json_extract(payload_json,'$.worktreePath') is not null")
-        for path, deleted, archived, settled in rows:
+        for path, deleted, archived, settled, updated in rows:
             s = "deleted" if deleted else "archived" if archived else "settled" if settled else "open"
-            if rank[s] > rank.get(states.get(path), -1):
-                states[path] = s
+            prev_state, prev_ts = states.get(path, (None, 0.0))
+            state = s if rank[s] > rank.get(prev_state, -1) else prev_state
+            ts = max(prev_ts, iso_ts(updated)) if s in ("open", "settled") else prev_ts
+            states[path] = (state, ts)
     except sqlite3.Error:
         pass
     return states
@@ -188,8 +213,25 @@ def pr_states(common, cache={}):
     return cache[repo]
 
 
-def last_used(path, gitdir):
-    newest = max(mtime(path), *(mtime(gitdir / f) for f in ("HEAD", "index", "logs/HEAD")))
+def reflog_time(gitdir):
+    """Time of the newest commit, checkout or reset in this tree, from the last reflog entry.
+
+    The index file's mtime is not used: editors and T3 run `git status` in the background, which
+    refreshes the index and made every tree look used in the last day.
+    """
+    try:
+        with open(gitdir / "logs/HEAD", "rb") as f:
+            f.seek(max(0, os.fstat(f.fileno()).st_size - 4096))
+            last = f.read().decode(errors="ignore").rstrip("\n").splitlines()[-1]
+        m = re.search(r"> (\d{9,}) [+-]\d{4}\t", last)
+        return float(m.group(1)) if m else 0.0
+    except (OSError, IndexError):
+        return 0.0
+
+
+def last_used(path, gitdir, thread_ts=0.0):
+    # Not the tree folder's own mtime: deleting a build folder in it (mo purge) bumps that every run.
+    newest = max(mtime(gitdir / "HEAD"), reflog_time(gitdir), thread_ts)
     cutoff = NOW - DAY
     if newest >= cutoff:
         return newest
@@ -203,9 +245,42 @@ def last_used(path, gitdir):
 
 
 def default_ref(path):
-    for ref in ("origin/HEAD", "origin/main", "origin/master"):
+    code, out, _ = git(path, "symbolic-ref", "-q", "--short", "refs/remotes/origin/HEAD")
+    if code == 0 and out:
+        return out
+    for ref in ("origin/main", "origin/master"):
         if git(path, "rev-parse", "-q", "--verify", ref)[0] == 0:
             return ref
+    return None
+
+
+def shipped(path, ref):
+    """Name the branch that already holds this tree's work, or None.
+
+    True when HEAD is in the default branch or a production/release/stable branch, or when every
+    commit on HEAD since it left the default branch has an equivalent patch there (squash or rebase merge).
+    """
+    code, out, _ = git(path, "for-each-ref", "--contains", "HEAD", "--format=%(refname:short)", "refs/remotes/origin")
+    names = out.splitlines() if code == 0 else []
+    if ref in names:
+        return ref
+    for name in names:
+        short_name = name.removeprefix("origin/")
+        if name == ref or SHIPPED_REF.search(short_name):
+            return name
+    if ref is None:
+        return None
+    # Squash merge: fold the branch into one commit on its merge base and ask whether the default
+    # branch already has an equivalent patch. The folded commit is an unreferenced object git gc drops.
+    code, base, _ = git(path, "merge-base", ref, "HEAD")
+    if code != 0:
+        return None
+    code, folded, _ = git(path, "commit-tree", "HEAD^{tree}", "-p", base, "-m", "disk-clean squash probe")
+    if code != 0:
+        return None
+    code, out, _ = git(path, "cherry", ref, folded, timeout=180)
+    if code == 0 and out.startswith("-"):
+        return f"{ref} (squash-merged)"
     return None
 
 
@@ -224,35 +299,37 @@ def inspect_tree(wt, common, threads, cwds, days):
     tracked = [e for e in entries if not e.startswith("??")]
     untracked = [e[3:] for e in entries if e.startswith("??")]
     pr = pr_states(common).get(branch) if branch else None
-    if pr and pr[0] == "OPEN":
-        return {**row, "action": "keep", "why": f"PR #{pr[1]} open"}
+    thread, thread_ts = threads.get(str(path), (None, 0.0))
 
+    # Merged: the work is already landed or abandoned. Removed after 1 idle day.
     dead = None
-    if pr:
+    if pr and pr[0] != "OPEN":
         dead = f"PR #{pr[1]} {pr[0].lower()}"
-    thread = threads.get(str(path))
     if not dead and thread in ("deleted", "archived"):
         dead = f"T3 thread {thread}"
-    ref = default_ref(path)
-    if not dead and not tracked and ref and git(path, "merge-base", "--is-ancestor", "HEAD", ref)[0] == 0:
-        dead = f"HEAD is in {ref}"
-    if not dead and thread == "open":
-        return {**row, "action": "keep", "why": "T3 thread open"}
+    if not dead and not tracked and (where := shipped(path, default_ref(path))):
+        dead = f"work is in {where}"
 
     gitdir = Path(git(path, "rev-parse", "--absolute-git-dir")[1] or common)
-    idle = max(0.0, NOW - last_used(path, gitdir)) / DAY
-    need = 1 if dead else DIRTY_DAYS if tracked else days
+    idle = max(0.0, NOW - last_used(path, gitdir, thread_ts)) / DAY
+    dirty = bool(tracked or untracked)
+    # Clean trees lose nothing (the branch stays), so an open PR or open thread doesn't hold them.
+    need = 1 if dead else DIRTY_DAYS if dirty else days
     row.update(idle=idle, tracked=len(tracked), untracked=untracked)
     if idle < need:
-        if tracked and not dead and idle >= days:
+        if dirty and not dead and idle >= days:
             return {**row, "action": "watch",
-                    "why": f"{len(tracked)} tracked edits, idle {idle:.0f}d, removed with backup at {DIRTY_DAYS}d"}
-        return {**row, "action": "keep", "why": f"used {idle:.1f}d ago"}
+                    "why": f"{len(tracked)} edits + {len(untracked)} new files, idle {idle:.0f}d, "
+                           f"removed with backup at {DIRTY_DAYS}d"}
+        rule = dead or ("dirty" if dirty else "clean")
+        return {**row, "action": "keep", "why": f"used {idle:.1f}d ago; {rule}, removed at {need:g}d idle"}
     if untracked:
         total = sum(mtime_size(path / u) for u in untracked)
         if total > BACKUP_CAP:
             return {**row, "action": "watch", "why": f"untracked files total {gb(total)}, too big to back up"}
-    why = dead or f"idle {idle:.0f}d"
+    why = f"{dead}, idle {idle:.1f}d" if dead else f"{'dirty' if dirty else 'clean'}, idle {idle:.0f}d"
+    if pr and pr[0] == "OPEN":
+        why += f", PR #{pr[1]} open (branch kept)"
     if tracked or untracked:
         why += f", backup of {len(tracked)} edits + {len(untracked)} new files"
     return {**row, "action": "remove", "why": why}
@@ -394,21 +471,98 @@ def cargo(roots, apply, skip_under):
 
 # ---------- caches ----------
 
-def caches(apply):
-    lines, freed, failed = [], 0, 0
+def remove_path(p):
+    if p.is_dir() and not p.is_symlink():
+        shutil.rmtree(p)
+    elif p.exists() or p.is_symlink():
+        p.unlink()
+
+
+def running(*names):
+    """True when a process runs one of these programs: an executable or script name in its first two
+    arguments (so `node .../yarn.js` counts), or an exact argument such as a Java main class.
+
+    Plain `pgrep -f` also matches any shell whose script text mentions the name.
+    """
+    code, out, _ = sh(["ps", "-axo", "args="], timeout=10)
+    for line in out.splitlines() if code == 0 else []:
+        args = line.split()
+        heads = {os.path.basename(a).removesuffix(".js").removesuffix(".cjs") for a in args[:2]}
+        if heads & set(names) or set(args) & set(names):
+            return True
+    return False
+
+
+class Report:
+    def __init__(self, apply):
+        self.apply, self.lines, self.freed, self.failed = apply, [], 0, 0
+
+    def remove(self, label, paths):
+        """Delete a list of paths as one line of the report."""
+        paths = [p for p in paths if p.exists() or p.is_symlink()]
+        if not paths:
+            return
+        size = sum(du(p) for p in paths)
+        errors = 0
+        for p in paths if self.apply else []:
+            try:
+                remove_path(p)
+            except OSError:
+                errors += 1
+        self.failed += errors
+        self.freed += size
+        self.lines.append(f"  {'FAILED' if errors else 'remove':<7} {gb(size):>8}  {label}"
+                          + (f" ({errors} could not be deleted)" if errors else ""))
+
+    def run(self, label, cmd, timeout=900, env=None, plan=""):
+        """Run a cleanup command and report the free space it gained; dry runs only list it."""
+        if not self.apply:
+            self.lines.append(f"  run     {plan:>8}  {label}")
+            return True
+        before = shutil.disk_usage(HOME).free
+        try:
+            p = subprocess.run(cmd, cwd=HOME, text=True, capture_output=True, timeout=timeout,
+                               env={**ENV, **(env or {})}, stdin=subprocess.DEVNULL)
+            code, err = p.returncode, p.stderr.strip()
+        except (OSError, subprocess.TimeoutExpired) as e:
+            code, err = 99, str(e)
+        delta = max(shutil.disk_usage(HOME).free - before, 0)
+        self.freed += delta
+        status = gb(delta) if code == 0 else "FAILED"
+        self.failed += code != 0
+        self.lines.append(f"  ran     {status:>8}  {label}" + (f" ({err.splitlines()[-1]})" if code and err else ""))
+        return code == 0
+
+
+def mole_purge(r):
+    """Mole's project purge: build folders (build, dist, Pods, .venv, ...) in projects untouched 7 days."""
+    if not shutil.which("mo"):
+        return
+    if r.apply:
+        r.run("mo purge --yes (build folders in projects idle 7d)", ["mo", "purge", "--yes"], timeout=1800)
+        return
+    code, out, _ = sh(["mo", "purge", "--dry-run"], timeout=600)
+    m = re.search(r"Would free approximately:\s*([\d.]+)\s*([KMGT]?B)", re.sub(r"\x1b\[[0-9;]*[a-zA-Z]", "", out))
+    plan = f"{m.group(1)} {m.group(2)}" if m else "?"
+    r.lines.append(f"  run     {plan:>8}  mo purge --yes (build folders in projects idle 7d)")
+
+
+def derived_data(r, gone):
     derived = HOME / "Library/Developer/Xcode/DerivedData"
-    old = []
+    old, orphaned = [], []
     for d in derived.glob("*-*") if derived.is_dir() else []:
+        code, ws, _ = sh(["/usr/libexec/PlistBuddy", "-c", "Print :WorkspacePath", str(d / "info.plist")], timeout=10)
+        if code == 0 and ws and (not Path(ws).exists() or any(ws.startswith(g + "/") for g in gone)):
+            orphaned.append(d)
+            continue
         last = max([mtime(d)] + [mtime(d / p) for p in ("info.plist", "Logs/Build", "Build/Intermediates.noindex")])
         if NOW - last > CACHE_DAYS * DAY:
             old.append(d)
-    if old:
-        size = sum(du(d) for d in old)
-        freed += size
-        lines.append(f"  remove  {gb(size):>8}  Xcode DerivedData, {len(old)} projects idle {CACHE_DAYS}d+")
-        for d in old if apply else []:
-            shutil.rmtree(d, ignore_errors=True)
+    r.remove(f"Xcode DerivedData, {len(orphaned)} projects whose folder is gone", orphaned)
+    r.remove(f"Xcode DerivedData, {len(old)} projects idle {CACHE_DAYS}d+", old)
 
+
+def trash_cli(r):
     trash = HOME / ".local/share/Trash"
     stale = []
     for info in (trash / "info").glob("*.trashinfo") if trash.is_dir() else []:
@@ -417,42 +571,97 @@ def caches(apply):
             when = dt.datetime.fromisoformat(m.group(1)).timestamp() if m else mtime(info)
         except ValueError:
             when = mtime(info)
-        if NOW - when > CACHE_DAYS * DAY:
-            stale.append((info, trash / "files" / info.stem))
-    if stale:
-        size = sum(du(f) for _, f in stale if f.exists() or f.is_symlink())
-        freed += size
-        lines.append(f"  remove  {gb(size):>8}  {len(stale)} trash-cli items deleted {CACHE_DAYS}d+ ago")
-        for info, f in stale if apply else []:
-            try:
-                if f.is_dir() and not f.is_symlink():
-                    shutil.rmtree(f)
-                elif f.exists() or f.is_symlink():
-                    f.unlink()
-                info.unlink()
-            except OSError:
-                failed += 1
+        if NOW - when > TRASH_DAYS * DAY:
+            stale += [trash / "files" / info.stem, info]
+    r.remove(f"{len(stale) // 2} trash-cli items deleted {TRASH_DAYS}d+ ago", stale)
 
-    commands = []
-    if shutil.which("xcrun"):
-        commands.append(("unavailable simulators", ["xcrun", "simctl", "delete", "unavailable"]))
-    if shutil.which("pnpm"):
-        commands.append(("pnpm store prune", ["pnpm", "store", "prune"]))
-    if shutil.which("uv"):
-        commands.append(("uv cache prune", ["uv", "cache", "prune"]))
-    for label, cmd in commands:
-        if not apply:
-            lines.append(f"  run     {'':>8}  {label}")
+
+def sim_runtimes(r):
+    """Delete simulator runtimes unused for RUNTIME_DAYS when a newer runtime of the same family exists."""
+    if not shutil.which("xcrun"):
+        return
+    code, out, _ = sh(["xcrun", "simctl", "runtime", "list", "-j"], timeout=60)
+    code2, devs, _ = sh(["xcrun", "simctl", "list", "devices", "-j"], timeout=60)
+    if code or code2:
+        return
+    runtimes = json.loads(out).values() if out.startswith("{") else json.loads(out)
+    booted = {rt for rt, ds in json.loads(devs).get("devices", {}).items() if any(d.get("state") == "Booted" for d in ds)}
+
+    def family(rt):  # com.apple.CoreSimulator.SimRuntime.iOS-27-2-iPhone19-4 -> ("iOS", "-iPhone19-4")
+        m = re.match(r".*SimRuntime\.([A-Za-z]+)-[\d-]*?\d(-[A-Za-z].*)?$", rt or "")
+        return (m.group(1), m.group(2) or "") if m else (rt, "")
+
+    def version(v):
+        return tuple(int(x) for x in re.findall(r"\d+", v or "0"))
+
+    newest = {}
+    for rt in runtimes:
+        f = family(rt.get("runtimeIdentifier"))
+        newest[f] = max(newest.get(f, ()), version(rt.get("version")))
+    for rt in runtimes:
+        rid, ver = rt.get("runtimeIdentifier"), version(rt.get("version"))
+        used = iso_ts(rt.get("lastUsedAt"))
+        idle = (NOW - used) / DAY if used else None
+        if ver >= newest[family(rid)] or rid in booted or (idle is not None and idle < RUNTIME_DAYS):
             continue
-        before = shutil.disk_usage(HOME).free
-        code, _, err = sh(cmd, cwd=HOME, timeout=900)
-        delta = shutil.disk_usage(HOME).free - before
-        status = gb(max(delta, 0)) if code == 0 else "FAILED"
-        failed += code != 0
-        lines.append(f"  ran     {status:>8}  {label}" + (f" ({err.splitlines()[-1]})" if code and err else ""))
-    print(f"caches: remove {gb(freed)} (prune commands report on --apply)")
-    print("\n".join(lines))
-    return freed, failed
+        size = rt.get("sizeBytes") or 0
+        label = (f"{family(rid)[0]} {rt.get('version')} simulator runtime ({rt.get('build')}), replaced by a newer one, "
+                 + (f"unused {idle:.0f}d" if idle is not None else "never used"))
+        if r.run(label, ["xcrun", "simctl", "runtime", "delete", rt["identifier"]], timeout=600, plan=gb(size)):
+            if not r.apply:
+                r.freed += size
+
+
+def uv_cache(r):
+    if not shutil.which("uv"):
+        return
+    root = HOME / ".cache/uv"
+    # A long-running uvx (an MCP server) holds uv's cache lock; don't wait on it forever.
+    ok = r.run("uv cache prune", ["uv", "cache", "prune"], env={"UV_LOCK_TIMEOUT": "60"}, timeout=600)
+    if r.apply and not ok:
+        r.lines[-1] += "; falling back to old unpacked archives"
+        archives = root / "archive-v0"
+        old = [p for p in archives.iterdir() if NOW - mtime(p) > UV_ARCHIVE_DAYS * DAY] if archives.is_dir() else []
+        # Installed environments hold their own copies (APFS clones or copies), so old archives are only cache.
+        r.remove(f"{len(old)} uv archives older than {UV_ARCHIVE_DAYS}d", old)
+    size_cap(r, "uv cache", root, 10e9, ["uv", "cache", "clean"], env={"UV_LOCK_TIMEOUT": "60"})
+
+
+def size_cap(r, label, path, cap, cmd=None, busy=(), env=None):
+    """Empty a regenerable cache once it passes its cap, unless a process that uses it is running."""
+    if not path.exists():
+        return
+    size = du(path)
+    if size <= cap:
+        return
+    if busy and running(*busy):
+        r.lines.append(f"  skip    {gb(size):>8}  {label} over {gb(cap)} cap, but it is in use")
+        return
+    if cmd:
+        if r.run(f"{label} over {gb(cap)} cap: {' '.join(cmd)}", cmd, env=env, plan=gb(size)) and not r.apply:
+            r.freed += size
+    else:
+        r.remove(f"{label} over {gb(cap)} cap", [path])
+
+
+def caches(apply, gone=frozenset()):
+    r = Report(apply)
+    mole_purge(r)
+    derived_data(r, gone)
+    trash_cli(r)
+    sim_runtimes(r)
+    if shutil.which("xcrun"):
+        r.run("unavailable simulators", ["xcrun", "simctl", "delete", "unavailable"])
+    if shutil.which("pnpm"):
+        r.run("pnpm store prune", ["pnpm", "store", "prune"])
+    uv_cache(r)
+    size_cap(r, "Gradle caches", HOME / ".gradle/caches", 10e9, busy=("org.gradle.launcher.daemon.bootstrap.GradleDaemon", "org.gradle.wrapper.GradleWrapperMain", "gradle", "gradlew"))
+    size_cap(r, "Yarn cache", HOME / ".yarn/berry/cache", 5e9, busy=("yarn",))
+    if shutil.which("npm"):
+        size_cap(r, "npm cache", HOME / ".npm/_cacache", 5e9, ["npm", "cache", "clean", "--force"])
+    print(f"caches: remove about {gb(r.freed)}" + ("" if apply else " (command lines show their estimate)"))
+    print("\n".join(r.lines))
+    return r.freed, r.failed
 
 
 def prune_backups():
@@ -495,7 +704,7 @@ def main(argv):
         n, f = cargo(roots, apply, gone)
         planned, failed = planned + n, failed + f
     if only in (None, "caches"):
-        n, f = caches(apply)
+        n, f = caches(apply, frozenset(gone))
         planned, failed = planned + n, failed + f
     end = shutil.disk_usage(HOME)
     if apply:
