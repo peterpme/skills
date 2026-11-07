@@ -107,7 +107,7 @@ A PR is ready only when all of these hold. Check them with the helpers, not from
 - The size is within the cap, or the PR body says why it can't be split.
 - The PR body states why it exists, what changed, the proof table, the reviewers with their model and reviewed SHA, and any codemod used.
 
-Never merge on your own: Peter merges, or tells you to in that thread. No reviewer approval counts as that. Then hand over in one message: one line per PR in merge order (`#n title: what it does, proof in one phrase`), followed by "Needs your call" with only what truly needs him, and what is unverified. Draft status and merging follow Peter's global instructions.
+Merging follows Peter's repo-class rule in the global instructions: personal repos you merge yourself once the ready gate passes; work repos Peter or the team merge, and no reviewer approval counts as that. Then hand over in one message: one line per PR in merge order (`#n title: what it does, proof in one phrase`), followed by "Needs your call" with only what truly needs him, and what is unverified. Draft status and merging follow Peter's global instructions.
 
 ## 7. Close out
 
