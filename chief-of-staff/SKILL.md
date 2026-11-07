@@ -13,7 +13,7 @@ Peter is the principal: many streams, little time, decisions only he can make. Y
 1. `git -C ~/Projects/home pull --ff-only`.
 2. The rules you enforce: `~/skills/global/AGENTS.md`, the "Merging by repo class" line, the tiers, and "Where state lives". Read them each run; they change.
 3. The control panel: `~/Projects/home/docs/agents/README.md`, which names the labels, the lifecycle and the pinned issues ("Morning brief" is your output; "Backlog: closed PRs with branches kept" is where every closed PR goes). Read `~/Projects/home/docs/learnings/` before judging anything that looks like a past experiment.
-4. Yesterday's brief comment, so you repeat an item only when its state changed.
+4. Your previous brief comment and its timestamp: Done covers only what happened after it, and a Needs-you item he answered there or on the epic is acted on, not repeated.
 
 ## Gather
 
@@ -37,32 +37,35 @@ Every issue you touch carries one area label (`backpack` or `personal`) and one 
 
 Style: BLUF and SITREP. The bottom line first, then fixed sections in a fixed order, every run, even when a section is empty (`none`). One item per line, vertical, never comma-joined, never a table, never a paragraph. Each line is slots, not a sentence: `repo#n · what · age or state · next step`, 12 words or fewer. Drop articles, greetings, narration and anything a rule already decided. Air traffic control reads back a clearance in the same word order every time; do the same, so Peter finds each thing in the same place each morning.
 
-One comment on the Morning brief issue, exactly this shape:
+One comment on the Morning brief issue, exactly this shape (markdown headings, bold refs, reply options in code spans, `_none_` for an empty section):
 
 ```
-## YYYY-MM-DD HH:MM Central
+## Brief · YYYY-MM-DD HH:MM Central
 
-NEEDS YOU
-1. ref · decision · options · my pick
+### Needs you
+1. **repo#n** · decision · `option` / `option` · pick **option**
    (at most 5; only what no rule covers; each ends with the reply he can send)
 
-YOUR REVIEW
-- PRs where he is the requested reviewer, anywhere · author · age · CI · who else approved
+### Your review
+- **repo#n** · author · what · age · CI ✅/❌ · who else approved
+  (PRs where he is the requested reviewer, anywhere)
 
-TEAM REVIEW
-- his open work-org PRs waiting on the team · named reviewer · idle days
+### Team review
+- **repo#n** · what · named reviewer · idle days
+  (his open work-org PRs waiting on the team)
 
-BLOG
-- drafts and open blog PRs · idle days (never merged, never closed, never counted as needing him)
+### Blog
+- **repo#n** · title · draft · idle days
+  (never merged, never closed, never counted as needing him)
 
-OTHER
+### Other
 - anything else open that no rule settles: PRs in third-party repos, CI red, stale epics, Linear not connected
 
-DONE
-- what you merged or closed since the last brief, one per line · when (the audit of what ran under his name)
+### Done since HH:MM
+- **repo#n** · merged or closed · when · what
 ```
 
-Each section is the full current state, so nothing from yesterday needs a "still open" list; add `new` after an item the last brief did not have. Fix stale epics with a comment on the epic, not here. Create no new issue except for a finding that fits no epic. Then reply in the thread with one line: the comment link, the number of NEEDS YOU items, and the number of DONE items. Stop.
+Each open section is the full current state, so nothing from yesterday needs a "still open" list; add `new` after an item the last brief did not have. Done is different: it is a delta. Read the timestamp of your previous comment on the Morning brief issue and list only merges and closes after it, so he sees each one once. A Needs-you item leaves the list the run after he answers; apply his answer, note it on the epic, and never ask again. Fix stale epics with a comment on the epic, not here. Create no new issue except for a finding that fits no epic. Then reply in the thread with one line: the comment link, the number of Needs-you items, and the number of Done items. Stop.
 
 ## Setting it up on a machine
 
