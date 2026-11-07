@@ -5,7 +5,16 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const home = process.env.SKILLS_HOME || homedir();
-const destinations = [".agents/skills", ".claude/skills", ".codex/skills", ".pi/agent/skills", ".cursor/skills"];
+// Folders each harness reads, from github.com/vercel-labs/skills docs/agents.md and each harness's own docs.
+const destinations = [".agents/skills", ".claude/skills", ".codex/skills", ".pi/agent/skills", ".cursor/skills", ".grok/skills"];
+// Other harnesses the skills CLI knows: linked only when the harness's home folder already exists on this machine.
+const optional = {
+  ".config/opencode": ".config/opencode/skills",
+  ".copilot": ".copilot/skills",
+  ".factory": ".factory/skills",
+  ".gemini": ".gemini/skills",
+  ".codeium/windsurf": ".codeium/windsurf/skills",
+};
 // One instruction file for every harness; each reads only its own path, and Claude only reads CLAUDE.md.
 const globalFiles = {
   "global/AGENTS.md": [".codex/AGENTS.md", ".pi/agent/AGENTS.md", ".grok/AGENTS.md", ".claude/CLAUDE.md"],
@@ -31,11 +40,14 @@ async function link(source, destination, type) {
   console.log(`Linked ${target} -> ${source}`);
 }
 
+const active = [...destinations];
+for (const [agentHome, skillsDir] of Object.entries(optional)) if (await stat(join(home, agentHome))) active.push(skillsDir);
+
 for (const entry of await readdir(root, { withFileTypes: true })) {
   if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
   const source = join(root, entry.name);
   if (!(await stat(join(source, "SKILL.md")))?.isFile()) continue;
-  for (const destination of destinations) await link(source, join(destination, entry.name), "dir");
+  for (const destination of active) await link(source, join(destination, entry.name), "dir");
 }
 
 for (const [file, targets] of Object.entries(globalFiles)) {
