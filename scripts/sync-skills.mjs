@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const home = process.env.SKILLS_HOME || homedir();
 // Folders each harness reads, from github.com/vercel-labs/skills docs/agents.md and each harness's own docs.
-const destinations = [".agents/skills", ".claude/skills", ".codex/skills", ".pi/agent/skills", ".cursor/skills", ".grok/skills"];
+const destinations = [".agents/skills", ".claude/skills", ".codex/skills", ".pi/agent/skills", ".cursor/skills", ".grok/skills", ".gemini/config/skills"];
 // Other harnesses the skills CLI knows: linked only when the harness's home folder already exists on this machine.
 const optional = {
   ".config/opencode": ".config/opencode/skills",
@@ -16,8 +16,9 @@ const optional = {
   ".codeium/windsurf": ".codeium/windsurf/skills",
 };
 // One instruction file for every harness; each reads only its own path, and Claude only reads CLAUDE.md.
+// Cursor has no file path (its User Rules point here); Antigravity loaded none of the paths tried (see README).
 const globalFiles = {
-  "global/AGENTS.md": [".codex/AGENTS.md", ".pi/agent/AGENTS.md", ".grok/AGENTS.md", ".claude/CLAUDE.md"],
+  "global/AGENTS.md": [".codex/AGENTS.md", ".pi/agent/AGENTS.md", ".grok/AGENTS.md", ".claude/CLAUDE.md", ".config/opencode/AGENTS.md"],
 };
 const backupRoot = join(home, ".local/state/personal-skills/backups", `${Date.now()}-${process.pid}`);
 const stat = async (path) => lstat(path).catch((error) => {

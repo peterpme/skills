@@ -1,6 +1,6 @@
 # Global agent instructions
 
-Source: `global/AGENTS.md` in `~/skills`. `npm run sync` links it into every harness. Cursor has a pasted copy of "Reporting results".
+Source: `global/AGENTS.md` in `~/skills`. `npm run sync` links it into every harness except Cursor, whose User Rules point here.
 
 ## Ten principles
 
