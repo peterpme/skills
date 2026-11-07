@@ -43,8 +43,8 @@ One comment on the Morning brief issue, exactly this shape, starting at the firs
 
 ```
 ### Needs you
-1. **[repo#n](url)** · decision · `option` / `option` · pick **option**
-   (at most 5; only what no rule covers; each ends with the reply he can send)
+1. **[home#n](url)** · question · `option` / `option` · pick **option**
+   (one line per open `decision` issue, at most 5, oldest first)
 
 ### Your review
 - **[repo#n](url)** · author · what · age · CI ✅/❌ · who else approved
@@ -66,7 +66,7 @@ One comment on the Morning brief issue, exactly this shape, starting at the firs
 - **[repo#n](url)** · merged or closed · when · what
 ```
 
-Each open section is the full current state, so nothing from yesterday needs a "still open" list; add `new` after an item the last brief did not have. Done is different: it is a delta. Read the timestamp of your previous comment on the Morning brief issue and list only merges and closes after it, so he sees each one once. A Needs-you item leaves the list the run after he answers; apply his answer, note it on the epic, and never ask again. Fix stale epics with a comment on the epic, not here. Create no new issue except for a finding that fits no epic. Then reply in the thread with one line: the comment link, the number of Needs-you items, and the number of Done items. Stop.
+Each open section is the full current state, so nothing from yesterday needs a "still open" list; add `new` after an item the last brief did not have. Done is different: it is a delta. Read the timestamp of your previous comment on the Morning brief issue and list only merges and closes after it, so he sees each one once. Every question for Peter is a `decision` issue in the home repo, never a bare line in the brief: one issue per question, assigned to him, area and project labels, title is the question, body has the options, your pick and why, and the exact reply he can send. Before creating one, check `gh issue list -R peterpme/home --label decision --state all` so a question is asked once. When he answers in a comment or closes it, act on the answer in that run, write the outcome as the last comment, note it on the epic, close the issue. Open decision issues are the decision queue; closed ones are the decision log. Fix stale epics with a comment on the epic, not here. Create no new issue except for a finding that fits no epic. Then reply in the thread with one line: the comment link, the number of Needs-you items, and the number of Done items. Stop.
 
 ## Setting it up on a machine
 
