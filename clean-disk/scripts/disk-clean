@@ -2,7 +2,7 @@
 ''''exec python3 "$0" "$@" #'''
 # Line 2 hands `bash disk-clean` or `sh disk-clean` to Python before the shell reads the docstring below.
 from __future__ import annotations
-__doc__ = """disk-clean [--apply] [--only worktrees|cargo|caches] [--days 3] [--root DIR]... [-v]
+__doc__ = """disk-clean [--apply] [--only worktrees|cargo|caches] [--days 3] [--root DIR]... [--skip-if-free-over SIZE] [-v]
 
 Free disk space from regenerable things. Default is a dry run; --apply deletes.
 
@@ -27,6 +27,11 @@ caches     `mo purge --yes` (Mole: build folders in projects idle 7 days),
            `pnpm store prune`, `uv cache prune`. Caches over their size cap are
            emptied: uv 10 GB, Gradle 10 GB, Yarn 5 GB, npm 5 GB.
            `mo clean` is not used: it hangs at its developer-tools step.
+
+--skip-if-free-over SIZE  Print one line and exit 0 without scanning or removing anything when
+           free space on the home disk is above SIZE (for example 100G; units K, M, G, T
+           are decimal, like the GB figures above). Used by the scheduled run so a machine with
+           plenty of room is not scanned every day. Leave it off for a manual run.
 
 Default roots: ~/Projects ~/.t3/worktrees ~/skills ~/dotfiles ~/.codex/worktrees
 ~/.cursor/worktrees ~/.claude/worktrees. --root and DISK_CLEAN_ROOTS (colon-separated)
@@ -89,6 +94,13 @@ def git(path, *args, timeout=60):
 def short(path):
     s = str(path)
     return "~" + s[len(str(HOME)):] if s.startswith(str(HOME)) else s
+
+
+def parse_size(text):
+    m = re.fullmatch(r"(\d+(?:\.\d+)?)\s*([KMGT]?)B?", text.strip(), re.I)
+    if not m:
+        raise ValueError(text)
+    return float(m.group(1)) * 1000 ** ("", "K", "M", "G", "T").index(m.group(2).upper())
 
 
 def gb(n):
@@ -671,7 +683,7 @@ def prune_backups():
 
 
 def main(argv):
-    apply, verbose, only, days, roots = False, False, None, 3.0, []
+    apply, verbose, only, days, roots, skip_over = False, False, None, 3.0, [], None
     it = iter(argv)
     for a in it:
         if a in ("-h", "--help"):
@@ -687,6 +699,12 @@ def main(argv):
             days = float(next(it, "3"))
         elif a == "--root":
             roots.append(next(it, ""))
+        elif a == "--skip-if-free-over":
+            try:
+                skip_over = parse_size(next(it, ""))
+            except ValueError:
+                print("disk-clean: --skip-if-free-over needs a size such as 100G", file=sys.stderr)
+                return 2
         else:
             print(f"disk-clean: bad argument {a!r} (see --help)", file=sys.stderr)
             return 2
@@ -695,6 +713,9 @@ def main(argv):
     roots = [r for r in roots if r.is_dir()]
 
     start = shutil.disk_usage(HOME)
+    if skip_over is not None and start.free > skip_over:
+        print(f"disk-clean SKIPPED: {gb(start.free)} free, above the {gb(skip_over)} threshold; nothing scanned or removed")
+        return 0
     print(f"disk-clean {'APPLY' if apply else 'DRY RUN'}: {gb(start.free)} free of {gb(start.total)}")
     planned, failed, gone = 0, 0, set()
     if only in (None, "worktrees"):
