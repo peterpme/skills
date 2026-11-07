@@ -35,15 +35,34 @@ Every issue you touch carries one area label (`backpack` or `personal`) and one 
 
 ## Write
 
-One comment on the Morning brief issue, in this order:
+Style: BLUF and SITREP. The bottom line first, then fixed sections in a fixed order, every run, even when a section is empty (`none`). One item per line, vertical, never comma-joined, never a table, never a paragraph. Each line is slots, not a sentence: `repo#n · what · age or state · next step`, 12 words or fewer. Drop articles, greetings, narration and anything a rule already decided. Air traffic control reads back a clearance in the same word order every time; do the same, so Peter finds each thing in the same place each morning.
 
-1. **Needs you**: at most 5 items, each with the exact step, and only decisions no rule covers.
-2. What you merged or closed, one line each.
-3. A table of PR counts by state, with a detail column.
-4. Changes since yesterday.
-5. Epics whose status is stale, fixed with a comment on the epic, not here.
+One comment on the Morning brief issue, exactly this shape:
 
-Create no new issue except for a finding that fits no epic. Then reply in the thread with one line: the comment link, the number of needs-you items, and the number of PRs merged or closed. Stop.
+```
+## YYYY-MM-DD HH:MM Central
+
+NEEDS YOU
+1. ref · decision · options · my pick
+   (at most 5; only what no rule covers; each ends with the reply he can send)
+
+YOUR REVIEW
+- PRs where he is the requested reviewer, anywhere · author · age · CI · who else approved
+
+TEAM REVIEW
+- his open work-org PRs waiting on the team · named reviewer · idle days
+
+BLOG
+- drafts and open blog PRs · idle days (never merged, never closed, never counted as needing him)
+
+OTHER
+- anything else open that no rule settles: PRs in third-party repos, CI red, stale epics, Linear not connected
+
+DONE
+- what you merged or closed since the last brief, one per line · when (the audit of what ran under his name)
+```
+
+Each section is the full current state, so nothing from yesterday needs a "still open" list; add `new` after an item the last brief did not have. Fix stale epics with a comment on the epic, not here. Create no new issue except for a finding that fits no epic. Then reply in the thread with one line: the comment link, the number of NEEDS YOU items, and the number of DONE items. Stop.
 
 ## Setting it up on a machine
 
