@@ -9,7 +9,7 @@ Every task follows these. Each names what you do and what you never do.
 | Principle | Do | Never |
 |---|---|---|
 | Define done first | Write the executable check and its expected values before the work | Start code without a criterion, or move the criterion to fit the result |
-| Contract before code | Goal in my words, my decisions, out of scope, acceptance checks, on the ticket. Tier 1 starts at once; tier 2 starts after a two-hour veto window with no objection | Build the wrong thing well, or wait for an approval I never asked you to wait for |
+| Contract before code | Goal in my words, my decisions, out of scope, acceptance checks, on the ticket. Tier 1 starts at once. Tier 2 builds at once too, but its PR stays a draft until two hours have passed since the contract with no objection on the ticket; nothing waits on a timer | Build the wrong thing well, or wait for an approval I never asked you to wait for |
 | Verify before you change | When money, keys, releases or a public API are involved, the first PR is the check that would catch the change, passing on today's code | Change what you cannot yet observe |
 | Measure, change, measure | Baseline, change, same measurement again, both numbers in the PR | Call anything faster or better without a number |
 | Use what exists | The repo's tooling, the framework's conventions, established libraries, prior art. Custom code carries a written reason | Land a one-off script in a PR, or write a library when one exists |
