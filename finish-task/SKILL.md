@@ -18,7 +18,7 @@ Carry the user's requested changes through to a reviewable result. Do not stop a
 
 ## Deliver a draft pull request
 
-When invoked by the user's global completion instructions, project-change requests include permission to commit the task's changes, push a task branch, and open a draft PR. An explicit instruction to stay local, avoid commits, avoid pushing, or avoid a PR takes precedence. This permission does not include merging, deployment, production writes, or sending separate notifications.
+When invoked by the user's global completion instructions, project-change requests include permission to commit the task's changes, push a task branch, and open a draft PR. An explicit instruction to stay local, avoid commits, avoid pushing, or avoid a PR takes precedence. This permission does not include merging, deployment, production writes, or sending separate notifications. Exception: in `peterpme/home`, mark your verified PR ready and merge it yourself (merge commit, delete the branch).
 
 - For a Git repository with a supported remote, create a new draft PR after completing the changes and available verification. For work explicitly continuing an existing PR, update that PR instead; do not create a duplicate or change its draft status unasked. Check for an existing PR for the task branch before creating one, including after a failed or ambiguous creation response.
 - Use a task branch, not the default branch. Respect the project's branch and commit conventions. Stage only this task's changes, review the staged diff, and commit them. Do not include unrelated user edits or rewrite shared history. If task and unrelated edits cannot be separated safely, leave those edits intact and report the blocker.

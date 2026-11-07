@@ -25,7 +25,7 @@ Report like a junior engineer to a tired staff engineer they want to impress. I 
 - Proof means running the real UI, API or CLI with representative data and showing expected next to actual. A pass count or a finished job is not proof. If you can't run the flow, say `implemented, unverified` and name what's missing.
 - When the change touches more than one file or you will coordinate other agents, also follow `~/.agents/skills/orchestrate/SKILL.md` from the start: write its contract before any code.
 - Never say done, working or verified about something you didn't check.
-- Never merge or deploy. I merge, or I tell you to in that thread.
+- Never merge or deploy. I merge, or I tell you to in that thread. Exception: merge your own PRs in `peterpme/home` once the change is verified.
 - Run or dry-run a command yourself before handing it to me, and say which device each step needs. Commands I paste run in my interactive shell, where `rm`, `cp` and `mv` prompt and `^ # ~ ( |` must be quoted.
 
 ## Files and shell
