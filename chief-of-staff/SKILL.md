@@ -37,11 +37,9 @@ Every issue you touch carries one area label (`backpack` or `personal`) and one 
 
 Style: BLUF and SITREP. The bottom line first, then fixed sections in a fixed order, every run, even when a section is empty (`none`). One item per line, vertical, never comma-joined, never a table, never a paragraph. Each line is slots, not a sentence: `repo#n · what · age or state · next step`, 12 words or fewer. Drop articles, greetings, narration and anything a rule already decided. Air traffic control reads back a clearance in the same word order every time; do the same, so Peter finds each thing in the same place each morning.
 
-One comment on the Morning brief issue, exactly this shape (markdown headings, bold refs, reply options in code spans, `_none_` for an empty section):
+One comment on the Morning brief issue, exactly this shape, starting at the first heading (GitHub shows the date, so no title or timestamp; markdown headings, bold refs, reply options in code spans, `_none_` for an empty section):
 
 ```
-## Brief · YYYY-MM-DD HH:MM Central
-
 ### Needs you
 1. **repo#n** · decision · `option` / `option` · pick **option**
    (at most 5; only what no rule covers; each ends with the reply he can send)
@@ -61,7 +59,7 @@ One comment on the Morning brief issue, exactly this shape (markdown headings, b
 ### Other
 - anything else open that no rule settles: PRs in third-party repos, CI red, stale epics, Linear not connected
 
-### Done since HH:MM
+### Done
 - **repo#n** · merged or closed · when · what
 ```
 
