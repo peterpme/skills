@@ -57,6 +57,8 @@ Manual-only skills set `disable-model-invocation: true`. Claude Code, Cursor, an
 
 ## Global instructions
 
+CI fails a PR that adds more lines to `global/AGENTS.md` than it removes, unless the PR body has a line `Why more lines: <reason>`. Reworded lines count as one added and one removed, so they net to zero. The eval behind this (home ledger, skills diagnosis 2026-11-06) scored fewer rules higher. Run `scripts/agents-md-budget origin/main` on a branch to see the numbers before pushing.
+
 `global/AGENTS.md` is the one instruction file every harness reads; edit it here, not through the links. There is no shared global path: Codex, Pi, Grok and OpenCode each read `AGENTS.md` from their own home folder, and Claude Code only reads `~/.claude/CLAUDE.md`. Cursor stores user rules in its settings, not on disk (a marker in `~/.cursor/rules/*.mdc` never loaded), so sync cannot link it. Instead its User Rules hold one pointer line, set once and never stale: run `npm run cursor-rules`, which copies the line and prints the three clicks (Cursor Settings, Customize, Rules; paste into User Rules). A Cursor session given that line read this file and answered from it. Antigravity loads the skills but loaded no global rules file from `~/.gemini/GEMINI.md`, `AGENTS.md`, `config/GEMINI.md`, `config/AGENTS.md` or `config/rules/AGENTS.md`, so it has no global instructions yet.
 
 ## Agent helpers
