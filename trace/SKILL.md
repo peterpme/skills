@@ -27,7 +27,7 @@ A dependency name or pinned version does not establish unavailable internals. Re
 
 ## Pull the latest code first
 
-Before any search, bring the checkout up to date with the remote, once per research session. Answers from stale code are wrong answers. Skip this only for an explicitly requested revision or offline session.
+Before any search, bring the checkout up to date with the remote, once per research session. Skip this only for an explicitly requested revision or offline session.
 
 - Research in the current checkout, normally the main branch. Do not create a worktree or branch. Inspect the branch, working-tree status, and upstream.
 - Clean branch with an upstream, the usual case (`main` tracking `origin/main`): run `git pull --ff-only`.
