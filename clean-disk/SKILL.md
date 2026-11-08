@@ -12,13 +12,13 @@ Goal: no machine runs out of disk because of agent leftovers, and Peter never ha
 
 - Never remove a main checkout, delete a branch, or touch `~/Downloads`, `~/Documents`, Photos or the Finder trash (`~/.Trash`).
 - Never `rm -rf` a worktree. The script uses `git worktree remove`, saves uncommitted changes first, and keeps the branch.
-- Do not run `mo clean` (Mole). It stops at its developer-tools step (after Corepack) and never finishes; seen twice on the laptop on 2026-11-06, with and without uv whitelisted. `disk-clean` runs `mo purge --yes`, which finishes in about a minute.
+- Do not run `mo clean` (Mole). It stops at its developer-tools step (after Corepack) and never finishes. `disk-clean` runs `mo purge --yes`, which finishes in about a minute.
 - `~/Library/Developer/CoreDevice/DeviceFS` is a mounted view of a connected iPhone, not local data. Ignore its size.
 - Put `gtimeout 120` on any `du` you run yourself.
 
 ## Run
 
-A scheduled run uses `disk-clean --apply --skip-if-free-over 100G`. Peter's rule: a machine with more than 100 GB free has nothing to gain, so the daily check ends in one line (`disk-clean SKIPPED: ...`, exit 0) without scanning or removing anything. A manual run, or any run Peter asks for, leaves the flag off and works as before. If the scheduled run prints `SKIPPED`, report that line and stop.
+A scheduled run uses `disk-clean --apply --skip-if-free-over 100G`. A machine with more than 100 GB free has nothing to gain, so the daily check ends in one line (`disk-clean SKIPPED: ...`, exit 0) without scanning or removing anything. A manual run, or any run Peter asks for, leaves the flag off. If the scheduled run prints `SKIPPED`, report that line and stop.
 
 1. Run `disk-clean --apply`. It prints each removal with its reason and size, then the free space before and after. When Peter asks interactively, apply right away too: everything it removes can be regenerated or is backed up.
 2. If anything is `FAILED`, read the reason. Fix it only if the fix is clearly safe, such as a stale `index.lock` with no git process running. Otherwise report it.
@@ -40,7 +40,7 @@ A scheduled run uses `disk-clean --apply --skip-if-free-over 100G`. Peter's rule
 
 The script only touches worktrees under agent paths: `~/.t3/worktrees`, `<repo>/.claude/worktrees`, `~/.codex/worktrees`, `.codex-worktrees` and `~/.cursor/worktrees`. Sibling clones such as `~/Projects/x/repo-feature` are left alone.
 
-A tree is removed once it has been idle long enough for its kind. Idle time counts from the newest of: a file edit in the tree, a commit, checkout or reset (the last reflog entry), and activity in its T3 thread. The index file's timestamp is not used, because background `git status` calls refresh it.
+A tree is removed once it has been idle long enough for its kind. Idle time counts from the newest of: a file edit in the tree, a commit, checkout or reset (the last reflog entry), and activity in its T3 thread.
 
 | Kind | Removed after | Meaning |
 |---|---|---|
@@ -86,7 +86,7 @@ Watch: <trees with tracked edits that will be removed at 14 days, with idle days
 Needs your call: <FAILED items, or the biggest remaining items with commands when free space is low>
 ```
 
-Write the `Needs your call:` line only when something there needs Peter; otherwise leave it out. When nothing was removed and free space is fine, report one line. Scheduled runs keep Peter's feed clean: where the machine has a cleanup for scheduled-run threads, a run thread is deleted a few minutes after it finishes unless its report has a `Needs your call:` line. `history.log` keeps the record.
+Write the `Needs your call:` line only when something there needs Peter; otherwise leave it out. When nothing was removed and free space is fine, report one line. Where the machine has a cleanup for scheduled-run threads, a run thread is deleted a few minutes after it finishes unless its report has a `Needs your call:` line. `history.log` keeps the record.
 
 ## Set up on a machine
 
