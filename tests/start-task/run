@@ -10,21 +10,30 @@ bash -n "$hook" || { echo "start-task does not parse"; exit 1; }
 /bin/bash -n "$hook" 2>/dev/null || { echo "start-task does not parse under /bin/bash"; exit 1; }
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
-mkdir -p "$work/home" "$work/w/acme/wallet" "$work/w/acme/x" "$work/w/acme-old" "$work/u/skills"
+mkdir -p "$work/home" "$work/w/acme/app" "$work/w/acme/x" "$work/w/acme-old" "$work/u/skills"
 echo 'Rule: under `'"$work"'/w/acme` the tracker is Linear; everywhere else it is this repo'"'"'s issues.' >"$work/home/README.md"
 mkdir -p "$work/tilde"; echo 'Rule: under `~/w/acme` the tracker is Linear.' >"$work/tilde/README.md"
+# A symlink into the work folder, and a git worktree of a work repo that lives outside it (T3, agents).
+ln -s "$work/w/acme" "$work/u/link-acme"
+git init -q "$work/w/acme/repo" && git -C "$work/w/acme/repo" -c user.email=t@t -c user.name=t commit -q --allow-empty -m init
+git -C "$work/w/acme/repo" worktree add -q "$work/u/wt-of-work" 2>/dev/null
 fail=0
 # name ;; cwd under the temp dir ;; mode ;; must match (ERE) ;; must not match (ERE, empty = none)
 cases=(
-  'work-folder;;/w/acme/wallet;;cli;;tracker is Linear.*linear-mirror;;peterpme/home issues[.]'
+  'work-folder;;/w/acme/app;;cli;;tracker is Linear.*linear-mirror;;peterpme/home issues[.]'
   'work-folder-root;;/w/acme;;cli;;tracker is Linear;;is personal'
   'personal;;/u/skills;;cli;;is personal: the tracker is peterpme/home issues.*gh issue list -R peterpme/home --state all --search;;Linear'
   'prefix-sibling;;/w/acme-old;;cli;;is personal;;tracker is Linear'
   'tiers-printed;;/u/skills;;cli;;[|] 1 [|] Feature.*[|] 2 [|] Money;;'
-  'no-home;;/w/acme/wallet;;nohome;;is personal.*Work folder unknown;;tracker is Linear'
+  'no-home;;/w/acme/app;;nohome;;is personal.*Work folder unknown;;tracker is Linear'
   'hook-json;;/w/acme/x;;hook;;^[{]"hookSpecificOutput":[{]"hookEventName":"SessionStart","additionalContext":"start-task: .*tracker is Linear;;'
-  'tilde-path;;/w/acme/wallet;;tilde;;tracker is Linear;;is personal'
+  'tilde-path;;/w/acme/app;;tilde;;tracker is Linear;;is personal'
   'open-stdin;;/u/skills;;openpipe;;is personal;;'
+  'symlink-cli;;/u/link-acme/app;;cli;;tracker is Linear;;is personal'
+  'symlink-hook;;/u/link-acme/app;;hook;;tracker is Linear;;is personal'
+  'worktree-of-work;;/u/wt-of-work;;cli;;tracker is Linear;;is personal'
+  'worktree-hook;;/u/wt-of-work;;hook;;tracker is Linear;;is personal'
+  'hook-stdin-open;;/w/acme/x;;hookopen;;^[{]"hookSpecificOutput".*tracker is Linear;;'
   'off;;/w/acme;;off;;^$;;'
 )
 printf '%-18s %-6s %s\n' case exit ok
@@ -38,6 +47,8 @@ for c in "${cases[@]}"; do
     openpipe) # stdin held open with no data, as an agent shell does: must not hang
       start=$SECONDS; out=$(cd "$cwd" && START_TASK_HOME=$work/home "$hook" < <(sleep 8)); code=$?
       ((SECONDS - start < 6)) || code=hung ;;
+    hookopen) # one line of hook JSON, stdin left open, under /bin/bash (3.2 on macOS)
+      out=$(cd / && START_TASK_HOME=$work/home /bin/bash "$hook" < <(jq -cn --arg c "$cwd" '{hook_event_name:"SessionStart",cwd:$c}'; sleep 3)); code=$? ;;
     off) out=$(cd "$cwd" && START_TASK_OFF=1 START_TASK_HOME=$work/home "$hook" </dev/null); code=$? ;;
     hook) out=$(jq -cn --arg c "$cwd" '{session_id:"t",hook_event_name:"SessionStart",source:"startup",cwd:$c}' | START_TASK_HOME=$work/home "$hook"); code=$?
       jq -e '.hookSpecificOutput.additionalContext | type == "string"' >/dev/null 2>&1 <<<"$out" || code=json ;;

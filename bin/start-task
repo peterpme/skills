@@ -18,9 +18,14 @@ command -v jq >/dev/null 2>&1 || PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 hook=
 cwd=$PWD
 if [[ ! -t 0 ]]; then
-  # An agent shell can hold stdin open with nothing on it; give up after 1s.
+  # An agent shell can hold stdin open with nothing on it; give up after 1s. Hook input is one
+  # line of JSON: read that line, then anything after it, so input kept open after a full line
+  # still parses (bash 3.2 drops a partial read on timeout).
   input=
-  IFS= read -r -d '' -t 1 input 2>/dev/null
+  IFS= read -r -t 1 input 2>/dev/null
+  rest=
+  [[ -n $input ]] && IFS= read -r -d '' -t 1 rest 2>/dev/null
+  [[ -n $rest ]] && input=$input$'\n'$rest
   # Most Bash calls write nothing: let them through before spending any jq call.
   [[ $input == *'"tool_name":"Bash"'* && $input != *sed* && $input != *perl* && $input != *cat* && $input != *tee* ]] && exit 0
   if [[ -n $input ]] && command -v jq >/dev/null 2>&1 && jq -e 'type == "object"' >/dev/null 2>&1 <<<"$input"; then
@@ -28,6 +33,8 @@ if [[ ! -t 0 ]]; then
     c=$(jq -r '.cwd // ""' <<<"$input")
     [[ -n $c ]] && cwd=$c
   fi
+  # Hook input with no jq to read it: stay quiet on an edit, fall back to plain text otherwise.
+  [[ $input == *PreToolUse* ]] && ! command -v jq >/dev/null 2>&1 && exit 0
 fi
 
 if [[ $hook == PreToolUse ]]; then
@@ -70,7 +77,16 @@ if [[ -r $ledger/README.md ]]; then
   work=$(grep -o 'under `[^`]*` the tracker is Linear' "$ledger/README.md" | head -n 1 | sed 's/^under `//; s/` the tracker is Linear$//')
   [[ $work == "~/"* ]] && work=${HOME:-}/${work#"~/"}
   work=${work%/}
+  [[ -d $work ]] && work=$(cd "$work" && pwd -P)
 fi
+# Compare physical paths, and count a git worktree as its main checkout's folder: a T3 or
+# agent worktree of a work repo lives outside the work folder.
+here=$cwd
+[[ -d $cwd ]] && here=$(cd "$cwd" && pwd -P)
+main=$(git -C "$here" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
+main=${main%/.git}
+[[ -n $main && -d $main ]] && main=$(cd "$main" && pwd -P)
+under() { [[ -n $work && -n $1 && ($1 == "$work" || $1 == "$work"/*) ]]; }
 
 script=$(realpath "$0" 2>/dev/null || readlink -f "$0" 2>/dev/null || echo "$0")
 agents=$(dirname "$script")/../global/AGENTS.md
@@ -79,7 +95,7 @@ tiers=
 
 block() {
   echo "start-task: before any other action, find or create this task's ticket and state its tier."
-  if [[ -n $work && ($cwd == "$work" || $cwd == "$work"/*) ]]; then
+  if under "$here" || under "$main"; then
     echo "Folder $cwd is under the work folder: the tracker is Linear."
     echo "Search: Linear MCP list_issues with query \"<keywords>\". No Linear MCP: home issues labelled linear-mirror,"
     echo "  gh issue list -R peterpme/home --label linear-mirror --state all --search \"<keywords>\""
