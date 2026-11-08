@@ -3,12 +3,16 @@
 
 usage: digest.py [--since 7d] [--skip THREAD_ID]... [--out FILE]
        digest.py --baseline   start the cursor at now without a digest
-       digest.py --commit     advance the cursor to the last digest run
+       digest.py --commit     advance the cursor to the last digest run (a no-op after a quiet run)
 
 Reads this machine's T3 database read-only and writes a Markdown digest of every
 user-role message created after the cursor (or the last --since window, default
 7d, when there is no cursor yet), each with the end of the agent message just
 before it. Prints one stats line.
+
+Quiet path: when no thread has anything new, no digest is written, the cursor
+is advanced at once and the one line printed starts with "nothing new". The
+hourly run then costs one script call.
 
 Peter's own messages are shown plainly. Messages that an agent, watchdog or
 schedule sent into a thread are tagged [automated: <source>]; identical ones are
@@ -113,7 +117,8 @@ def main(argv):
     if argv == ["--commit"]:
         pending = STATE / "pending.json"
         if not pending.exists():
-            sys.exit("digest.py: nothing pending")
+            print("nothing pending: the last digest was quiet and already committed")
+            return
         write_json("cursor.json", json.loads(pending.read_text()))
         pending.unlink()
         print(f"cursor advanced to {json.loads((STATE / 'cursor.json').read_text())['cursor']}")
@@ -132,7 +137,9 @@ def main(argv):
             sys.exit(f"digest.py: unknown argument {arg!r} (see --help)")
     cursor_file = STATE / "cursor.json"
     if cursor_file.exists():
-        start = json.loads(cursor_file.read_text())["cursor"]
+        start = json.loads(cursor_file.read_text()).get("cursor") or ""
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z", start):
+            sys.exit(f"digest.py: {cursor_file} holds no valid cursor ({start!r}); run --baseline to reset it")
     else:
         start = iso(since or parse_since("7d"))
     end = iso(now)
@@ -187,10 +194,16 @@ def main(argv):
             lines.append(f"{label}\n{quote(clip(text, USER_CAP))}\n")
         sections.append("\n".join(lines))
 
+    if not sections:
+        write_json("cursor.json", {"cursor": end})
+        (STATE / "pending.json").unlink(missing_ok=True)
+        print(f"nothing new since {local(start)}; cursor advanced to {end}")
+        return
+
     stamp = now.astimezone().strftime("%Y-%m-%d-%H%M")
     out = out or STATE / "digests" / f"{stamp}.md"
     out.parent.mkdir(parents=True, exist_ok=True)
-    body = f"# T3 digest, {local(start)} to {local(end)}\n\n" + ("\n---\n\n".join(sections) or "No new turns.\n")
+    body = f"# T3 digest, {local(start)} to {local(end)}\n\n" + "\n---\n\n".join(sections)
     out.write_text(body)
     write_json("pending.json", {"cursor": end})
     print(f"digest {out}: {len(sections)} threads, {n_peter} messages from Peter, "
