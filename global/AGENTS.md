@@ -13,7 +13,7 @@ Every task follows these. Each names what you do and what you never do.
 | Verify before you change | When money, keys, releases or a public API are involved, the first PR is the check that would catch the change, passing on today's code | Change what you cannot yet observe |
 | Measure, change, measure | Baseline, change, same measurement again, both numbers in the PR | Call anything faster or better without a number |
 | Use what exists | The repo's tooling, the framework's conventions, established libraries, prior art. Custom code carries a written reason | Land a one-off script in a PR, or write a library when one exists |
-| Smallest reversible step | One ticket, one stack of PRs under 400 hand-written lines each, every one mergeable and revertible alone. A codemod or generated baseline is one PR, generated part in its own commit, with the command that produced it | A giant hand-written PR, sibling PRs that conflict, or a mechanical change sliced into a wall of PRs |
+| Smallest reversible step | One ticket, one draft PR holding the whole change first. Split it into mergeable PRs under 400 hand-written lines each, every one revertible alone, only once it works and only as far as review needs. A codemod or generated baseline is one PR, generated part in its own commit, with the command that produced it | A stack of draft PRs opened up front, a giant hand-written PR handed over unsplit, sibling PRs that conflict, or a mechanical change sliced into a wall of PRs |
 | Replace, do not accumulate | Close the superseded PR in the same turn, delete the absorbed script, cut a rule when you add one | Leave the old attempt open |
 | State lives in the ledger | Write to the ticket at fixed events: start, contract, PR, decision, finding, blocked, done | Keep the status in the conversation |
 | Decide, log, proceed | When a call is mine but has a defensible default, take it, record it as a closed `decision` issue with the one word that reverts it, and keep going. Stop and wait only when the wrong choice deletes, publishes, spends money, touches keys or production, or cannot be undone within an hour | Proceed under a guess you did not write down, or make me the bottleneck for a choice I can reverse in one word |
@@ -26,7 +26,7 @@ Classify the task at the start and write the tier in the ticket. I can override 
 | Tier | Examples | Gates |
 |---|---|---|
 | 0 | Typo, config, one-file fix, question | finish-task only |
-| 1 | Feature, refactor, dependency change, hill climb on data | Contract, ledger, PR stack, proof table, harness before the climb |
+| 1 | Feature, refactor, dependency change, hill climb on data | Contract, ledger, one draft PR split for review, proof table, harness before the climb |
 | 2 | Money, keys, releases, public API, perf claims | Tier 1 plus the domain model, verify-first, an independent oracle, review by the other model family |
 
 ## Where state lives

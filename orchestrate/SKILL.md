@@ -40,7 +40,7 @@ On a program with several workers, keep your context for decisions: have a read-
    - Include at least one case that would expose a plausible wrong implementation.
 
    "Tests pass" is a check, not acceptance.
-4. **Approach and slices.** The design in a few lines, the files or modules it touches, and the PRs in merge order.
+4. **Approach and slices.** The design in a few lines, the files or modules it touches, and how the working change splits into PRs for review, in merge order. The split is a plan, not the starting shape: the build starts as one draft PR (section 3).
    - **For a bug:** find out why the step that already runs fails, and fix that step. Treat what Peter states as fact ("X always runs first") as a premise to explain, not something to work around. Don't add a new trigger, hook, wrapper or startup layer around a broken step.
    - **Separate PRs:** give these their own PR and never mix them with behavior changes: sensitive packages (security, keys, money, auth), docs and agent instructions, and pure moves or renames. Keep each PR reviewable: about 600 changed lines or fewer, excluding lockfiles, generated files and mechanical renames. For a mechanical change across many files, use or write a codemod (`ast-grep`, `jscodeshift`, a script) and name it in the PR. Each slice must pass CI and work on its own.
 5. **Out of scope.** What you will not touch, including tempting cleanups.
@@ -63,7 +63,7 @@ Settle each point yourself: accept it and change the contract, or reject it with
 
 ## 3. Build through workers
 
-On anything with several slices or workers, you are the orchestrator: you write briefs, enforce the contract and run the gate. You do not implement or review code yourself. Take the first slice all the way through the ready gate before starting the rest, so a wrong assumption costs one slice, not all of them. Handing over a slice does not end the program: start the next slice in the same turn, stacked on the previous branch if it depends on it, and never wait for a merge or for Peter to say "next". The program ends when the ticket's last slice passes the gate or Peter stops it. Then keep as many workers running as Peter asked for, refilling a slot as soon as one finishes. Follow `delegate` for routing, briefs and stall checks. Each brief adds:
+On anything with several slices or workers, you are the orchestrator: you write briefs, enforce the contract and run the gate. You do not implement or review code yourself. Start every build as one draft PR holding the whole change, and get it working there; workers build onto that one branch, and a slice is a unit of work, not a PR, until the split. Split the draft into the contract's PRs only once it works, and only as far as review needs; never open a stack of draft PRs up front. Then take the first split PR all the way through the ready gate before handing over the rest, so a wrong assumption costs one PR, not all of them. Handing over a PR does not end the program: hand over the next in the same turn, stacked on the previous branch if it depends on it, and never wait for a merge or for Peter to say "next". The program ends when the ticket's last PR passes the gate or Peter stops it. Then keep as many workers running as Peter asked for, refilling a slot as soon as one finishes. Follow `delegate` for routing, briefs and stall checks. Each brief adds:
 
 - the contract path and which slice this is;
 - the acceptance checks this slice must show, with expected results copied from the contract;
