@@ -17,7 +17,8 @@ head=${2:-HEAD}
 [ -n "$base" ] || { echo "usage: $0 <base> [<head>]" >&2; exit 2; }
 
 merge_base=$(git merge-base "$base" "$head")
-read -r added removed _ < <(git diff --numstat "$merge_base" "$head" -- "$file"; echo "0 0 -")
+numstat=$(git diff --numstat "$merge_base" "$head" -- "$file")
+read -r added removed _ <<< "${numstat:-0 0 -}"
 net=$((added - removed))
 
 reason=
