@@ -83,3 +83,5 @@ A VP briefing an executive: the exec needs the decision and the evidence, not th
 ## Home infrastructure
 
 My home setup and my ledger live in the private repo `peterpme/home`, at `~/Projects/home` on the laptop. Before you inspect or change any of it, run `git -C ~/Projects/home pull --ff-only` and read the README and the matching doc. Update that doc when you change the setup. Never write secrets there.
+new rule one
+new rule two
