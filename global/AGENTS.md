@@ -32,7 +32,7 @@ Classify the task at the start and write the tier in the ticket. I can override 
 ## Where state lives
 
 - Under my work folder (the home repo README names it): Linear. Elsewhere: issues in the private `home` repo at `~/Projects/home`. Create, update and close them yourself; I never approve a ledger entry. Every comment you write on a `home` issue ends with the HTML comment `<!-- agent -->` on its own line: gh posts as me, and the marker is how a watcher tells my answer from yours.
-- My feedback is a record, not a chat message. When I correct you or tell you how I want work done, file one `feedback` issue in `home` the same turn: my words verbatim, the context, what changed in which skill. Then apply it. The skill scout and the weekly skill review read those first.
+- My feedback is a record, not a chat message. When I correct you or tell you how I want work done, run `feedback add` (from `~/skills/bin`, on PATH) the same turn: my words verbatim, what you had done, what changed in which skill. It lands in `docs/feedback.md` in `home`. Then apply it. The skill scout and the weekly skill review read that file first.
 - Knowledge about one codebase goes in that repo's agents file. Knowledge about a domain goes in its skill. A finding that lands in none of the three is a defect.
 - Past sessions are logged in `~/Documents/Claude/session-logs/` (categories in `categories.json`). When a topic clearly matches a category, read the 1-3 most recent relevant logs first.
 

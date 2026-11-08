@@ -1,0 +1,139 @@
+#!/usr/bin/env python3
+"""feedback add ENTRIES.json [--repo PATH]
+feedback add --quote TEXT --agent-did TEXT [--changed TEXT] [--thread ID --time ISO --title TEXT] [--repo PATH]
+
+Record Peter's feedback to the agents, verbatim, in docs/feedback.md of the home
+repo (default ~/Projects/home), newest first, and commit it straight to main:
+pull --ff-only, commit, push, with one pull --rebase retry if the push is
+rejected. Use it the same turn he corrects you or says how he wants work done.
+
+ENTRIES.json is a list of objects: quote (his words, verbatim), agent_did (one
+line, what the agent had done), changed (one line: the skills PR, the finding
+number, or "pending"), and optionally thread (T3 thread id), time (ISO 8601,
+when he said it; default now), title (thread title) and key. The dedup key is
+"<thread>@<time>" when a thread is given, else the SHA-1 of the quote; an entry
+whose key is already in the file is skipped, so a rerun adds nothing twice.
+Exit 0 after a commit or when everything was already recorded; 1 on a git error.
+"""
+
+import argparse
+import datetime as dt
+import hashlib
+import json
+import pathlib
+import re
+import subprocess
+import sys
+
+FILE = "docs/feedback.md"
+MARK = "<!-- entries, newest first -->"
+HEADER = """# Peter's feedback to the agents
+
+His words, verbatim, each time he corrects an agent or says how he wants work done.
+Written the same turn by the agent he corrected (`feedback add`, from the skills repo's
+`bin/`) or within the hour by the skill scout, which reads this machine's threads.
+Newest first. The skill scout and the weekly skill review read this file before anything
+else; each entry outranks a pattern inferred from threads.
+
+""" + MARK + "\n"
+
+
+def git(repo, *args, check=True):
+    return subprocess.run(["git", "-C", str(repo), *args], text=True, capture_output=True, check=check)
+
+
+def local(iso):
+    t = dt.datetime.fromisoformat(iso.replace("Z", "+00:00"))
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=dt.timezone.utc)
+    return t.astimezone().strftime("%Y-%m-%d %H:%M %Z")
+
+
+def render(e):
+    where = f" · [{e['title']}](t3-thread://v1/{e['thread']})" if e.get("thread") and e.get("title") else ""
+    quote = "\n".join("> " + line for line in e["quote"].strip().splitlines()) or ">"
+    return (
+        f"## {local(e['time'])}{where}\n"
+        f"<!-- key: {e['key']} -->\n"
+        f"{quote}\n\n"
+        f"**The agent had:** {e['agent_did'].strip()}  \n"
+        f"**Changed:** {e.get('changed', 'pending').strip() or 'pending'}\n"
+    )
+
+
+def normalise(e):
+    for field in ("quote", "agent_did"):
+        if not e.get(field, "").strip():
+            sys.exit(f"feedback: entry is missing {field!r}")
+    e.setdefault("time", dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"))
+    if not e.get("key"):
+        e["key"] = f"{e['thread']}@{e['time']}" if e.get("thread") else hashlib.sha1(e["quote"].strip().encode()).hexdigest()[:16]
+    return e
+
+
+def main(argv):
+    ap = argparse.ArgumentParser(prog="feedback", add_help=False)
+    ap.add_argument("command", choices=["add"])
+    ap.add_argument("entries", nargs="?")
+    ap.add_argument("--repo", default="~/Projects/home")
+    ap.add_argument("--quote")
+    ap.add_argument("--agent-did")
+    ap.add_argument("--changed", default="pending")
+    ap.add_argument("--thread")
+    ap.add_argument("--time")
+    ap.add_argument("--title")
+    if not argv or argv[0] in ("-h", "--help"):
+        print(__doc__.strip())
+        return 0
+    a = ap.parse_args(argv)
+    if a.entries:
+        entries = json.loads(pathlib.Path(a.entries).expanduser().read_text())
+    elif a.quote:
+        entries = [{k: v for k, v in dict(quote=a.quote, agent_did=a.agent_did, changed=a.changed,
+                                           thread=a.thread, time=a.time, title=a.title).items() if v}]
+    else:
+        sys.exit("feedback add: give ENTRIES.json or --quote and --agent-did (see --help)")
+    entries = [normalise(e) for e in entries]
+
+    repo = pathlib.Path(a.repo).expanduser()
+    path = repo / FILE
+    if git(repo, "branch", "--show-current").stdout.strip() != "main":
+        sys.exit(f"feedback: {repo} is not on main")
+    if git(repo, "status", "--porcelain", "--", FILE).stdout.strip():
+        sys.exit(f"feedback: {path} has uncommitted changes")
+    pulled = git(repo, "pull", "--ff-only", "-q", check=False)
+    if pulled.returncode:
+        sys.exit(f"feedback: git pull failed: {pulled.stderr.strip()}")
+
+    text = path.read_text() if path.exists() else HEADER
+    if MARK not in text:
+        sys.exit(f"feedback: {path} has no '{MARK}' line")
+    have = set(re.findall(r"<!-- key: (.*?) -->", text))
+    new = [e for e in entries if e["key"] not in have]
+    seen = set()
+    new = [e for e in new if not (e["key"] in seen or seen.add(e["key"]))]
+    skipped = len(entries) - len(new)
+    if not new:
+        print(f"0 added, {skipped} already recorded")
+        return 0
+
+    new.sort(key=lambda e: e["time"], reverse=True)
+    head, tail = text.split(MARK, 1)
+    body = "\n".join(render(e) for e in new)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(f"{head}{MARK}\n\n{body}{tail.lstrip() and chr(10) + tail.lstrip()}")
+
+    git(repo, "add", "--", FILE)
+    git(repo, "commit", "-q", "-m", f"feedback: {len(new)} new {'entry' if len(new) == 1 else 'entries'}")
+    pushed = git(repo, "push", "-q", check=False)
+    if pushed.returncode:
+        rebased = git(repo, "pull", "--rebase", "-q", check=False)
+        pushed = git(repo, "push", "-q", check=False) if rebased.returncode == 0 else pushed
+        if pushed.returncode:
+            sys.exit(f"feedback: committed locally but push failed: {pushed.stderr.strip()}")
+    print(f"{len(new)} added, {skipped} already recorded: " + ", ".join(e["key"] for e in new))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

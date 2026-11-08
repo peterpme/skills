@@ -10,6 +10,10 @@ user-role message created after the cursor (or the last --since window, default
 7d, when there is no cursor yet), each with the end of the agent message just
 before it. Prints one stats line.
 
+Quiet path: when no thread has anything new, no digest is written, the cursor
+is advanced at once and the one line printed starts with "nothing new". The
+hourly run then costs one script call.
+
 Peter's own messages are shown plainly. Messages that an agent, watchdog or
 schedule sent into a thread are tagged [automated: <source>]; identical ones are
 shown once with a count. A thread is included when Peter wrote in it during the
@@ -187,10 +191,16 @@ def main(argv):
             lines.append(f"{label}\n{quote(clip(text, USER_CAP))}\n")
         sections.append("\n".join(lines))
 
+    if not sections:
+        write_json("cursor.json", {"cursor": end})
+        (STATE / "pending.json").unlink(missing_ok=True)
+        print(f"nothing new since {local(start)}; cursor advanced to {end}")
+        return
+
     stamp = now.astimezone().strftime("%Y-%m-%d-%H%M")
     out = out or STATE / "digests" / f"{stamp}.md"
     out.parent.mkdir(parents=True, exist_ok=True)
-    body = f"# T3 digest, {local(start)} to {local(end)}\n\n" + ("\n---\n\n".join(sections) or "No new turns.\n")
+    body = f"# T3 digest, {local(start)} to {local(end)}\n\n" + "\n---\n\n".join(sections)
     out.write_text(body)
     write_json("pending.json", {"cursor": end})
     print(f"digest {out}: {len(sections)} threads, {n_peter} messages from Peter, "
