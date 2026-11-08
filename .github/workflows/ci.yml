@@ -1,0 +1,30 @@
+name: CI
+
+# One check: a PR may not grow global/AGENTS.md. Lines added must not exceed
+# lines removed unless the PR body has a line "Why more lines: <reason>".
+# "edited" is in the trigger list so fixing the body re-runs the check.
+# Pull requests only: a push to main has no body to read.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  agents-md-budget:
+    name: agents-md-budget
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: scripts/agents-md-budget "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"

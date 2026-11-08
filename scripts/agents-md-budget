@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Fails when a change adds more lines to global/AGENTS.md than it removes,
+# unless the PR body carries a line "Why more lines: <reason>".
+# Reason: the 2026-11-06 skills diagnosis showed fewer rules score higher
+# (home#28). The rule is "cut before adding"; this is the check behind it.
+#
+# usage: scripts/agents-md-budget <base> [<head>]
+#   base  commit or ref the change is measured against (origin/main, the PR base SHA)
+#   head  commit to measure (default HEAD)
+#   PR_BODY  environment variable holding the PR body; empty means no reason given
+# exit 0 pass, 1 over budget without a reason, 2 usage error
+set -euo pipefail
+
+file=global/AGENTS.md
+base=${1:-}
+head=${2:-HEAD}
+[ -n "$base" ] || { echo "usage: $0 <base> [<head>]" >&2; exit 2; }
+
+merge_base=$(git merge-base "$base" "$head")
+read -r added removed _ < <(git diff --numstat "$merge_base" "$head" -- "$file"; echo "0 0 -")
+net=$((added - removed))
+
+reason=
+if printf '%s\n' "${PR_BODY:-}" | grep -iqE '^[[:space:]]*why more lines:[[:space:]]*[^[:space:]]'; then
+  reason=$(printf '%s\n' "${PR_BODY:-}" | grep -iE '^[[:space:]]*why more lines:' | head -n 1 | sed -E 's/^[[:space:]]*[Ww]hy more lines:[[:space:]]*//')
+fi
+
+if [ "$added" = 0 ] && [ "$removed" = 0 ]; then
+  verdict=pass; note="$file unchanged"
+elif [ "$net" -le 0 ]; then
+  verdict=pass; note="net $net lines"
+elif [ -n "$reason" ]; then
+  verdict=pass; note="net +$net lines, reason given: $reason"
+else
+  verdict=fail; note="net +$net lines and no reason. Cut $net lines, or add a line 'Why more lines: <reason>' to the PR body."
+fi
+
+echo "agents-md-budget: $verdict ($file +$added -$removed; $note)"
+if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+  {
+    echo "| File | Added | Removed | Net | Verdict |"
+    echo "|---|---|---|---|---|"
+    echo "| $file | $added | $removed | $net | $verdict: $note |"
+  } >> "$GITHUB_STEP_SUMMARY"
+fi
+[ "$verdict" = pass ]
