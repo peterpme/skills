@@ -84,7 +84,7 @@ const claudeHooks = [
   { event: "Stop", name: "turn-check" },
   { event: "PermissionRequest", name: "scheduled-allow" },
   { event: "SessionStart", name: "start-task" },
-  { event: "PreToolUse", name: "start-task", matcher: "Edit|Write|MultiEdit|NotebookEdit" },
+  { event: "PreToolUse", name: "start-task", matcher: "Edit|Write|MultiEdit|NotebookEdit|Bash" },
 ];
 async function registerClaudeHooks() {
   const dirs = new Set([join(home, ".claude")]);

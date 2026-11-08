@@ -3,9 +3,9 @@
 # the command that searches it, and the Tiers table from global/AGENTS.md.
 # Run it yourself (Codex, Cursor), or let Claude Code run it as a hook: on
 # SessionStart it reads .cwd from stdin and prints additionalContext; on
-# PreToolUse for Edit, Write, MultiEdit or NotebookEdit it denies the first
-# edit of a session that has not written its ticket, once per session
-# (state in ~/.local/state/start-task, or $START_TASK_STATE).
+# PreToolUse for Edit, Write, MultiEdit, NotebookEdit or an in-place Bash edit
+# it denies the first edit of a session that has not written its ticket, once
+# per session (state in ~/.local/state/start-task, or $START_TASK_STATE).
 # The work folder comes from the home README rule line ("under `<path>` the
 # tracker is Linear"); START_TASK_HOME overrides ~/Projects/home, and
 # START_TASK_OFF=1 turns it off. Always exits 0. scripts/sync-skills.mjs
@@ -21,6 +21,8 @@ if [[ ! -t 0 ]]; then
   # An agent shell can hold stdin open with nothing on it; give up after 1s.
   input=
   IFS= read -r -d '' -t 1 input 2>/dev/null
+  # Most Bash calls write nothing: let them through before spending any jq call.
+  [[ $input == *'"tool_name":"Bash"'* && $input != *sed* && $input != *perl* && $input != *cat* && $input != *tee* ]] && exit 0
   if [[ -n $input ]] && command -v jq >/dev/null 2>&1 && jq -e 'type == "object"' >/dev/null 2>&1 <<<"$input"; then
     hook=$(jq -r '.hook_event_name // "SessionStart"' <<<"$input")
     c=$(jq -r '.cwd // ""' <<<"$input")
@@ -29,14 +31,20 @@ if [[ ! -t 0 ]]; then
 fi
 
 if [[ $hook == PreToolUse ]]; then
-  case $(jq -r '.tool_name // ""' <<<"$input") in Edit | Write | MultiEdit | NotebookEdit) ;; *) exit 0 ;; esac
+  case $(jq -r '.tool_name // ""' <<<"$input") in
+    Edit | Write | MultiEdit | NotebookEdit) ;;
+    # In-place edits through the shell (sed -i, perl -i, cat > file, tee file); writing a ticket
+    # body or anything under .verification/ is not a code edit.
+    Bash) jq -e '(.tool_input.command // "") as $c | ($c | test("(^|[;&|(]\\s*)(sed\\s+(-[A-Za-z]+\\s+)*-[A-Za-z]*i|perl\\s+(-[A-Za-z]+\\s+)*-[A-Za-z]*i|cat\\s*>[^>&]|tee\\s+[^-|\\s])")) and ($c | test("gh issue|\\.verification/") | not)' >/dev/null 2>&1 <<<"$input" || exit 0 ;;
+    *) exit 0 ;;
+  esac
   session=$(jq -r '.session_id // "" | tostring | gsub("[^A-Za-z0-9_-]"; "_")' <<<"$input")
+  state=${START_TASK_STATE:-${XDG_STATE_HOME:-${HOME:-}/.local/state}/start-task}
+  [[ -n $session && ! -f $state/$session ]] || exit 0
   transcript=$(jq -r '.transcript_path // ""' <<<"$input")
   [[ $transcript == "~/"* ]] && transcript=${HOME:-}/${transcript#"~/"}
-  [[ -n $session && -r $transcript ]] || exit 0
-  state=${START_TASK_STATE:-${XDG_STATE_HOME:-${HOME:-}/.local/state}/start-task}
+  [[ -r $transcript ]] || exit 0
   mkdir -p "$state" 2>/dev/null && find "$state" -type f -mtime +7 -delete 2>/dev/null
-  [[ -f $state/$session ]] && exit 0
   # The ticket is in place once this session wrote to the ledger (gh issue create, comment or
   # edit; a Linear issue or comment tool), or a user message carries its link (a brief, a
   # resumed ticket). A link that only came back in search results does not count.

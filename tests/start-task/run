@@ -53,7 +53,8 @@ for c in "${cases[@]}"; do
 done
 
 # The edit gate (PreToolUse). Each case: name ;; tool ;; transcript text ("-" = no file) ;; expected
-# verdict per call ("deny,none" = first call denied, second allowed from the session state).
+# verdict per call ("deny,none" = first call denied, second allowed from the session state) ;;
+# the Bash command, if any.
 nolink='{"type":"user","message":{"role":"user","content":"Fix sum.sh"}}'
 # A search that returned the ticket's URL, and the SessionStart text naming gh issue create: neither is a write.
 searched='{"type":"user","message":{"role":"user","content":"Fix sum.sh"}}
@@ -70,7 +71,13 @@ gates=(
   "gate-home-ref-prompt;;Edit;;ref;;none"
   "gate-linear-url-prompt;;MultiEdit;;linear;;none"
   "gate-read-tool;;Read;;nolink;;none"
-  "gate-bash-tool;;Bash;;nolink;;none"
+  "gate-bash-read;;Bash;;nolink;;none;;cat sum.sh; sed -n 1,5p sum.sh 2>&1 >/dev/null"
+  "gate-bash-sed-i;;Bash;;nolink;;deny,none;;sed -i 's/1/0/' sum.sh && ./sum.sh 2 3"
+  "gate-bash-cat-heredoc;;Bash;;nolink;;deny;;cat > sum.sh <<'EOF'"
+  "gate-bash-perl-i;;Bash;;nolink;;deny;;perl -pi -e 's/1/0/' sum.sh"
+  "gate-bash-ticket-body;;Bash;;nolink;;none;;cat > body.md <<'EOF' && gh issue create -R peterpme/home --body-file body.md"
+  "gate-bash-verification;;Bash;;nolink;;none;;mkdir -p .verification/x && cat > .verification/x/notes.md"
+  "gate-bash-after-write;;Bash;;wrote;;none;;sed -i 's/1/0/' sum.sh"
   "gate-no-transcript;;Edit;;-;;none"
   "gate-off;;Edit;;nolink-off;;none"
 )
@@ -81,7 +88,7 @@ verdict() { # stdin hook output -> deny|none|bad
   fi
 }
 for g in "${gates[@]}"; do
-  IFS=$'\x1f' read -r name tool kind expects <<<"${g//;;/$'\x1f'}"
+  IFS=$'\x1f' read -r name tool kind expects cmd <<<"${g//;;/$'\x1f'}"
   d=$work/gate/$name; mkdir -p "$d"
   t=$d/session.jsonl
   case $kind in
@@ -93,7 +100,7 @@ for g in "${gates[@]}"; do
     linear) printf '%s\n' '{"type":"user","message":{"content":"https://linear.app/acme/issue/MOB-12/x"}}' >"$t" ;;
     -) t=$d/missing.jsonl ;;
   esac
-  input=$(jq -cn --arg t "$t" --arg tool "$tool" --arg s "$name" '{session_id:$s,transcript_path:$t,hook_event_name:"PreToolUse",tool_name:$tool,tool_input:{file_path:"/x"},cwd:"/"}')
+  input=$(jq -cn --arg t "$t" --arg tool "$tool" --arg s "$name" --arg c "$cmd" '{session_id:$s,transcript_path:$t,hook_event_name:"PreToolUse",tool_name:$tool,tool_input:(if $c == "" then {file_path:"/x"} else {command:$c} end),cwd:"/"}')
   IFS=, read -ra want <<<"$expects"
   for i in "${!want[@]}"; do
     if [[ $kind == nolink-off ]]; then out=$(START_TASK_OFF=1 START_TASK_STATE=$d/state "$hook" <<<"$input"); code=$?
