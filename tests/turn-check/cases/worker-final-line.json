@@ -1,0 +1,1 @@
+{"expect":"allow","input":{"hook_event_name":"Stop","stop_hook_active":false,"last_assistant_message":"Worker: #40 done, https://github.com/peterpme/skills/pull/55","background_tasks":[],"session_crons":[]}}

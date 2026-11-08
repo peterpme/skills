@@ -1,0 +1,1 @@
+{"expect":"block","input":{"hook_event_name":"Stop","stop_hook_active":false,"last_assistant_message":"The labeling job is running. I'll check on it later.","background_tasks":[],"session_crons":[]}}

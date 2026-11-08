@@ -1,0 +1,1 @@
+{"expect":"allow","input":{"hook_event_name":"Stop","stop_hook_active":false,"last_assistant_message":"After the build completes I'll need you to approve the deploy. I'll need your token once the build finishes.","background_tasks":[],"session_crons":[]}}

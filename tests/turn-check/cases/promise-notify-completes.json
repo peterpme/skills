@@ -1,0 +1,1 @@
+{"expect":"block","input":{"hook_event_name":"Stop","stop_hook_active":false,"last_assistant_message":"I'll notify you once the download completes.","background_tasks":[],"session_crons":[]}}

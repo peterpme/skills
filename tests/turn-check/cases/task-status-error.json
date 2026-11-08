@@ -1,0 +1,1 @@
+{"expect":"allow","input":{"hook_event_name":"Stop","stop_hook_active":false,"last_assistant_message":"The build failed; log attached.","background_tasks":[{"id":"b1","type":"shell","status":"error","command":"npm run build"}],"session_crons":[]}}

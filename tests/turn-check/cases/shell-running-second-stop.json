@@ -1,0 +1,1 @@
+{"expect":"allow","input":{"hook_event_name":"Stop","stop_hook_active":true,"last_assistant_message":"Started the download. Results will land in downloads/.","background_tasks":[{"id":"task-001","type":"shell","status":"running","command":"bash scripts/google_books.sh"}],"session_crons":[]}}

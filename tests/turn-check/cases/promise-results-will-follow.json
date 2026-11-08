@@ -1,0 +1,1 @@
+{"expect":"block","input":{"hook_event_name":"Stop","stop_hook_active":false,"last_assistant_message":"Results will follow when the job completes.","background_tasks":[],"session_crons":[]}}

@@ -1,0 +1,1 @@
+{"expect":"allow","input":{"hook_event_name":"PreToolUse","stop_hook_active":false,"tool_name":"Bash","background_tasks":[{"id":"t","type":"shell","status":"running","command":"sleep 100"}]}}

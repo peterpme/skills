@@ -1,0 +1,1 @@
+{"expect":"allow","input":{"hook_event_name":"Stop","stop_hook_active":false,"last_assistant_message":"**Decide**\n1. Date for the review? → **Tuesday**. I'll send the invite when you confirm the date.","background_tasks":[],"session_crons":[]}}

@@ -1,0 +1,1 @@
+{"expect":"allow","input":{"hook_event_name":"Stop","stop_hook_active":false,"last_assistant_message":"Done. The PR is at https://github.com/peterpme/home/pull/74."}}

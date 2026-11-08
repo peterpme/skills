@@ -1,0 +1,1 @@
+{"expect":"block","input":{"hook_event_name":"Stop","stop_hook_active":false,"last_assistant_message":"Kicked off the export.","background_tasks":[{"id":"e1","type":"shell","command":"bash export.sh"}],"session_crons":[]}}
