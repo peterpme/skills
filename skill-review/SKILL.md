@@ -1,14 +1,13 @@
 ---
 name: skill-review
-description: Weekly check that Peter's skills still earn their lines. Turns the scout's open finding issues into one scored change and merges it when the replays of real past tasks say it helps, adds new replay cases from the week's friction, and proposes cuts that don't lower the score, each as a draft PR or PR comment with the numbers. Use for the scheduled weekly Skill review, or when asked to evaluate, trim or compare versions of the skills. Not for finding new patterns in threads (skill-scout).
+description: Weekly check that Peter's skills still earn their lines. Turns the scout's open finding issues into one scored change and merges it when the replays of real past tasks say it helps, and adds new replay cases from the week's friction. Use for the scheduled weekly Skill review, or when asked to evaluate or compare versions of the skills. Not for finding new patterns in threads (skill-scout) or for cutting text (skill-gardener).
 compatibility: Runs on the machine that holds the private eval cases (~/.local/share/skill-evals/orchestrate). Needs the claude and codex CLIs, gh and node.
 ---
 
 # Skill review
 
-Goal: every scout change reaches Peter with evidence, and every line in the skills earns its place. One run: add cases, score the filed findings, try cuts, check sizes, report.
+Goal: every scout change reaches Peter with evidence. One run: add cases, score the filed findings, report. This review measures and adds; cutting text is skill-gardener's job, every three days.
 
-- Never merge a PR or mark one ready. Peter merges.
 - Never commit cases, transcripts or run output to the skills repo. The repo is public; cases come from private work. They live in `~/.local/share/skill-evals/orchestrate/`.
 - Budget: at most two eval comparisons per run, about $30 each (32 agent sessions plus judging). Run each in the background with a log (`runq` or a background command), and wait for it to finish before going on. Never end the turn while one runs.
 
@@ -26,45 +25,24 @@ List them: `gh issue list -R peterpme/home --label finding --state open --json n
 2. Run `REPS=2 node evals/orchestrate/run.mjs origin/main .` from that worktree.
 3. If the train mean rises by more than 0.1, run `SPLIT=holdout` once.
 4. Verdict per batch: helps, within noise, or hurts (train mean down by more than 0.1, or any case down by more than its spread between reps).
-5. **Helps or within noise:** run the leak check from skill-scout section 5, open the PR with aggregate numbers only, and merge it under the personal-repo rule in the global instructions. Then `npm run release` from `~/skills`, close each finding issue with the numbers, and mark the ledger `merged`.
+5. **Helps or within noise:** run the leak check from skill-scout section 6, open the PR with aggregate numbers only, and merge it under the personal-repo rule in the global instructions. Then `npm run release` from `~/skills`, close each finding issue with the numbers, and mark the ledger `merged`.
 6. **Hurts:** drop findings one at a time until the batch passes, merge what passes, and comment the numbers on each dropped finding, which stays open for the scout to gather more evidence or for Peter to overrule.
 
 Case ids and judge notes name private work, so they go only in the T3 report and the finding issues, never in the skills PR.
 
-## 3. Try cuts
+## 3. Cuts and sizes
 
-Find up to 5 lines or sections to cut across `~/skills/*/SKILL.md` and `global/AGENTS.md`:
+Not here. Skill-gardener cuts duplicated, stale and narrated lines and flags oversized skills every three days. A line that is wrong rather than surplus is a `finding` issue, scored in section 2.
 
-- a rule stated in two files (keep it in the skill that owns the step);
-- something stale: a tool, model, path or pause that no longer exists;
-- a rule a newer rule contradicts;
-- prose that a script already enforces;
-- a long section no eval transcript ever read or acted on (`rg` the run transcripts).
-
-Make the cuts in a worktree at `~/skills/.claude/worktrees/skill-review-<date>`, on branch `skill-review/<date>` from `origin/main`. Run `REPS=2 node evals/orchestrate/run.mjs origin/main .` from that worktree.
-
-- **Keep the cuts** if the train mean drops by no more than 0.1 and no case drops by more than its spread between reps. Open a PR that lists each cut, its reason, and the aggregate scores, and merge it under the personal-repo rule. Follow finish-task.
-- **Otherwise** don't bisect. Report the batch as not kept, and next week try its cuts one or two at a time.
-
-If there are no findings to score, step 3 may use both comparisons.
-
-Before pushing, run the leak check from skill-scout section 5 on the diff and the PR body.
-
-## 4. Size check
-
-Flag each `SKILL.md` over 500 lines. Don't report the size of `global/AGENTS.md`; trim it in the PR instead when it grows.
-
-## 5. Report
+## 4. Report
 
 ```
-**Skill review, <date>:** <N findings merged as PR #n / M dropped; cuts PR #m keeps N lines; nothing to do>
+**Skill review, <date>:** <N findings merged as PR #n / M dropped; nothing to do>
 
 | Check | Result |
 |---|---|
 | Findings PR #n | train <main> → <PR> (<cases>), holdout <…>, verdict, issues closed |
-| Cuts | PR #m: N cuts, train <main> → <cuts> |
 | New cases | N (ids) |
-| Sizes | AGENTS.md N chars; skills over 150 lines |
 | Spend | $N |
 ```
 
