@@ -1,0 +1,1 @@
+{"expect":"allow","input":{"hook_event_name":"Stop","stop_hook_active":false,"last_assistant_message":"Restarted the export under `bgjob start export -- bash export.sh`. Results will land when you run bgjob wait export. The numbers will be ready once you rerun the script.","background_tasks":[],"session_crons":[]}}

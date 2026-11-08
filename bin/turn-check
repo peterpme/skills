@@ -34,11 +34,11 @@ out=$(jq -c --argjson seen "$seenjson" '
   def unquoted: gsub("`[^`\\n]*`"; " ") | gsub("\"[^\"\\n]*\""; " ");
   def promise: unquoted |
     [ match("\\b(I.ll|I will)\\s+(report|check|follow up|update you|let you know|come back|get back|post|reply|send|ping|notify|watch|monitor|keep (an eye|watching|monitoring))\\b" + sentence + "\\b(when|once|after|as soon as|later)\\b(?!\\s+you\\b)"; "i"),
-      match("\\b(when|once|after)\\b(?!\\s+you\\b)" + sentence + "\\b(finish|finishes|finished|complete|completes|completed|is done|done)\\b" + sentence + "\\b(I.ll|I will)\\b"; "i"),
+      match("\\b(when|once|after)\\b(?!\\s+you\\b)" + sentence + "\\b(finish|finishes|finished|complete|completes|completed|is done|done)\\b" + sentence + "\\b(I.ll|I will)\\b(?!\\s+need\\b)"; "i"),
       match("\\b(I.ll|I will|will) (report|check|circle|get) back\\b"; "i"),
-      match("\\b(I.ll|I will)\\b" + sentence + "\\b(when|once|after|as soon as)\\b(?!\\s+you\\b)" + sentence + "\\b(finish|finishes|finished|complet\\w*|done|ready)\\b"; "i"),
+      match("\\b(I.ll|I will)\\b(?!\\s+need\\b)" + sentence + "\\b(when|once|after|as soon as)\\b(?!\\s+you\\b)" + sentence + "\\b(finish|finishes|finished|complet\\w*|done|ready)\\b"; "i"),
       match("\\b(I.ll|I will)\\b" + sentence + "\\bin (about |roughly |around |~)?\\d+ ?(seconds|minutes|min|hours|h)\\b"; "i"),
-      match("\\b(results?|numbers|output|counts|report|summary) will (follow|land|arrive|be ready|be posted)\\b" + sentence + "\\b(when|once|after|as soon as)\\b"; "i") ]
+      match("\\b(results?|numbers|output|counts|report|summary) will (follow|land|arrive|be ready|be posted)\\b" + sentence + "\\b(when|once|after|as soon as)\\b(?!\\s+you\\b)"; "i") ]
     | .[0].string;
   def live: select(((.status // "running") | ascii_downcase | test("complet|done|finish|fail|error|kill|cancel|stopp|timed|timeout")) | not);
   def describe: "\(.type // "task") \(.id // "?")" + (if (.command // .description) then " `\((.command // .description)[:100])`" else "" end);
