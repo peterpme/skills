@@ -25,7 +25,7 @@ List them: `gh issue list -R peterpme/home --label finding --state open --json n
 2. Run `REPS=2 node evals/orchestrate/run.mjs origin/main .` from that worktree.
 3. If the train mean rises by more than 0.1, run `SPLIT=holdout` once.
 4. Verdict per batch: helps, within noise, or hurts (train mean down by more than 0.1, or any case down by more than its spread between reps).
-5. **Helps or within noise:** run the leak check from skill-scout section 5, open the PR with aggregate numbers only, and merge it under the personal-repo rule in the global instructions. Then `npm run release` from `~/skills`, close each finding issue with the numbers, and mark the ledger `merged`.
+5. **Helps or within noise:** run the leak check from skill-scout section 6, open the PR with aggregate numbers only, and merge it under the personal-repo rule in the global instructions. Then `npm run release` from `~/skills`, close each finding issue with the numbers, and mark the ledger `merged`.
 6. **Hurts:** drop findings one at a time until the batch passes, merge what passes, and comment the numbers on each dropped finding, which stays open for the scout to gather more evidence or for Peter to overrule.
 
 Case ids and judge notes name private work, so they go only in the T3 report and the finding issues, never in the skills PR.
