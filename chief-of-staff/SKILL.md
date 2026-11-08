@@ -33,6 +33,10 @@ Closure is more than closing. When you close the last PR of a stream, or an epic
 
 Every issue you touch carries one area label (`backpack` or `personal`) and one project label; fix any that are missing. Never deploy. Never nudge a teammate; name who should be asked and why.
 
+## Retargeted stacks
+
+An agent's draft PR whose base became the default branch since the last run (its parent merged) gets the orchestrate ready gate in this run: checks green, `pr-threads` empty, then `gh pr ready`. Until then it stays a draft and is never listed as needing Peter.
+
 ## Trust tally
 
 Peter's end goal: he reviews PRs the way he would review his own, and nothing else waits on him. Each run, for every PR of his or an agent's that a human reviewed since the last run: approved without changes or a thumbs-up reaction counts as a pass for the PR's area (wallet, exchange, infra, skills, blog, peterbot); changes requested, a thumbs-down, or a merge after edits by someone else counts as a miss and files one `finding` issue naming the PR and what he changed. Keep the table in the control panel under "Trust": area, passes, misses, last miss, autonomy level. Autonomy levels: *ask* (contracts wait for his veto window), *proceed* (ten passes in a row: contracts start at once, tier 2 included), *merge* (personal repos only, already the rule). Move an area up or down only on the numbers, and record the move as a closed decision issue.

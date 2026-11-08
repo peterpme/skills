@@ -105,6 +105,7 @@ A PR is ready only when all of these hold. Check them with the helpers, not from
 - The proof table is filled in, and every acceptance check for this slice passes or is clearly marked unverified with a reason.
 - Both reviewers' findings are fixed or answered, and the reviewed SHA is the PR's head.
 - The size is within the cap, or the PR body says why it can't be split.
+- Its base is `master` (or the repo's default branch). A stacked PR stays a draft while it targets a sibling branch, even after its veto window: the team cannot merge it, and a ready flag on it is noise. When its parent merges and GitHub retargets it, run the gate then. Keep stacks short; a mechanical refactor across many operations is one PR per operation only when each is reviewable alone and the stack is under about five deep, otherwise fold.
 - The PR body states why it exists, what changed, the proof table, the reviewers with their model and reviewed SHA, and any codemod used.
 
 Merging follows Peter's repo-class rule in the global instructions: personal repos you merge yourself once the ready gate passes; work repos Peter or the team merge, and no reviewer approval counts as that. Then hand over in one message: one line per PR in merge order (`#n title: what it does, proof in one phrase`), followed by "Needs your call" with only what truly needs him, and what is unverified. Draft status and merging follow Peter's global instructions.
