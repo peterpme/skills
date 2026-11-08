@@ -31,7 +31,7 @@ for f in "$here"/cases/*.json; do
     fi
     actual=${line%%$'\t'*}; reason=${line#*$'\t'}
     ok=yes; [[ $expect == "$actual" ]] || { ok=NO; fail=1; }
-    label=$name; ((n > 1)) && label="$name[$((i + 1))]"
+    label=$name; ((n > 1)) && label="${name}[$((i + 1))]"
     printf '%-32s %-6s %-6s %-4s %s\n' "$label" "$expect" "$actual" "$ok" "$reason"
   done
 done
