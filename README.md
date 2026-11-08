@@ -13,6 +13,7 @@ Personal agent skills. One folder per skill at the repository root.
 - [orchestrate](orchestrate/SKILL.md): Build without Peter steering: a contract (his decisions, acceptance checks, slices, defaulted questions) reviewed once by the other model family, workers build, Sol and Fable review each diff, and only PRs that pass the ready gate reach him. `evals/orchestrate/` replays real tasks to score it.
 - [skill-review](skill-review/SKILL.md): Weekly: turns filed findings into one scored change and merges it when the replay eval says it helps, and adds replay cases.
 - [skill-gardener](skill-gardener/SKILL.md): Every three days: cuts duplicated, stale and narrated lines from `global/AGENTS.md` and the skills in one PR with a words-before-and-after table, merged when the replay eval holds. `scripts/words` prints the table.
+- [desk](desk/SKILL.md): Run the Desk, the one pinned T3 thread Peter talks to; every piece of work runs as a hidden `delegate_task` child and comes back in the tldr shape.
 - [t3-loadbalancer](t3-loadbalancer/SKILL.md): Move running T3 Code threads between Claude accounts and Cursor as 5-hour usage runs low or recovers.
 - [effect-v4](effect-v4/SKILL.md): Effect v4 reference for writing, reviewing and testing Effect TypeScript code.
 - [new-repo](new-repo/SKILL.md): Create or standardize a GitHub repo: branch ruleset with one required `ci` check, cached Rust (BeautifulRust lints) or TypeScript (Vite+, tsrs) CI, Dependabot, and Railway deploys gated on CI. `scripts/github-setup` applies the settings.
