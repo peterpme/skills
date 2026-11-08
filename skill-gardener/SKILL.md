@@ -14,8 +14,8 @@ Goal: every line in `global/AGENTS.md` and the skills earns its place. The garde
 
 ## 1. Measure
 
-1. `git -C ~/skills fetch origin`. Make a worktree at `~/skills/.claude/worktrees/skill-gardener-<date>` on branch `skill-gardener/<date>` from `origin/main`.
-2. If a `skill-review/*` PR is open on the skills repo, leave the files it changes alone this run.
+1. `git -C ~/skills fetch origin`. Make a worktree at `~/skills/.claude/worktrees/gardener-<date>` on branch `gardener/<date>` from `origin/main`.
+2. If a `skill-review/*` PR is open on the skills repo, leave the files it changes alone this run. If a `gardener/*` draft is open, its cuts are this run's retry queue (section 4).
 3. Run `skill-gardener/scripts/words` in the worktree. On the first run (no `~/.local/state/skill-gardener/runs.md` yet) that table is the baseline: put it in the PR body and the report as "Baseline, words per file".
 
 ## 2. Cut
@@ -31,7 +31,7 @@ Read each of `global/AGENTS.md` and `*/SKILL.md` whole. Cut these, nothing else:
 | Same-meaning rules | two rules that differ only in wording | merge into the one with the exact command or number |
 | Enforced prose | a rule a script, hook or CI check already enforces | keep one pointer to the check |
 
-Never cut: frontmatter, a sentence another skill tells agents to copy word for word, a decision with its revert word, an example a format rule needs, or a number. The eval scores planning only, so for a duplicated rule in a step it does not cover (proof, review, the ready gate, merging) the PR table names the line that still says it. At most about 15% of a file's words per run, so a drop in the score points at a few cuts. One commit per file, with the cut kinds in the message.
+Never cut: frontmatter, a sentence another skill tells agents to copy word for word, a decision with its revert word, an example a format rule needs, or a number a rule depends on (a threshold, cap, size or port). The eval scores planning only, so for a duplicated rule in a step it does not cover (proof, review, the ready gate, merging) the PR table names the line that still says it. At most about 15% of a file's words per run, so a drop in the score points at a few cuts. One commit per file, with the cut kinds in the message.
 
 ## 3. Score
 
@@ -48,8 +48,8 @@ Title `gardener <date>: -N words`. Body, nothing else:
 
 Then:
 
-- **Holds:** follow finish-task's ready gate (`pr-status`, `pr-threads` empty, every bot thread answered), merge, delete the branch, `npm run release` from `~/skills`.
-- **Drops or unscored:** leave the PR a draft with the score in the body. Next run, retry its cuts one file at a time on a fresh branch and close the draft.
+- **Holds:** follow finish-task's ready gate (`pr-status`, `pr-threads` empty, every bot thread answered), merge, delete the branch, then `git -C ~/skills pull --ff-only` and `npm run release` from `~/skills`.
+- **Drops or unscored:** leave the PR a draft with the score in the body. Next run, retry one of its files, largest cut first, as that run's whole batch on a fresh branch, and close the draft.
 - **Nothing to cut:** open no PR.
 
 Case ids and judge notes name private work: they go only in the report, never in the PR.
