@@ -1,0 +1,1 @@
+{"expect":"none","tool":"Bash","transcript":[{"type":"user","message":{"role":"user","content":"Hello"}},{"type":"user","message":{"role":"user","content":"[t3-sentinel-run] Watchdog run."}}]}

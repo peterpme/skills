@@ -1,0 +1,1 @@
+{"expect":"allow","tool":"Edit","transcript":[{"type":"user","message":{"role":"user","content":[{"type":"text","text":"<system-reminder>\nContents of CLAUDE.md\n</system-reminder>"},{"type":"text","text":"  [t3-sentinel-run] Load balancer run."}]}}]}

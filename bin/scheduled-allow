@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# scheduled-allow: Claude Code PermissionRequest hook. Answers allow to every
+# permission prompt in a session whose first user message starts with
+# [t3-sentinel-run], the marker every scheduled T3 prompt carries. Any other
+# session gets no output, so it keeps today's prompts. AskUserQuestion and
+# ExitPlanMode are left alone. Reads the hook input on stdin, always exits 0.
+# The verdict is cached per session in ~/.local/state/scheduled-allow (or
+# $SCHEDULED_ALLOW_STATE). scripts/sync-skills.mjs registers it in each
+# ~/.claude*/settings.json; tests/scheduled-allow/run checks it.
+set -uo pipefail
+case ${1:-} in -h | --help) sed -n '2,9p' "$0" | cut -c3-; exit 0 ;; esac
+marker='[t3-sentinel-run]'
+command -v jq >/dev/null 2>&1 || PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+command -v jq >/dev/null 2>&1 || exit 0
+input=$(cat 2>/dev/null) || exit 0
+[[ -n $input ]] || exit 0
+jq -e 'type == "object"' >/dev/null 2>&1 <<<"$input" || exit 0
+[[ $(jq -r '.hook_event_name // "PermissionRequest"' <<<"$input" 2>/dev/null) == PermissionRequest ]] || exit 0
+tool=$(jq -r '.tool_name // ""' <<<"$input" 2>/dev/null)
+case $tool in AskUserQuestion | ExitPlanMode) exit 0 ;; esac
+
+session=$(jq -r '.session_id // "" | tostring | gsub("[^A-Za-z0-9_-]"; "_")' <<<"$input" 2>/dev/null)
+state=${SCHEDULED_ALLOW_STATE:-${XDG_STATE_HOME:-$HOME/.local/state}/scheduled-allow}
+cache=
+if [[ -n $session ]]; then
+  cache=$state/$session
+  mkdir -p "$state" 2>/dev/null && find "$state" -type f -mtime +7 -delete 2>/dev/null
+fi
+
+verdict=
+[[ -n $cache && -f $cache ]] && verdict=$(<"$cache")
+if [[ $verdict != yes && $verdict != no ]]; then
+  transcript=$(jq -r '.transcript_path // ""' <<<"$input" 2>/dev/null)
+  [[ $transcript == "~/"* ]] && transcript=$HOME/${transcript#"~/"}
+  [[ -n $transcript && -r $transcript ]] || exit 0
+  # The first real user message: not a meta line, not only tool results.
+  # Leading whitespace and <system-reminder> blocks are not part of the prompt.
+  verdict=$(grep -m 50 '"type":"user"' "$transcript" 2>/dev/null | jq -rn --arg m "$marker" '
+    [inputs | select(type == "object" and .type == "user" and (.isMeta != true))
+      | .message.content
+      | if type == "string" then .
+        elif type == "array" then (map(select(.type == "text") | .text) | if length > 0 then join("\n") else empty end)
+        else empty end] | first
+    | if . == null then "unknown"
+      else (gsub("^(\\s|<system-reminder>[\\s\\S]*?</system-reminder>)+"; "") | if startswith($m) then "yes" else "no" end)
+      end' 2>/dev/null)
+  [[ $verdict == yes || $verdict == no ]] || exit 0
+  [[ -n $cache ]] && printf '%s\n' "$verdict" >"$cache" 2>/dev/null
+fi
+[[ $verdict == yes ]] || exit 0
+jq -cn '{hookSpecificOutput: {hookEventName: "PermissionRequest", decision: {behavior: "allow"}}}'
+exit 0

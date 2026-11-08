@@ -1,0 +1,1 @@
+{"expect":"none","tool":"Bash","transcript":[{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"x","content":"[t3-sentinel-run]"}]}},{"type":"user","message":{"role":"user","content":"plain"}}]}

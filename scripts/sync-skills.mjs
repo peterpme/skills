@@ -60,15 +60,21 @@ for (const entry of await readdir(join(root, "bin"), { withFileTypes: true })) {
   if ((entry.isFile() || entry.isSymbolicLink()) && !entry.name.startsWith(".")) await link(join(root, "bin", entry.name), join(".local/bin", entry.name), "file");
 }
 
-// Claude Code Stop hook: bin/turn-check sends an agent back once when it ends a turn with a
-// background task still running or a promise to report later that nothing will wake it for.
-// Registered in the settings.json of every Claude Code config dir on the machine: ~/.claude,
-// any ~/.claude<n> (a second account, see t3-loadbalancer) and $CLAUDE_CONFIG_DIR. The command
-// is the ~/.local/bin link, which survives the checkout or worktree that ran sync; an entry
-// pointing elsewhere is rewritten. Other keys are left as they are, the write is atomic, and
-// the file is never printed: it holds tokens.
-async function registerStopHook() {
-  const command = join(home, ".local/bin/turn-check");
+// Claude Code hooks from bin/, registered in the settings.json of every Claude Code config dir on
+// the machine: ~/.claude, any ~/.claude<n> (a second account, see t3-loadbalancer) and
+// $CLAUDE_CONFIG_DIR. The command is the ~/.local/bin link, which survives the checkout or worktree
+// that ran sync; an entry pointing elsewhere is rewritten. Other keys are left as they are, the
+// write is atomic, and the file is never printed: it holds tokens.
+// - Stop, bin/turn-check: sends an agent back once when it ends a turn with a background task still
+//   running or a promise to report later that nothing will wake it for.
+// - PermissionRequest, bin/scheduled-allow: answers allow to every permission prompt in a session
+//   whose first message starts with [t3-sentinel-run], so a scheduled run never waits on Peter
+//   (home #84). A PreToolUse allow does not stop the prompts bypass mode still raises.
+const claudeHooks = [
+  { event: "Stop", name: "turn-check" },
+  { event: "PermissionRequest", name: "scheduled-allow" },
+];
+async function registerClaudeHooks() {
   const dirs = new Set([join(home, ".claude")]);
   for (const entry of await readdir(home, { withFileTypes: true })) {
     if (entry.isDirectory() && /^\.claude\d+$/.test(entry.name)) dirs.add(join(home, entry.name));
@@ -77,38 +83,42 @@ async function registerStopHook() {
   for (const dir of dirs) {
     if (!(await stat(dir))?.isDirectory()) continue;
     try {
-      await registerStopHookIn(dir, command);
+      await registerClaudeHooksIn(dir);
     } catch (error) {
-      console.log(`Skipped ${join(dir, "settings.json")}: ${error.message}. Add a Stop hook running ${command} by hand.`);
+      console.log(`Skipped ${join(dir, "settings.json")}: ${error.message}. Add ${claudeHooks.map(({ event, name }) => `a ${event} hook running ${join(home, ".local/bin", name)}`).join(" and ")} by hand.`);
     }
   }
 }
-async function registerStopHookIn(dir, command) {
-  {
-    // Follow a symlink (a dotfiles-tracked file) so the rename below replaces the target, not the link.
-    const link = join(dir, "settings.json");
-    const file = (await stat(link)) ? await realpath(link) : link;
-    let settings = {};
-    const existing = await stat(file);
-    if (existing) {
-      try {
-        settings = JSON.parse(await readFile(file, "utf8"));
-      } catch {
-        throw new Error("not valid JSON");
-      }
+async function registerClaudeHooksIn(dir) {
+  // Follow a symlink (a dotfiles-tracked file) so the rename below replaces the target, not the link.
+  const link = join(dir, "settings.json");
+  const file = (await stat(link)) ? await realpath(link) : link;
+  let settings = {};
+  const existing = await stat(file);
+  if (existing) {
+    try {
+      settings = JSON.parse(await readFile(file, "utf8"));
+    } catch {
+      throw new Error("not valid JSON");
     }
-    if (typeof settings !== "object" || settings === null || Array.isArray(settings)) throw new Error(`${file} is not a JSON object`);
-    if (typeof settings.hooks !== "object" || settings.hooks === null || Array.isArray(settings.hooks)) settings.hooks = {};
-    if (!Array.isArray(settings.hooks.Stop)) settings.hooks.Stop = [];
-    const ours = settings.hooks.Stop.flatMap((entry) => (Array.isArray(entry?.hooks) ? entry.hooks : [])).filter((hook) => typeof hook?.command === "string" && hook.command.endsWith("/bin/turn-check"));
-    if (ours.length && ours.every((hook) => hook.command === command)) return;
+  }
+  if (typeof settings !== "object" || settings === null || Array.isArray(settings)) throw new Error(`${file} is not a JSON object`);
+  if (typeof settings.hooks !== "object" || settings.hooks === null || Array.isArray(settings.hooks)) settings.hooks = {};
+  const changes = [];
+  for (const { event, name } of claudeHooks) {
+    const command = join(home, ".local/bin", name);
+    if (!Array.isArray(settings.hooks[event])) settings.hooks[event] = [];
+    const ours = settings.hooks[event].flatMap((entry) => (Array.isArray(entry?.hooks) ? entry.hooks : [])).filter((hook) => typeof hook?.command === "string" && hook.command.endsWith(`/bin/${name}`));
+    if (ours.length && ours.every((hook) => hook.command === command)) continue;
     if (ours.length) for (const hook of ours) hook.command = command;
-    else settings.hooks.Stop.push({ matcher: "", hooks: [{ type: "command", command, timeout: 10 }] });
-    const mode = existing ? (await fsStat(file)).mode & 0o777 : 0o600;
-    const tmp = `${file}.${process.pid}.tmp`;
-    await writeFile(tmp, `${JSON.stringify(settings, null, 2)}\n`, { mode });
-    await rename(tmp, file);
-    console.log(`${ours.length ? "Updated" : "Registered"} Claude Code Stop hook ${command} in ${file}`);
+    else settings.hooks[event].push({ matcher: "", hooks: [{ type: "command", command, timeout: 10 }] });
+    changes.push(`${ours.length ? "Updated" : "Registered"} Claude Code ${event} hook ${command}`);
   }
+  if (!changes.length) return;
+  const mode = existing ? (await fsStat(file)).mode & 0o777 : 0o600;
+  const tmp = `${file}.${process.pid}.tmp`;
+  await writeFile(tmp, `${JSON.stringify(settings, null, 2)}\n`, { mode });
+  await rename(tmp, file);
+  for (const change of changes) console.log(`${change} in ${file}`);
 }
-await registerStopHook();
+await registerClaudeHooks();

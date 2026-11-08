@@ -1,0 +1,1 @@
+{"expect":"allow","tool":"Bash","transcript":[{"type":"user","isMeta":true,"message":{"role":"user","content":"<local-command-caveat>x</local-command-caveat>"}},{"type":"user","message":{"role":"user","content":"[t3-sentinel-run] Disk cleanup."}}]}
