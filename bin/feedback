@@ -4,20 +4,24 @@ feedback add --quote TEXT --agent-did TEXT [--changed TEXT] [--thread ID --time 
 
 Record Peter's feedback to the agents, verbatim, in docs/feedback.md of the home
 repo (default ~/Projects/home), newest first, and commit it straight to main:
-pull --ff-only, commit, push, with one pull --rebase retry if the push is
-rejected. Use it the same turn he corrects you or says how he wants work done.
+pull --ff-only, commit only that file, push. Writers on one machine take a lock
+on the repo, so they never race; a push rejected by another machine is retried
+once from the new main. Use it the same turn he corrects you or says how he
+wants work done.
 
 ENTRIES.json is a list of objects: quote (his words, verbatim), agent_did (one
 line, what the agent had done), changed (one line: the skills PR, the finding
-number, or "pending"), and optionally thread (T3 thread id), time (ISO 8601,
-when he said it; default now), title (thread title) and key. The dedup key is
-"<thread>@<time>" when a thread is given, else the SHA-1 of the quote; an entry
-whose key is already in the file is skipped, so a rerun adds nothing twice.
-Exit 0 after a commit or when everything was already recorded; 1 on a git error.
+number, or "pending"), and optionally thread (T3 thread id), time (ISO 8601;
+default now; a time without an offset is local time), title (thread title) and
+key. The dedup key is "<thread>@<time>" when a thread is given, else the SHA-1
+of the quote; an entry whose key is already in the file is skipped, so a rerun
+adds nothing twice. Entries are kept in time order whatever order they arrive.
+Exit 0 after a commit or when everything was already recorded; 1 on an error.
 """
 
 import argparse
 import datetime as dt
+import fcntl
 import hashlib
 import json
 import pathlib
@@ -36,25 +40,39 @@ Newest first. The skill scout and the weekly skill review read this file before 
 else; each entry outranks a pattern inferred from threads.
 
 """ + MARK + "\n"
+META = re.compile(r"<!-- key: (.*?) \| time: (\S+) -->")
+OLDEST = dt.datetime.min.replace(tzinfo=dt.timezone.utc)
 
 
 def git(repo, *args, check=True):
     return subprocess.run(["git", "-C", str(repo), *args], text=True, capture_output=True, check=check)
 
 
-def local(iso):
-    t = dt.datetime.fromisoformat(iso.replace("Z", "+00:00"))
-    if t.tzinfo is None:
-        t = t.replace(tzinfo=dt.timezone.utc)
+def parse_time(value):
+    try:
+        t = dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        sys.exit(f"feedback: time {value!r} is not ISO 8601")
+    return t.astimezone() if t.tzinfo is None else t
+
+
+def iso(t):
+    return t.astimezone(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def local(t):
     return t.astimezone().strftime("%Y-%m-%d %H:%M %Z")
 
 
 def render(e):
-    where = f" · [{e['title']}](t3-thread://v1/{e['thread']})" if e.get("thread") and e.get("title") else ""
+    where = ""
+    if e.get("thread") and e.get("title"):
+        title = re.sub(r"([\[\]])", r"\\\1", e["title"].strip())
+        where = f" · [{title}](t3-thread://v1/{e['thread']})"
     quote = "\n".join("> " + line for line in e["quote"].strip().splitlines()) or ">"
     return (
         f"## {local(e['time'])}{where}\n"
-        f"<!-- key: {e['key']} -->\n"
+        f"<!-- key: {e['key']} | time: {iso(e['time'])} -->\n"
         f"{quote}\n\n"
         f"**The agent had:** {e['agent_did'].strip()}  \n"
         f"**Changed:** {e.get('changed', 'pending').strip() or 'pending'}\n"
@@ -62,13 +80,50 @@ def render(e):
 
 
 def normalise(e):
+    if not isinstance(e, dict):
+        sys.exit("feedback: ENTRIES.json must be a list of objects (see --help)")
     for field in ("quote", "agent_did"):
-        if not e.get(field, "").strip():
+        if not str(e.get(field, "")).strip():
             sys.exit(f"feedback: entry is missing {field!r}")
-    e.setdefault("time", dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"))
+    e["time"] = parse_time(e["time"]) if e.get("time") else dt.datetime.now(dt.timezone.utc)
     if not e.get("key"):
-        e["key"] = f"{e['thread']}@{e['time']}" if e.get("thread") else hashlib.sha1(e["quote"].strip().encode()).hexdigest()[:16]
+        e["key"] = f"{e['thread']}@{iso(e['time'])}" if e.get("thread") else hashlib.sha1(e["quote"].strip().encode()).hexdigest()[:16]
+    if "--" in e["key"] or "|" in e["key"]:
+        sys.exit(f"feedback: key {e['key']!r} may not contain '--' or '|'")
     return e
+
+
+def existing_entries(tail):
+    """Entries already in the file, each with its key and time; entries without metadata sort last."""
+    out = []
+    for part in re.split(r"(?m)^(?=## )", tail):
+        if not part.strip():
+            continue
+        m = META.search(part)
+        out.append({"key": m.group(1) if m else None,
+                    "time": parse_time(m.group(2)) if m else OLDEST,
+                    "text": part.strip("\n") + "\n"})
+    return out
+
+
+def write_file(path, entries, new):
+    text = path.read_text() if path.exists() else HEADER
+    if MARK not in text:
+        sys.exit(f"feedback: {path} has no '{MARK}' line")
+    head, tail = text.split(MARK, 1)
+    current = existing_entries(tail)
+    have = {e["key"] for e in current}
+    todo, seen = [], set()
+    for e in new:
+        if e["key"] not in have and e["key"] not in seen:
+            seen.add(e["key"])
+            todo.append({"key": e["key"], "time": e["time"], "text": render(e)})
+    if not todo:
+        return []
+    merged = sorted(current + todo, key=lambda e: e["time"], reverse=True)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(f"{head}{MARK}\n\n" + "\n".join(e["text"] for e in merged))
+    return [e["key"] for e in todo]
 
 
 def main(argv):
@@ -87,7 +142,12 @@ def main(argv):
         return 0
     a = ap.parse_args(argv)
     if a.entries:
-        entries = json.loads(pathlib.Path(a.entries).expanduser().read_text())
+        try:
+            entries = json.loads(pathlib.Path(a.entries).expanduser().read_text())
+        except (OSError, ValueError) as e:
+            sys.exit(f"feedback: cannot read {a.entries}: {e}")
+        if not isinstance(entries, list):
+            sys.exit("feedback: ENTRIES.json must be a list of objects (see --help)")
     elif a.quote:
         entries = [{k: v for k, v in dict(quote=a.quote, agent_did=a.agent_did, changed=a.changed,
                                            thread=a.thread, time=a.time, title=a.title).items() if v}]
@@ -97,42 +157,35 @@ def main(argv):
 
     repo = pathlib.Path(a.repo).expanduser()
     path = repo / FILE
-    if git(repo, "branch", "--show-current").stdout.strip() != "main":
-        sys.exit(f"feedback: {repo} is not on main")
-    if git(repo, "status", "--porcelain", "--", FILE).stdout.strip():
-        sys.exit(f"feedback: {path} has uncommitted changes")
-    pulled = git(repo, "pull", "--ff-only", "-q", check=False)
-    if pulled.returncode:
-        sys.exit(f"feedback: git pull failed: {pulled.stderr.strip()}")
-
-    text = path.read_text() if path.exists() else HEADER
-    if MARK not in text:
-        sys.exit(f"feedback: {path} has no '{MARK}' line")
-    have = set(re.findall(r"<!-- key: (.*?) -->", text))
-    new = [e for e in entries if e["key"] not in have]
-    seen = set()
-    new = [e for e in new if not (e["key"] in seen or seen.add(e["key"]))]
-    skipped = len(entries) - len(new)
-    if not new:
-        print(f"0 added, {skipped} already recorded")
-        return 0
-
-    new.sort(key=lambda e: e["time"], reverse=True)
-    head, tail = text.split(MARK, 1)
-    body = "\n".join(render(e) for e in new)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(f"{head}{MARK}\n\n{body}{tail.lstrip() and chr(10) + tail.lstrip()}")
-
-    git(repo, "add", "--", FILE)
-    git(repo, "commit", "-q", "-m", f"feedback: {len(new)} new {'entry' if len(new) == 1 else 'entries'}")
-    pushed = git(repo, "push", "-q", check=False)
-    if pushed.returncode:
-        rebased = git(repo, "pull", "--rebase", "-q", check=False)
-        pushed = git(repo, "push", "-q", check=False) if rebased.returncode == 0 else pushed
-        if pushed.returncode:
-            sys.exit(f"feedback: committed locally but push failed: {pushed.stderr.strip()}")
-    print(f"{len(new)} added, {skipped} already recorded: " + ", ".join(e["key"] for e in new))
-    return 0
+    if not (repo / ".git").exists():
+        sys.exit(f"feedback: {repo} is not a git checkout")
+    with open(repo / ".git" / "feedback.lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if git(repo, "branch", "--show-current").stdout.strip() != "main":
+            sys.exit(f"feedback: {repo} is not on main")
+        if git(repo, "status", "--porcelain", "--", FILE).stdout.strip():
+            sys.exit(f"feedback: {path} has uncommitted changes")
+        for attempt in (1, 2):
+            pulled = git(repo, "pull", "--ff-only", "-q", check=False)
+            if pulled.returncode:
+                sys.exit(f"feedback: git pull failed: {pulled.stderr.strip()}")
+            added = write_file(path, entries, entries)
+            if not added:
+                print(f"0 added, {len(entries)} already recorded")
+                return 0
+            label = f"{len(added)} new {'entry' if len(added) == 1 else 'entries'}"
+            git(repo, "add", "--", FILE)
+            git(repo, "commit", "-q", "--only", "-m", f"feedback: {label}", "--", FILE)
+            pushed = git(repo, "push", "-q", check=False)
+            if pushed.returncode == 0:
+                print(f"{len(added)} added, {len(entries) - len(added)} already recorded: " + ", ".join(added))
+                return 0
+            # Another machine pushed first. Drop our commit, restore the file, and rebuild from the new main.
+            git(repo, "reset", "-q", "--mixed", "HEAD~1")
+            git(repo, "checkout", "-q", "--", FILE)
+            if attempt == 2:
+                sys.exit(f"feedback: push rejected twice, nothing recorded: {pushed.stderr.strip()}")
+    return 1
 
 
 if __name__ == "__main__":

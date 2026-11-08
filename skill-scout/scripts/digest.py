@@ -3,7 +3,7 @@
 
 usage: digest.py [--since 7d] [--skip THREAD_ID]... [--out FILE]
        digest.py --baseline   start the cursor at now without a digest
-       digest.py --commit     advance the cursor to the last digest run
+       digest.py --commit     advance the cursor to the last digest run (a no-op after a quiet run)
 
 Reads this machine's T3 database read-only and writes a Markdown digest of every
 user-role message created after the cursor (or the last --since window, default
@@ -117,7 +117,8 @@ def main(argv):
     if argv == ["--commit"]:
         pending = STATE / "pending.json"
         if not pending.exists():
-            sys.exit("digest.py: nothing pending")
+            print("nothing pending: the last digest was quiet and already committed")
+            return
         write_json("cursor.json", json.loads(pending.read_text()))
         pending.unlink()
         print(f"cursor advanced to {json.loads((STATE / 'cursor.json').read_text())['cursor']}")
@@ -136,7 +137,9 @@ def main(argv):
             sys.exit(f"digest.py: unknown argument {arg!r} (see --help)")
     cursor_file = STATE / "cursor.json"
     if cursor_file.exists():
-        start = json.loads(cursor_file.read_text())["cursor"]
+        start = json.loads(cursor_file.read_text()).get("cursor") or ""
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z", start):
+            sys.exit(f"digest.py: {cursor_file} holds no valid cursor ({start!r}); run --baseline to reset it")
     else:
         start = iso(since or parse_since("7d"))
     end = iso(now)

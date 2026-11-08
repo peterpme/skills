@@ -63,7 +63,7 @@ def main(argv):
             sys.exit("summary.py note: give the line to add")
         STATE.mkdir(parents=True, exist_ok=True)
         with day.open("a") as f:
-            f.write(f"- {now.strftime('%H:%M')} {text}\n")
+            f.write(f"- {now.strftime('%m-%d %H:%M')} {text}\n")
         print(f"noted ({sum(1 for _ in day.open())} lines today)")
         return 0
 
