@@ -95,13 +95,13 @@ Models and efforts come from `delegate`'s table. If Peter named the reviewers or
 - The worker fixes every confirmed finding.
 - Each reviewer then re-checks only its own findings against the new SHA, in a new `delegate_task` round with the findings and responses.
 - At most two rounds. You decide what is left. Drop pure taste. If a disagreement changes what Peter gets, put it under "Needs your call".
-- Address every comment GitHub reviewers and bots leave on the PR: fix it, or reply with the reason. Then resolve the thread.
+- Address every comment GitHub reviewers and bots leave on the PR: check it against the code, fix it or reply with the reason, then resolve the thread. Judge bot comments; they are often wrong, and a human comment outranks them. Bots re-run on each push and when the PR leaves draft, so run `pr-threads` again after both.
 
 ## 6. Ready gate: nothing reaches Peter before this
 
 A PR is ready only when all of these hold. Check them with the helpers, not from memory:
 
-- `pr-status <n>` exits 0: CI green, mergeable, no unresolved threads (`pr-threads <n>` is empty).
+- `pr-status <n>` exits 0: CI green, mergeable, no unresolved threads (`pr-threads <n>` is empty) after the review bots have commented on the head SHA. Marking a PR ready triggers them again: run `pr-threads` once more after `gh pr ready`, and address what appears before the handover.
 - The proof table is filled in, and every acceptance check for this slice passes or is clearly marked unverified with a reason.
 - Both reviewers' findings are fixed or answered, and the reviewed SHA is the PR's head.
 - The size is within the cap, or the PR body says why it can't be split.
