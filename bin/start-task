@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# start-task: what every task does first. Prints the tracker for the folder,
+# the command that searches it, and the Tiers table from global/AGENTS.md.
+# Run it yourself (Codex, Cursor), or let Claude Code run it as a SessionStart
+# hook: with hook JSON on stdin it reads .cwd and prints additionalContext.
+# The work folder comes from the home README rule line ("under `<path>` the
+# tracker is Linear"); START_TASK_HOME overrides ~/Projects/home, and
+# START_TASK_OFF=1 prints nothing. Always exits 0. scripts/sync-skills.mjs
+# registers it in each ~/.claude*/settings.json; tests/start-task/run checks it.
+set -uo pipefail
+case ${1:-} in -h | --help) sed -n '2,9p' "$0" | cut -c3-; exit 0 ;; esac
+[[ ${START_TASK_OFF:-} == 1 ]] && exit 0
+command -v jq >/dev/null 2>&1 || PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
+hook=
+cwd=$PWD
+if [[ ! -t 0 ]]; then
+  # An agent shell can hold stdin open with nothing on it; give up after 1s.
+  input=
+  IFS= read -r -d '' -t 1 input 2>/dev/null
+  if [[ -n $input ]] && command -v jq >/dev/null 2>&1 && jq -e 'type == "object"' >/dev/null 2>&1 <<<"$input"; then
+    hook=$(jq -r '.hook_event_name // "SessionStart"' <<<"$input")
+    c=$(jq -r '.cwd // ""' <<<"$input")
+    [[ -n $c ]] && cwd=$c
+  fi
+fi
+
+ledger=${START_TASK_HOME:-${HOME:-}/Projects/home}
+work=
+if [[ -r $ledger/README.md ]]; then
+  work=$(grep -o 'under `[^`]*` the tracker is Linear' "$ledger/README.md" | head -n 1 | sed 's/^under `//; s/` the tracker is Linear$//')
+  [[ $work == "~/"* ]] && work=${HOME:-}/${work#"~/"}
+  work=${work%/}
+fi
+
+script=$(realpath "$0" 2>/dev/null || readlink -f "$0" 2>/dev/null || echo "$0")
+agents=$(dirname "$script")/../global/AGENTS.md
+tiers=
+[[ -r $agents ]] && tiers=$(awk '/^## Tiers/ { on = 1; next } on && /^## / { exit } on && /^\|/' "$agents")
+
+block() {
+  echo "start-task: before any other action, find or create this task's ticket and state its tier."
+  if [[ -n $work && ($cwd == "$work" || $cwd == "$work"/*) ]]; then
+    echo "Folder $cwd is under the work folder: the tracker is Linear."
+    echo "Search: Linear MCP list_issues with query \"<keywords>\". No Linear MCP: home issues labelled linear-mirror,"
+    echo "  gh issue list -R peterpme/home --label linear-mirror --state all --search \"<keywords>\""
+  else
+    echo "Folder $cwd is personal: the tracker is peterpme/home issues."
+    echo "Search: gh issue list -R peterpme/home --state all --search \"<keywords>\""
+    echo "Create: gh issue create -R peterpme/home --title \"...\" --body-file <file> (body ends with <!-- agent -->)"
+    [[ -z $work ]] && echo "Work folder unknown: no tracker rule in $ledger/README.md. Clone peterpme/home to ~/Projects/home."
+  fi
+  echo "Attach to a matching open issue; otherwise create one. Put its link and the tier in your first reply."
+  if [[ -n $tiers ]]; then
+    echo "Tiers (global/AGENTS.md):"
+    echo "$tiers"
+  fi
+}
+
+if [[ -n $hook ]]; then
+  command -v jq >/dev/null 2>&1 || exit 0
+  block | jq -Rsc --arg ev "$hook" '{hookSpecificOutput: {hookEventName: $ev, additionalContext: .}}'
+else
+  block
+fi
+exit 0

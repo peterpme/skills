@@ -77,9 +77,12 @@ for (const entry of await readdir(join(root, "bin"), { withFileTypes: true })) {
 // - PermissionRequest, bin/scheduled-allow: answers allow to every permission prompt in a session
 //   whose first message starts with [t3-sentinel-run], so a scheduled run never waits on Peter
 //   (home #84). A PreToolUse allow does not stop the prompts bypass mode still raises.
+// - SessionStart, bin/start-task: opens every session with the folder's tracker, its search command
+//   and the Tiers table, so the ticket and tier come before any other action (home #17).
 const claudeHooks = [
   { event: "Stop", name: "turn-check" },
   { event: "PermissionRequest", name: "scheduled-allow" },
+  { event: "SessionStart", name: "start-task" },
 ];
 async function registerClaudeHooks() {
   const dirs = new Set([join(home, ".claude")]);

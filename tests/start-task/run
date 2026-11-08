@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# Runs bin/start-task against a fake home README (work folder /w/acme) and
+# prints expected next to actual per case. Each case: a name, the cwd, how it
+# is called (cli, hook, off, nohome), and a pattern the output must match plus
+# one it must not. Exits 1 if any case disagrees.
+set -uo pipefail
+here=$(cd "$(dirname "$0")" && pwd)
+hook=$here/../../bin/start-task
+bash -n "$hook" || { echo "start-task does not parse"; exit 1; }
+/bin/bash -n "$hook" 2>/dev/null || { echo "start-task does not parse under /bin/bash"; exit 1; }
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+mkdir -p "$work/home" "$work/w/acme/wallet" "$work/w/acme/x" "$work/w/acme-old" "$work/u/skills"
+echo 'Rule: under `'"$work"'/w/acme` the tracker is Linear; everywhere else it is this repo'"'"'s issues.' >"$work/home/README.md"
+mkdir -p "$work/tilde"; echo 'Rule: under `~/w/acme` the tracker is Linear.' >"$work/tilde/README.md"
+fail=0
+# name ;; cwd under the temp dir ;; mode ;; must match (ERE) ;; must not match (ERE, empty = none)
+cases=(
+  'work-folder;;/w/acme/wallet;;cli;;tracker is Linear.*linear-mirror;;peterpme/home issues[.]'
+  'work-folder-root;;/w/acme;;cli;;tracker is Linear;;is personal'
+  'personal;;/u/skills;;cli;;is personal: the tracker is peterpme/home issues.*gh issue list -R peterpme/home --state all --search;;Linear'
+  'prefix-sibling;;/w/acme-old;;cli;;is personal;;tracker is Linear'
+  'tiers-printed;;/u/skills;;cli;;[|] 1 [|] Feature.*[|] 2 [|] Money;;'
+  'no-home;;/w/acme/wallet;;nohome;;is personal.*Work folder unknown;;tracker is Linear'
+  'hook-json;;/w/acme/x;;hook;;^[{]"hookSpecificOutput":[{]"hookEventName":"SessionStart","additionalContext":"start-task: .*tracker is Linear;;'
+  'tilde-path;;/w/acme/wallet;;tilde;;tracker is Linear;;is personal'
+  'open-stdin;;/u/skills;;openpipe;;is personal;;'
+  'off;;/w/acme;;off;;^$;;'
+)
+printf '%-18s %-6s %s\n' case exit ok
+for c in "${cases[@]}"; do
+  IFS=$'\x1f' read -r name cwd mode want avoid <<<"${c//;;/$'\x1f'}"
+  cwd=$work$cwd
+  case $mode in
+    cli) out=$(cd "$cwd" && START_TASK_HOME=$work/home "$hook" </dev/null); code=$? ;;
+    nohome) out=$(cd "$cwd" && START_TASK_HOME=$work/missing "$hook" </dev/null); code=$? ;;
+    tilde) out=$(cd "$cwd" && HOME=$work START_TASK_HOME=$work/tilde "$hook" </dev/null); code=$? ;;
+    openpipe) # stdin held open with no data, as an agent shell does: must not hang
+      start=$SECONDS; out=$(cd "$cwd" && START_TASK_HOME=$work/home "$hook" < <(sleep 8)); code=$?
+      ((SECONDS - start < 6)) || code=hung ;;
+    off) out=$(cd "$cwd" && START_TASK_OFF=1 START_TASK_HOME=$work/home "$hook" </dev/null); code=$? ;;
+    hook) out=$(jq -cn --arg c "$cwd" '{session_id:"t",hook_event_name:"SessionStart",source:"startup",cwd:$c}' | START_TASK_HOME=$work/home "$hook"); code=$?
+      jq -e '.hookSpecificOutput.additionalContext | type == "string"' >/dev/null 2>&1 <<<"$out" || code=json ;;
+  esac
+  flat=$(printf '%s' "$out" | tr '\n' ' ')
+  ok=yes
+  [[ $code == 0 ]] || ok=NO
+  grep -Eq -- "$want" <<<"$flat" || ok=NO
+  [[ -n $avoid ]] && grep -Eq -- "$avoid" <<<"$flat" && ok=NO
+  [[ $mode == off && -n $out ]] && ok=NO
+  [[ $ok == yes ]] || fail=1
+  printf '%-18s %-6s %s\n' "$name" "$code" "$ok"
+done
+exit $fail
