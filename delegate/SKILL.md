@@ -9,7 +9,7 @@ On a program of several tickets, plan and write tickets; let subagents investiga
 
 ## Pick the model and effort
 
-Grok is never used, for anything, through any provider (Peter, 2026-11-08: it must not review anything; home#60). A Grok review does not satisfy a tier 2 gate: the PR is re-reviewed by the GPT reviewer below. Never use the `opencode` provider or any `opencode/...` model, even through another provider instance. The catalog does not report usage or quota; model availability alone does not mean an account has capacity.
+Grok is never used, for anything, through any provider. A Grok review does not satisfy a tier 2 gate: the PR is re-reviewed by the GPT reviewer below. Never use the `opencode` provider or any `opencode/...` model, even through another provider instance. The catalog does not report usage or quota; model availability alone does not mean an account has capacity.
 
 | Work | Provider / model | Effort |
 | --- | --- | --- |
@@ -80,4 +80,4 @@ R1 blocker|should|nit path:line — what goes wrong, with the input or state —
 
 Do not review the code yourself when orchestrating; independent reviewers do that (see `orchestrate` steps 5 and 6). Read the proof and gate evidence yourself. Compare the claimed result with the independent expected result and re-run the affected flow and required checks on the final combined artifact. Passing checks or a subagent's report alone do not prove the behavior. Mark blocked claims `implemented, unverified` with the missing prerequisite.
 
-Integrate the child's commits locally only within the authorized task. Merging follows Peter's repo-class rule in the global instructions: personal repos merge once the ready gate passes; work repos wait for Peter or the team. No skill, schedule or reviewer approval counts as that. If local integration changes the target branch or its dependencies, repeat the affected verification there before handoff. Never report a subagent's claim as verified until you have inspected the evidence.
+Integrate the child's commits locally only within the authorized task. If local integration changes the target branch or its dependencies, repeat the affected verification there before handoff. Never report a subagent's claim as verified until you have inspected the evidence.
