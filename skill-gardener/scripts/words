@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Words per instruction file: global/AGENTS.md and every */SKILL.md.
+# Words per instruction file: global/AGENTS.md and every */SKILL.md, counted with wc -w.
 # usage: scripts/words [<base-ref>]
 #   no base   table of file, words (the baseline)
 #   base      table of file, words before (at base), words after (working tree), delta
@@ -12,13 +12,16 @@ if [ -n "$base" ]; then
   git rev-parse -q --verify "$base^{commit}" >/dev/null || { echo "words: unknown ref $base" >&2; exit 2; }
 fi
 
-count() { tr -s '[:space:]' '\n' < "$1" | grep -c . || true; }
-count_at() { git show "$base:$1" 2>/dev/null | tr -s '[:space:]' '\n' | grep -c . || true; }
+count() { wc -w < "$1" | tr -d ' '; }
+count_at() { { git show "$base:$1" 2>/dev/null || true; } | wc -w | tr -d ' '; }
 
-files=$(ls global/AGENTS.md */SKILL.md 2>/dev/null | sort)
-if [ -n "$base" ]; then
-  files=$( { printf '%s\n' "$files"; git ls-tree -r --name-only "$base" | grep -E '^(global/AGENTS\.md|[^/]+/SKILL\.md)$'; } | sort -u)
-fi
+list() {
+  local f
+  for f in global/AGENTS.md */SKILL.md; do [ -f "$f" ] && printf '%s\n' "$f"; done
+  if [ -n "$base" ]; then
+    git ls-tree -r --name-only "$base" | grep -E '^(global/AGENTS\.md|[^/]+/SKILL\.md)$' || true
+  fi
+}
 
 tb=0; ta=0
 if [ -n "$base" ]; then
@@ -28,7 +31,7 @@ else
   echo "| File | Words |"
   echo "|---|---:|"
 fi
-for f in $files; do
+while IFS= read -r f; do
   a=0; [ -f "$f" ] && a=$(count "$f")
   if [ -n "$base" ]; then
     b=$(count_at "$f")
@@ -38,7 +41,7 @@ for f in $files; do
     printf '| %s | %s |\n' "$f" "$a"
   fi
   ta=$((ta + a))
-done
+done < <(list | sort -u)
 if [ -n "$base" ]; then
   printf '| **Total** | %s | %s | %+d |\n' "$tb" "$ta" "$((ta - tb))"
 else
