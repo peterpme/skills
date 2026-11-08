@@ -9,7 +9,7 @@ On a program of several tickets, plan and write tickets; let subagents investiga
 
 ## Pick the model and effort
 
-Current routing (2026-10-20): do not start new Grok tasks through any provider; let running ones finish. Resume Grok routing only when Peter explicitly lifts the pause. Never use the `opencode` provider or any `opencode/...` model, even through another provider instance. The catalog does not report usage or quota; model availability alone does not mean an account has capacity.
+Grok is never used, for anything, through any provider (Peter, 2026-11-08: it must not review anything; home#60). A Grok review does not satisfy a tier 2 gate: the PR is re-reviewed by the GPT reviewer below. Never use the `opencode` provider or any `opencode/...` model, even through another provider instance. The catalog does not report usage or quota; model availability alone does not mean an account has capacity.
 
 | Work | Provider / model | Effort |
 | --- | --- | --- |
@@ -18,8 +18,6 @@ Current routing (2026-10-20): do not start new Grok tasks through any provider; 
 | The GPT reviewer: review of a PR, design or contract | Sol (`gpt-6.1-sol`) on `codex` | xhigh |
 | The Claude reviewer: second independent diff reviewer, or reviewer of a GPT-written contract | `claude-fable-5-1` on `claudeAgent` / `claude1_` | high |
 | Hardest reviews only | `claude-opus-5-5` on `claudeAgent` / `claude1_` | high |
-
-After Peter lifts the Grok pause: investigations on Grok low/medium, implementation on Grok high/xhigh, subject to the live catalog's supported options.
 
 Before launch, call `orchestrator_capabilities` and confirm the provider instance can run child tasks and supports the chosen model and option values. Track the last implementation provider in the parent thread to alternate accounts. If a requested target is unavailable, report the mismatch; do not silently substitute a provider, model, or effort.
 

@@ -81,3 +81,5 @@ Set this up only on the machine with the eval cases, and only after this skill i
 - this prompt:
 
   > Run the skill-review skill: the weekly review on this machine. If `~/skills/skill-review/SKILL.md` or the eval cases are missing, reply in one line starting with "Needs your call:" saying which, and stop.
+
+Open and recent `feedback` issues in the home repo are Peter's own words about how agents should work. Read them before anything else; each one outranks a pattern inferred from threads.

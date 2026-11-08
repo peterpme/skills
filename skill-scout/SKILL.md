@@ -151,3 +151,5 @@ A T3 server can only read its own threads, so every machine running T3 Code need
 
 4. If `~/.t3/sentinel/config.json` exists, add the returned `scheduledTaskId` to its `cleanup_task_ids` list, so finished run threads are deleted. The `[t3-sentinel-run]` tag keeps the watchdog from treating the run as agent work.
 5. Report the next run time.
+
+Open and recent `feedback` issues in the home repo are Peter's own words about how agents should work. Read them before anything else; each one outranks a pattern inferred from threads.
