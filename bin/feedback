@@ -157,9 +157,12 @@ def main(argv):
 
     repo = pathlib.Path(a.repo).expanduser()
     path = repo / FILE
-    if not (repo / ".git").exists():
+    common = git(repo, "rev-parse", "--git-common-dir", check=False)
+    if common.returncode:
         sys.exit(f"feedback: {repo} is not a git checkout")
-    with open(repo / ".git" / "feedback.lock", "w") as lock:
+    lock_path = pathlib.Path(common.stdout.strip())
+    lock_path = lock_path if lock_path.is_absolute() else repo / lock_path
+    with open(lock_path / "feedback.lock", "w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         if git(repo, "branch", "--show-current").stdout.strip() != "main":
             sys.exit(f"feedback: {repo} is not on main")
@@ -180,9 +183,9 @@ def main(argv):
             if pushed.returncode == 0:
                 print(f"{len(added)} added, {len(entries) - len(added)} already recorded: " + ", ".join(added))
                 return 0
-            # Another machine pushed first. Drop our commit, restore the file, and rebuild from the new main.
-            git(repo, "reset", "-q", "--mixed", "HEAD~1")
-            git(repo, "checkout", "-q", "--", FILE)
+            # Another machine pushed first. Drop our commit, restore only this file, rebuild from the new main.
+            git(repo, "reset", "-q", "--soft", "HEAD~1")
+            git(repo, "checkout", "-q", "HEAD", "--", FILE)
             if attempt == 2:
                 sys.exit(f"feedback: push rejected twice, nothing recorded: {pushed.stderr.strip()}")
     return 1
