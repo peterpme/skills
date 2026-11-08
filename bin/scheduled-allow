@@ -20,9 +20,11 @@ tool=$(jq -r '.tool_name // ""' <<<"$input" 2>/dev/null)
 case $tool in AskUserQuestion | ExitPlanMode) exit 0 ;; esac
 
 session=$(jq -r '.session_id // "" | tostring | gsub("[^A-Za-z0-9_-]"; "_")' <<<"$input" 2>/dev/null)
-state=${SCHEDULED_ALLOW_STATE:-${XDG_STATE_HOME:-$HOME/.local/state}/scheduled-allow}
+state=${SCHEDULED_ALLOW_STATE:-}
+[[ -n $state ]] || state=${XDG_STATE_HOME:-${HOME:+$HOME/.local/state}}${XDG_STATE_HOME:+/scheduled-allow}
+[[ -z ${SCHEDULED_ALLOW_STATE:-} && -z ${XDG_STATE_HOME:-} && -n $state ]] && state=$state/scheduled-allow
 cache=
-if [[ -n $session ]]; then
+if [[ -n $session && -n $state ]]; then
   cache=$state/$session
   mkdir -p "$state" 2>/dev/null && find "$state" -type f -mtime +7 -delete 2>/dev/null
 fi
@@ -31,19 +33,23 @@ verdict=
 [[ -n $cache && -f $cache ]] && verdict=$(<"$cache")
 if [[ $verdict != yes && $verdict != no ]]; then
   transcript=$(jq -r '.transcript_path // ""' <<<"$input" 2>/dev/null)
-  [[ $transcript == "~/"* ]] && transcript=$HOME/${transcript#"~/"}
+  [[ $transcript == "~/"* ]] && transcript=${HOME:-}/${transcript#"~/"}
   [[ -n $transcript && -r $transcript ]] || exit 0
-  # The first real user message: not a meta line, not only tool results.
-  # Leading whitespace and <system-reminder> blocks are not part of the prompt.
-  verdict=$(grep -m 50 '"type":"user"' "$transcript" 2>/dev/null | jq -rn --arg m "$marker" '
-    [inputs | select(type == "object" and .type == "user" and (.isMeta != true))
+  # The first real user message: not a meta line, not only tool results. Lines
+  # are parsed one at a time and reading stops at that message, so a long
+  # transcript costs no more than its first few lines; a line that is not JSON
+  # is skipped. Leading whitespace and <system-reminder> blocks are not part of
+  # the prompt.
+  verdict=$(jq -Rrn --arg m "$marker" '
+    first(inputs | (try fromjson catch null)
+      | select(type == "object" and .type == "user" and (.isMeta != true))
       | .message.content
       | if type == "string" then .
         elif type == "array" then (map(select(.type == "text") | .text) | if length > 0 then join("\n") else empty end)
-        else empty end] | first
+        else empty end) // null
     | if . == null then "unknown"
       else (gsub("^(\\s|<system-reminder>[\\s\\S]*?</system-reminder>)+"; "") | if startswith($m) then "yes" else "no" end)
-      end' 2>/dev/null)
+      end' "$transcript" 2>/dev/null)
   [[ $verdict == yes || $verdict == no ]] || exit 0
   [[ -n $cache ]] && printf '%s\n' "$verdict" >"$cache" 2>/dev/null
 fi

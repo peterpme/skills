@@ -1,0 +1,1 @@
+{"expect":"allow","tool":"Bash","transcript_raw":"not json at all\n{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"[t3-sentinel-run] after junk\"}}\n"}

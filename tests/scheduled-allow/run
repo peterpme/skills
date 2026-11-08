@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Runs bin/scheduled-allow on every case in cases/*.json and prints expected
 # next to actual. A case is {"expect":"allow"|"none","tool":"Bash",
-# "transcript":[...jsonl lines...]}, with "no_transcript":true to point at a
+# "transcript":[...jsonl lines...]} or "transcript_raw":"<file as is>", with
+# "no_transcript":true to point at a
 # missing file, "raw":"<stdin as is>" for bad input, or "expect":[...] with
 # "twice_delete_transcript":true to call it twice, deleting the transcript in
 # between (the second answer comes from the cache). Each case gets a fresh
@@ -29,7 +30,9 @@ for f in "$here"/cases/*.json; do
   export SCHEDULED_ALLOW_STATE=$work/$name/state
   mkdir -p "$work/$name"
   transcript=$work/$name/session.jsonl
-  jq -e '.no_transcript == true' "$f" >/dev/null || jq -c '.transcript[]?' "$f" >"$transcript"
+  if jq -e 'has("transcript_raw")' "$f" >/dev/null; then jq -rj .transcript_raw "$f" >"$transcript"
+  elif ! jq -e '.no_transcript == true' "$f" >/dev/null; then jq -c '.transcript[]?' "$f" >"$transcript"
+  fi
   input=$(jq -cn --arg t "$transcript" --arg tool "$(jq -r '.tool // "Bash"' "$f")" --arg s "$name" --arg ev "$(jq -r '.event // "PermissionRequest"' "$f")" \
     '{session_id: $s, transcript_path: $t, hook_event_name: $ev, tool_name: $tool, tool_input: {command: "true"}}')
   n=$(jq -r 'if (.expect|type)=="array" then (.expect|length) else 1 end' "$f")
