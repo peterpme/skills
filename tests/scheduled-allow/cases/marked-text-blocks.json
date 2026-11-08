@@ -1,0 +1,1 @@
+{"expect":"allow","tool":"Bash","transcript":[{"type":"user","message":{"role":"user","content":[{"type":"text","text":"[t3-sentinel-run] Run the skill-scout skill."}]}}]}

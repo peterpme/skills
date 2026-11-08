@@ -1,0 +1,1 @@
+{"expect":"none","tool":"Bash","transcript_raw":"{\"type\": \"user\", \"message\": {\"role\": \"user\", \"content\": \"Fix the test\"}}\n{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":\"[t3-sentinel-run] later\"}}\n"}

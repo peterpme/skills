@@ -1,0 +1,1 @@
+{"expect":"none","tool":"Bash","transcript":[{"type":"user","message":{"role":"user","content":"Fix the flaky test in sentinel.py"}}]}

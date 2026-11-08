@@ -1,0 +1,1 @@
+{"expect":["allow","allow"],"tool":"Bash","transcript":[{"type":"user","message":{"role":"user","content":"[t3-sentinel-run] cached"}}],"twice_delete_transcript":true}

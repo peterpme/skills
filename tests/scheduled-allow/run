@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Runs bin/scheduled-allow on every case in cases/*.json and prints expected
+# next to actual. A case is {"expect":"allow"|"none","tool":"Bash",
+# "transcript":[...jsonl lines...]} or "transcript_raw":"<file as is>", with
+# "no_transcript":true to point at a
+# missing file, "raw":"<stdin as is>" for bad input, or "expect":[...] with
+# "twice_delete_transcript":true to call it twice, deleting the transcript in
+# between (the second answer comes from the cache). Each case gets a fresh
+# state dir. Exits 1 if any case disagrees.
+set -uo pipefail
+here=$(cd "$(dirname "$0")" && pwd)
+hook=$here/../../bin/scheduled-allow
+# A parse error would exit 2, which Claude Code reads as a deny on every prompt.
+bash -n "$hook" || { echo "scheduled-allow does not parse"; exit 1; }
+/bin/bash -n "$hook" 2>/dev/null || { echo "scheduled-allow does not parse under /bin/bash"; exit 1; }
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+fail=0
+run_one() { # stdin -> "allow|none|exit N|bad"
+  local out code
+  out=$("$hook"); code=$?
+  if ((code != 0)); then echo "exit $code"
+  elif [[ -z $out ]]; then echo none
+  else jq -r '.hookSpecificOutput | select(.hookEventName == "PermissionRequest") | .decision.behavior // "bad"' <<<"$out" 2>/dev/null || echo bad
+  fi
+}
+printf '%-36s %-6s %-6s %s\n' case expect actual ok
+for f in "$here"/cases/*.json; do
+  name=$(basename "$f" .json)
+  export SCHEDULED_ALLOW_STATE=$work/$name/state
+  mkdir -p "$work/$name"
+  transcript=$work/$name/session.jsonl
+  if jq -e 'has("transcript_raw")' "$f" >/dev/null; then jq -rj .transcript_raw "$f" >"$transcript"
+  elif ! jq -e '.no_transcript == true' "$f" >/dev/null; then jq -c '.transcript[]?' "$f" >"$transcript"
+  fi
+  input=$(jq -cn --arg t "$transcript" --arg tool "$(jq -r '.tool // "Bash"' "$f")" --arg s "$name" --arg ev "$(jq -r '.event // "PermissionRequest"' "$f")" \
+    '{session_id: $s, transcript_path: $t, hook_event_name: $ev, tool_name: $tool, tool_input: {command: "true"}}')
+  n=$(jq -r 'if (.expect|type)=="array" then (.expect|length) else 1 end' "$f")
+  for ((i = 0; i < n; i++)); do
+    expect=$(jq -r --argjson i "$i" 'if (.expect|type)=="array" then .expect[$i] else .expect end' "$f")
+    if jq -e 'has("raw")' "$f" >/dev/null; then actual=$(jq -rj .raw "$f" | run_one)
+    else actual=$(run_one <<<"$input")
+    fi
+    jq -e '.twice_delete_transcript == true' "$f" >/dev/null && rm -f "$transcript"
+    ok=yes; [[ $expect == "$actual" ]] || { ok=NO; fail=1; }
+    label=$name; ((n > 1)) && label="${name}[$((i + 1))]"
+    printf '%-36s %-6s %-6s %s\n' "$label" "$expect" "$actual" "$ok"
+  done
+done
+exit $fail
