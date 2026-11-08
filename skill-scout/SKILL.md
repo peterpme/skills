@@ -72,7 +72,7 @@ Every frustration event in which Peter corrected an agent, set a standing rule o
 feedback add <file>.json
 ```
 
-Fields: `thread` (the id), `time` (the message's ISO time), `title`, `quote` (his words, whole and unedited, up to the full message when it is all feedback), `agent_did` (one line, from the agent message before it), `changed` (the finding issue or skills PR that already covers it, else `pending`). The helper keys each entry on `thread@time`, skips keys already in the file, inserts the rest newest first and commits straight to `main`, so a rerun over the same turns adds nothing and the file is current within the hour. `--help` has the shape. An agent Peter corrects directly records its own entry with the same command the same turn (global rule); when you meet one of those messages the key already exists and the helper skips it. The helper locks the clone, so writers on one machine never race, keeps entries in time order however late they arrive, and commits only that file. Times are the machine's local time.
+Fields: `thread` (the id), `time` (the message's ISO time), `title`, `quote` (his words, whole and unedited, up to the full message when it is all feedback), `agent_did` (one line, from the agent message before it), `changed` (the finding issue or skills PR that already covers it, else `pending`). The helper keys each entry on `thread@time`, skips keys already in the file, inserts the rest newest first and commits straight to `main`, so a rerun over the same turns adds nothing and the file is current within the hour. `--help` has the shape. Times are the machine's local time.
 
 ## 4. Decide where each pattern goes
 
