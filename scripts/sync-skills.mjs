@@ -68,6 +68,13 @@ for (const entry of await readdir(join(root, "bin"), { withFileTypes: true })) {
 // pointing elsewhere is rewritten. Other keys are left as they are, the write is atomic, and
 // the file is never printed: it holds tokens.
 async function registerStopHook() {
+  try {
+    await registerStopHookIn();
+  } catch (error) {
+    console.log(`Skipped the Claude Code Stop hook: ${error.message}. Add a Stop hook running ~/.local/bin/turn-check by hand.`);
+  }
+}
+async function registerStopHookIn() {
   const command = join(home, ".local/bin/turn-check");
   const dirs = new Set([join(home, ".claude")]);
   for (const entry of await readdir(home, { withFileTypes: true })) {
@@ -76,7 +83,9 @@ async function registerStopHook() {
   if (process.env.CLAUDE_CONFIG_DIR) dirs.add(resolve(process.env.CLAUDE_CONFIG_DIR));
   for (const dir of dirs) {
     if (!(await stat(dir))?.isDirectory()) continue;
-    const file = join(dir, "settings.json");
+    // Follow a symlink (a dotfiles-tracked file) so the rename below replaces the target, not the link.
+    const link = join(dir, "settings.json");
+    const file = (await stat(link)) ? await realpath(link) : link;
     let settings = {};
     const existing = await stat(file);
     if (existing) {
@@ -87,7 +96,8 @@ async function registerStopHook() {
         continue;
       }
     }
-    if (typeof settings.hooks !== "object" || settings.hooks === null) settings.hooks = {};
+    if (typeof settings !== "object" || settings === null || Array.isArray(settings)) throw new Error(`${file} is not a JSON object`);
+    if (typeof settings.hooks !== "object" || settings.hooks === null || Array.isArray(settings.hooks)) settings.hooks = {};
     if (!Array.isArray(settings.hooks.Stop)) settings.hooks.Stop = [];
     const ours = settings.hooks.Stop.flatMap((entry) => entry.hooks ?? []).filter((hook) => hook.command?.endsWith("/bin/turn-check"));
     if (ours.length && ours.every((hook) => hook.command === command)) continue;
