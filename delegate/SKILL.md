@@ -18,6 +18,7 @@ Grok is never used, for anything, through any provider. A Grok review does not s
 | The GPT reviewer: review of a PR, design or contract | Sol (`gpt-6.1-sol`) on `codex` | xhigh |
 | The Claude reviewer: second independent diff reviewer, or reviewer of a GPT-written contract | `claude-fable-5-1` on `claudeAgent` / `claude1_` | high |
 | Hardest reviews only | `claude-opus-5-5` on `claudeAgent` / `claude1_` | high |
+| Scheduled workers (the Worker task and any task that does ticket work); create the task from a thread set to this, since `schedule_task` copies the caller's model. No scheduled task runs Fable; Fable is for the chief of staff chat | `claude-opus-5-5` on `claudeAgent` | high |
 
 Before launch, call `orchestrator_capabilities` and confirm the provider instance can run child tasks and supports the chosen model and option values. Track the last implementation provider in the parent thread to alternate accounts. If a requested target is unavailable, report the mismatch; do not silently substitute a provider, model, or effort.
 
