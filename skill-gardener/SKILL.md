@@ -14,7 +14,7 @@ Goal: every line in `global/AGENTS.md` and the skills earns its place. The garde
 
 ## 1. Measure
 
-1. `git -C ~/skills fetch origin`. Make a worktree at `~/skills/.claude/worktrees/skill-gardener-<date>` on branch `skill-gardener/<date>` from `origin/main`.
+1. `git -C ~/skills fetch origin`. Make a worktree at `~/skills/.claude/worktrees/gardener-<date>` on branch `gardener/<date>` from `origin/main`.
 2. If a `skill-review/*` PR is open on the skills repo, leave the files it changes alone this run.
 3. Run `skill-gardener/scripts/words` in the worktree. On the first run (no `~/.local/state/skill-gardener/runs.md` yet) that table is the baseline: put it in the PR body and the report as "Baseline, words per file".
 
