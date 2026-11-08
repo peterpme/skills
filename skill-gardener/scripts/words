@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Words per instruction file: global/AGENTS.md and every */SKILL.md.
+# usage: scripts/words [<base-ref>]
+#   no base   table of file, words (the baseline)
+#   base      table of file, words before (at base), words after (working tree), delta
+# Run inside the skills repo or one of its worktrees. Exit 2 on a bad ref.
+set -euo pipefail
+
+base=${1:-}
+cd "$(git rev-parse --show-toplevel)"
+if [ -n "$base" ]; then
+  git rev-parse -q --verify "$base^{commit}" >/dev/null || { echo "words: unknown ref $base" >&2; exit 2; }
+fi
+
+count() { tr -s '[:space:]' '\n' < "$1" | grep -c . || true; }
+count_at() { git show "$base:$1" 2>/dev/null | tr -s '[:space:]' '\n' | grep -c . || true; }
+
+files=$(ls global/AGENTS.md */SKILL.md 2>/dev/null | sort)
+if [ -n "$base" ]; then
+  files=$( { printf '%s\n' "$files"; git ls-tree -r --name-only "$base" | grep -E '^(global/AGENTS\.md|[^/]+/SKILL\.md)$'; } | sort -u)
+fi
+
+tb=0; ta=0
+if [ -n "$base" ]; then
+  echo "| File | Words before | Words after | Delta |"
+  echo "|---|---:|---:|---:|"
+else
+  echo "| File | Words |"
+  echo "|---|---:|"
+fi
+for f in $files; do
+  a=0; [ -f "$f" ] && a=$(count "$f")
+  if [ -n "$base" ]; then
+    b=$(count_at "$f")
+    printf '| %s | %s | %s | %+d |\n' "$f" "$b" "$a" "$((a - b))"
+    tb=$((tb + b))
+  else
+    printf '| %s | %s |\n' "$f" "$a"
+  fi
+  ta=$((ta + a))
+done
+if [ -n "$base" ]; then
+  printf '| **Total** | %s | %s | %+d |\n' "$tb" "$ta" "$((ta - tb))"
+else
+  printf '| **Total** | %s |\n' "$ta"
+fi
