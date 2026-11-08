@@ -77,12 +77,14 @@ for (const entry of await readdir(join(root, "bin"), { withFileTypes: true })) {
 // - PermissionRequest, bin/scheduled-allow: answers allow to every permission prompt in a session
 //   whose first message starts with [t3-sentinel-run], so a scheduled run never waits on Peter
 //   (home #84). A PreToolUse allow does not stop the prompts bypass mode still raises.
-// - SessionStart, bin/start-task: opens every session with the folder's tracker, its search command
-//   and the Tiers table, so the ticket and tier come before any other action (home #17).
+// - SessionStart and PreToolUse, bin/start-task: opens every session with the folder's tracker, its
+//   search command and the Tiers table, and denies the first file edit of a session with no ticket
+//   link, once, so the ticket and tier come before any other action (home #17).
 const claudeHooks = [
   { event: "Stop", name: "turn-check" },
   { event: "PermissionRequest", name: "scheduled-allow" },
   { event: "SessionStart", name: "start-task" },
+  { event: "PreToolUse", name: "start-task", matcher: "Edit|Write|MultiEdit|NotebookEdit" },
 ];
 async function registerClaudeHooks() {
   const dirs = new Set([join(home, ".claude")]);
@@ -115,13 +117,13 @@ async function registerClaudeHooksIn(dir) {
   if (typeof settings !== "object" || settings === null || Array.isArray(settings)) throw new Error(`${file} is not a JSON object`);
   if (typeof settings.hooks !== "object" || settings.hooks === null || Array.isArray(settings.hooks)) settings.hooks = {};
   const changes = [];
-  for (const { event, name } of claudeHooks) {
+  for (const { event, name, matcher = "" } of claudeHooks) {
     const command = join(home, ".local/bin", name);
     if (!Array.isArray(settings.hooks[event])) settings.hooks[event] = [];
     const ours = settings.hooks[event].flatMap((entry) => (Array.isArray(entry?.hooks) ? entry.hooks : [])).filter((hook) => typeof hook?.command === "string" && hook.command.endsWith(`/bin/${name}`));
     if (ours.length && ours.every((hook) => hook.command === command)) continue;
     if (ours.length) for (const hook of ours) hook.command = command;
-    else settings.hooks[event].push({ matcher: "", hooks: [{ type: "command", command, timeout: 10 }] });
+    else settings.hooks[event].push({ matcher, hooks: [{ type: "command", command, timeout: 10 }] });
     changes.push(`${ours.length ? "Updated" : "Registered"} Claude Code ${event} hook ${command}`);
   }
   if (!changes.length) return;
