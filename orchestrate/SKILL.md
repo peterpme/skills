@@ -5,7 +5,7 @@ description: Ask once, get finished PRs. Turns a build request into a written co
 
 # Orchestrate
 
-Peter's goal: ask once, get finished PRs. Every time he has to say "no", "I said", "status?" or "resolve the comments", the work failed even if the code is right. This skill turns his request into a written contract, holds everyone to it, and stops unready work from reaching him.
+Peter's goal: ask once, get finished PRs. Every time he has to say "no", "I said", "status?" or "resolve the comments", the work failed even if the code is right.
 
 | Task size | Do |
 |---|---|
@@ -59,7 +59,7 @@ Send the contract to one reviewer from the other model family, routed with `dele
 - Where will Peter most likely reject the result or have to step in? Look at slicing, size, approach, and proof.
 - Which open question should have been decided instead of asked, and which decision needed Peter?
 
-Settle each point yourself: accept it and change the contract, or reject it with one line of reasoning. Note it under "Review changes" in the contract. One revision only. No back-and-forth between models: their agreeing proves nothing, and the reviewer's independence is the value.
+Settle each point yourself: accept it and change the contract, or reject it with one line of reasoning. Note it under "Review changes" in the contract. One revision only. No back-and-forth between models.
 
 ## 3. Build through workers
 
@@ -71,7 +71,7 @@ On anything with several slices or workers, you are the orchestrator: you write 
 
 For a single-PR task you may implement it yourself, but still write the contract, get the reviews, and pass the gate.
 
-Long-running commands (builds, migrations, remote jobs) go in the background with a timeout and a log. Never end a turn promising to report later unless something will actually wake you.
+Long-running commands (builds, migrations, remote jobs) go in the background with a timeout and a log.
 
 ## 4. Proof
 
@@ -95,7 +95,6 @@ Models and efforts come from `delegate`'s table. If Peter named the reviewers or
 - The worker fixes every confirmed finding.
 - Each reviewer then re-checks only its own findings against the new SHA, in a new `delegate_task` round with the findings and responses.
 - At most two rounds. You decide what is left. Drop pure taste. If a disagreement changes what Peter gets, put it under "Needs your call".
-- Address every comment GitHub reviewers and bots leave on the PR: check it against the code, fix it or reply with the reason, then resolve the thread. Judge bot comments; they are often wrong, and a human comment outranks them. Bots re-run on each push and when the PR leaves draft, so run `pr-threads` again after both.
 
 ## 6. Ready gate: nothing reaches Peter before this
 
@@ -108,7 +107,7 @@ A PR is ready only when all of these hold. Check them with the helpers, not from
 - Its base is `master` (or the repo's default branch). A stacked PR stays a draft while it targets a sibling branch, even after its veto window: the team cannot merge it, and a ready flag on it is noise. When its parent merges and GitHub retargets it, run the gate then. Keep stacks short; a mechanical refactor across many operations is one PR per operation only when each is reviewable alone and the stack is under about five deep, otherwise fold.
 - The PR body states why it exists, what changed, the proof table, the reviewers with their model and reviewed SHA, and any codemod used.
 
-Merging follows Peter's repo-class rule in the global instructions: personal repos you merge yourself once the ready gate passes; work repos Peter or the team merge, and no reviewer approval counts as that. Then hand over in one message: one line per PR in merge order (`#n title: what it does, proof in one phrase`), followed by "Needs your call" with only what truly needs him, and what is unverified. Draft status and merging follow Peter's global instructions.
+Merging follows Peter's repo-class rule in the global instructions: personal repos you merge yourself once the ready gate passes; work repos Peter or the team merge, and no reviewer approval counts as that. Then hand over in one message: one line per PR in merge order (`#n title: what it does, proof in one phrase`), followed by "Needs your call" with only what truly needs him, and what is unverified.
 
 ## 7. Close out
 
