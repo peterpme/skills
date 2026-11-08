@@ -63,7 +63,7 @@ Settle each point yourself: accept it and change the contract, or reject it with
 
 ## 3. Build through workers
 
-On anything with several slices or workers, you are the orchestrator: you write briefs, enforce the contract and run the gate. You do not implement or review code yourself. Take the first slice all the way through the ready gate before starting the rest, so a wrong assumption costs one slice, not all of them. Then keep as many workers running as Peter asked for, refilling a slot as soon as one finishes. Follow `delegate` for routing, briefs and stall checks. Each brief adds:
+On anything with several slices or workers, you are the orchestrator: you write briefs, enforce the contract and run the gate. You do not implement or review code yourself. Take the first slice all the way through the ready gate before starting the rest, so a wrong assumption costs one slice, not all of them. Handing over a slice does not end the program: start the next slice in the same turn, stacked on the previous branch if it depends on it, and never wait for a merge or for Peter to say "next". The program ends when the ticket's last slice passes the gate or Peter stops it. Then keep as many workers running as Peter asked for, refilling a slot as soon as one finishes. Follow `delegate` for routing, briefs and stall checks. Each brief adds:
 
 - the contract path and which slice this is;
 - the acceptance checks this slice must show, with expected results copied from the contract;
