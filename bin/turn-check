@@ -16,7 +16,9 @@ input=$(cat 2>/dev/null) || exit 0
 jq -e 'type == "object"' >/dev/null 2>&1 <<<"$input" || exit 0
 
 state=${TURN_CHECK_STATE:-${XDG_STATE_HOME:-$HOME/.local/state}/turn-check}
-session=$(jq -r '.session_id // "nosession" | gsub("[^A-Za-z0-9_-]"; "_")' <<<"$input" 2>/dev/null) || session=nosession
+# Without a session id, fall back to the harness process: hooks run as children of it.
+session=$(jq -r '.session_id // "" | tostring | gsub("[^A-Za-z0-9_-]"; "_")' <<<"$input" 2>/dev/null)
+[[ -n $session ]] || session=pid$PPID
 seen=$state/$session
 mkdir -p "$state" 2>/dev/null && find "$state" -type f -mtime +7 -delete 2>/dev/null
 [[ -f $seen ]] || : >"$seen" 2>/dev/null
@@ -42,7 +44,8 @@ out=$(jq -c --argjson seen "$seenjson" '
   def describe: "\(.type // "task") \(.id // "?")" + (if (.command // .description) then " `\((.command // .description)[:100])`" else "" end);
   if .hook_event_name != "Stop" or .stop_hook_active == true then empty
   else
-    ([.background_tasks[]? | live] | map(select((.id // "?" | tostring) as $id | $seen | index($id) | not))) as $tasks
+    ([.background_tasks[]? | live]) as $running
+    | ($running | map(select((.id // "?" | tostring) as $id | $seen | index($id) | not))) as $tasks
     | if ($tasks | length) > 0 then
         {decision: "block",
          ids: ($tasks | map(.id // "?" | tostring)),
@@ -52,7 +55,7 @@ out=$(jq -c --argjson seen "$seenjson" '
         ((.last_assistant_message // "") | promise) as $m
         | if $m then
             {decision: "block",
-             reason: ("turn-check: the final message promises a later report (\"\($m)\") but nothing will wake you: no background task is registered and no wakeup is scheduled. Finish the job in this turn (`bgjob wait NAME`), or replace the promise with what the user runs to check (`bgjob status NAME`). If you cannot wait, say so plainly and stop again.")}
+             reason: ("turn-check: the final message promises a later report (\"\($m)\") but nothing will wake you: " + (if ($running | length) > 0 then "the running task was already flagged once" else "no background task is registered" end) + " and no wakeup is scheduled. Finish the job in this turn (`bgjob wait NAME`), or replace the promise with what the user runs to check (`bgjob status NAME`). If you cannot wait, say so plainly and stop again.")}
           else empty end
       end
   end' <<<"$input" 2>/dev/null) || exit 0

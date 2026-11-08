@@ -1,0 +1,1 @@
+{"expect":"block","input":{"session_id":"","hook_event_name":"Stop","stop_hook_active":false,"last_assistant_message":"Started.","background_tasks":[{"id":"e1","type":"shell","status":"running","command":"sleep 100"}],"session_crons":[]}}

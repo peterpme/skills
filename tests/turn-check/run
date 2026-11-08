@@ -7,6 +7,9 @@
 set -uo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 hook=$here/../../bin/turn-check
+# A parse error would exit 2, which Claude Code reads as a block on every stop.
+bash -n "$hook" || { echo "turn-check does not parse"; exit 1; }
+/bin/bash -n "$hook" 2>/dev/null || { echo "turn-check does not parse under /bin/bash"; exit 1; }
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 fail=0
