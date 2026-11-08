@@ -1,0 +1,1 @@
+{"expect":"block","input":{"hook_event_name":"Stop","stop_hook_active":false,"last_assistant_message":"Three researchers are running. Summary follows.","background_tasks":[{"id":"a6bfed6ae0a6b4af4","type":"subagent","status":"running","description":"Research executor.sh docs","agent_type":"web-fetch"}],"session_crons":[]}}

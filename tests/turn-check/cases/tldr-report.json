@@ -1,0 +1,1 @@
+{"expect":"allow","input":{"hook_event_name":"Stop","stop_hook_active":false,"last_assistant_message":"**TLDR:** The ratchet config is merged; CI green.\n\n**Done**\n- Checked 103 files once the download finished; none is a stub.\n- README lists all three books.\n\n**Next**\n- Request van Steen's PDF yourself; the form needs your email.","background_tasks":[],"session_crons":[]}}

@@ -1,0 +1,1 @@
+{"expect":"allow","input":{"hook_event_name":"Stop","stop_hook_active":false,"last_assistant_message":"All 117 chapters downloaded and merged.","background_tasks":[{"id":"task-001","type":"shell","status":"completed","command":"bash scripts/google_books.sh"}],"session_crons":[]}}

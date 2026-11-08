@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Runs bin/turn-check on every case in cases/*.json and prints expected next to
+# actual. A case is {"expect":"block"|"allow","input":{...Stop hook input...}}
+# or {"expect":..., "raw":"<stdin as is>"}. Exits 1 if any case disagrees.
+set -uo pipefail
+here=$(cd "$(dirname "$0")" && pwd)
+hook=$here/../../bin/turn-check
+fail=0
+printf '%-30s %-6s %-6s %-4s %s\n' case expect actual ok reason
+for f in "$here"/cases/*.json; do
+  expect=$(jq -r .expect "$f")
+  if jq -e 'has("raw")' "$f" >/dev/null; then
+    out=$(jq -rj .raw "$f" | "$hook"); code=$?
+  else
+    out=$(jq -c .input "$f" | "$hook"); code=$?
+  fi
+  if ((code != 0)); then actual="exit $code"; reason=
+  elif [[ -z $out ]]; then actual=allow; reason=
+  else actual=$(jq -r '.decision // "bad"' <<<"$out" 2>/dev/null || echo bad); reason=$(jq -r '.reason // ""' <<<"$out" 2>/dev/null | cut -c1-90)
+  fi
+  ok=yes; [[ $expect == "$actual" ]] || { ok=NO; fail=1; }
+  printf '%-30s %-6s %-6s %-4s %s\n' "$(basename "$f" .json)" "$expect" "$actual" "$ok" "$reason"
+done
+exit $fail

@@ -1,0 +1,1 @@
+{"expect":"allow","input":{"hook_event_name":"Stop","stop_hook_active":false,"last_assistant_message":"Restarted it under `bgjob start free-books -- bash scripts/free_books.sh`. The job is running in the background; check it with `bgjob status free-books`. Log: ~/.local/state/bgjob/free-books/log.","background_tasks":[],"session_crons":[]}}

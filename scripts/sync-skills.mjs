@@ -1,4 +1,4 @@
-import { readdir, lstat, mkdir, rename, realpath, symlink } from "node:fs/promises";
+import { readdir, lstat, mkdir, readFile, rename, realpath, symlink, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -59,3 +59,30 @@ for (const [file, targets] of Object.entries(globalFiles)) {
 for (const entry of await readdir(join(root, "bin"), { withFileTypes: true })) {
   if ((entry.isFile() || entry.isSymbolicLink()) && !entry.name.startsWith(".")) await link(join(root, "bin", entry.name), join(".local/bin", entry.name), "file");
 }
+
+// Claude Code Stop hook: bin/turn-check sends an agent back once when it ends a turn with a
+// background task still running or a promise to report later that nothing will wake it for.
+// Registered once in ~/.claude/settings.json (user scope). Other keys are left as they are and
+// the file is never printed: it holds tokens.
+async function registerStopHook() {
+  const claudeHome = join(home, ".claude");
+  if (!(await stat(claudeHome))?.isDirectory()) return;
+  const file = join(claudeHome, "settings.json");
+  const command = join(root, "bin/turn-check");
+  let settings = {};
+  if (await stat(file)) {
+    try {
+      settings = JSON.parse(await readFile(file, "utf8"));
+    } catch {
+      console.log(`Skipped ${file}: not valid JSON. Add a Stop hook running ${command} by hand.`);
+      return;
+    }
+  }
+  settings.hooks ??= {};
+  settings.hooks.Stop ??= [];
+  if (settings.hooks.Stop.some((entry) => entry.hooks?.some((hook) => hook.command?.endsWith("/bin/turn-check")))) return;
+  settings.hooks.Stop.push({ matcher: "", hooks: [{ type: "command", command, timeout: 10 }] });
+  await writeFile(file, `${JSON.stringify(settings, null, 2)}\n`, { mode: 0o600 });
+  console.log(`Registered Claude Code Stop hook ${command} in ${file}`);
+}
+await registerStopHook();
