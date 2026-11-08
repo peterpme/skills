@@ -1,0 +1,1 @@
+{"expect":"block","input":{"hook_event_name":"Stop","stop_hook_active":false,"last_assistant_message":"I'll check `merged.pdf` and the output of google_books.sh once it finishes.","background_tasks":[],"session_crons":[]}}

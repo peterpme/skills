@@ -1,0 +1,1 @@
+{"expect":"block","input":{"hook_event_name":"Stop","stop_hook_active":false,"last_assistant_message":"Running the migration now. Will report back when done.","background_tasks":[],"session_crons":[]}}

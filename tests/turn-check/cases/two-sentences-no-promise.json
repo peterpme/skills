@@ -1,0 +1,1 @@
+{"expect":"allow","input":{"hook_event_name":"Stop","stop_hook_active":false,"last_assistant_message":"I'll check the log now. Once that is done you can close the ticket.","background_tasks":[],"session_crons":[]}}

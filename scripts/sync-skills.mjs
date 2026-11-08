@@ -1,4 +1,4 @@
-import { readdir, lstat, mkdir, readFile, rename, realpath, symlink, writeFile } from "node:fs/promises";
+import { readdir, lstat, mkdir, readFile, rename, realpath, stat as fsStat, symlink, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -62,27 +62,42 @@ for (const entry of await readdir(join(root, "bin"), { withFileTypes: true })) {
 
 // Claude Code Stop hook: bin/turn-check sends an agent back once when it ends a turn with a
 // background task still running or a promise to report later that nothing will wake it for.
-// Registered once in ~/.claude/settings.json (user scope). Other keys are left as they are and
+// Registered in the settings.json of every Claude Code config dir on the machine: ~/.claude,
+// any ~/.claude<n> (a second account, see t3-loadbalancer) and $CLAUDE_CONFIG_DIR. The command
+// is the ~/.local/bin link, which survives the checkout or worktree that ran sync; an entry
+// pointing elsewhere is rewritten. Other keys are left as they are, the write is atomic, and
 // the file is never printed: it holds tokens.
 async function registerStopHook() {
-  const claudeHome = join(home, ".claude");
-  if (!(await stat(claudeHome))?.isDirectory()) return;
-  const file = join(claudeHome, "settings.json");
-  const command = join(root, "bin/turn-check");
-  let settings = {};
-  if (await stat(file)) {
-    try {
-      settings = JSON.parse(await readFile(file, "utf8"));
-    } catch {
-      console.log(`Skipped ${file}: not valid JSON. Add a Stop hook running ${command} by hand.`);
-      return;
-    }
+  const command = join(home, ".local/bin/turn-check");
+  const dirs = new Set([join(home, ".claude")]);
+  for (const entry of await readdir(home, { withFileTypes: true })) {
+    if (entry.isDirectory() && /^\.claude\d+$/.test(entry.name)) dirs.add(join(home, entry.name));
   }
-  settings.hooks ??= {};
-  settings.hooks.Stop ??= [];
-  if (settings.hooks.Stop.some((entry) => entry.hooks?.some((hook) => hook.command?.endsWith("/bin/turn-check")))) return;
-  settings.hooks.Stop.push({ matcher: "", hooks: [{ type: "command", command, timeout: 10 }] });
-  await writeFile(file, `${JSON.stringify(settings, null, 2)}\n`, { mode: 0o600 });
-  console.log(`Registered Claude Code Stop hook ${command} in ${file}`);
+  if (process.env.CLAUDE_CONFIG_DIR) dirs.add(resolve(process.env.CLAUDE_CONFIG_DIR));
+  for (const dir of dirs) {
+    if (!(await stat(dir))?.isDirectory()) continue;
+    const file = join(dir, "settings.json");
+    let settings = {};
+    const existing = await stat(file);
+    if (existing) {
+      try {
+        settings = JSON.parse(await readFile(file, "utf8"));
+      } catch {
+        console.log(`Skipped ${file}: not valid JSON. Add a Stop hook running ${command} by hand.`);
+        continue;
+      }
+    }
+    if (typeof settings.hooks !== "object" || settings.hooks === null) settings.hooks = {};
+    if (!Array.isArray(settings.hooks.Stop)) settings.hooks.Stop = [];
+    const ours = settings.hooks.Stop.flatMap((entry) => entry.hooks ?? []).filter((hook) => hook.command?.endsWith("/bin/turn-check"));
+    if (ours.length && ours.every((hook) => hook.command === command)) continue;
+    if (ours.length) for (const hook of ours) hook.command = command;
+    else settings.hooks.Stop.push({ matcher: "", hooks: [{ type: "command", command, timeout: 10 }] });
+    const mode = existing ? (await fsStat(file)).mode & 0o777 : 0o600;
+    const tmp = `${file}.${process.pid}.tmp`;
+    await writeFile(tmp, `${JSON.stringify(settings, null, 2)}\n`, { mode });
+    await rename(tmp, file);
+    console.log(`${ours.length ? "Updated" : "Registered"} Claude Code Stop hook ${command} in ${file}`);
+  }
 }
 await registerStopHook();

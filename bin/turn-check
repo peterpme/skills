@@ -3,32 +3,45 @@
 # end a turn with a background task still running, or with a promise to report
 # later that nothing will wake it for. Reads the Stop hook input on stdin and
 # prints {"decision":"block","reason":...} to block, nothing to allow. Always
-# exits 0, so a broken hook never costs a turn. scripts/sync-skills.mjs registers
-# it in ~/.claude/settings.json; tests/turn-check/run checks it.
+# exits 0, so a broken hook never costs a turn. Each task blocks once per
+# session (state in ~/.local/state/turn-check, or $TURN_CHECK_STATE), so a dev
+# server that stays up does not block every turn. scripts/sync-skills.mjs
+# registers it in each ~/.claude*/settings.json; tests/turn-check/run checks it.
 set -uo pipefail
-case ${1:-} in -h | --help) sed -n '2,7p' "$0" | cut -c3-; exit 0 ;; esac
+case ${1:-} in -h | --help) sed -n '2,9p' "$0" | cut -c3-; exit 0 ;; esac
 command -v jq >/dev/null 2>&1 || PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 command -v jq >/dev/null 2>&1 || exit 0
 input=$(cat 2>/dev/null) || exit 0
 [[ -n $input ]] || exit 0
 jq -e 'type == "object"' >/dev/null 2>&1 <<<"$input" || exit 0
 
-jq -c '
+state=${TURN_CHECK_STATE:-${XDG_STATE_HOME:-$HOME/.local/state}/turn-check}
+session=$(jq -r '.session_id // "nosession" | gsub("[^A-Za-z0-9_-]"; "_")' <<<"$input" 2>/dev/null) || session=nosession
+seen=$state/$session
+mkdir -p "$state" 2>/dev/null && find "$state" -type f -mtime +7 -delete 2>/dev/null
+[[ -f $seen ]] || : >"$seen" 2>/dev/null
+seenjson=$(jq -R . "$seen" 2>/dev/null | jq -s . 2>/dev/null) || seenjson='[]'
+
+out=$(jq -c --argjson seen "$seenjson" '
   # A promise to report later: "I will check the files once it finishes",
-  # "when it finishes, I will send the counts", "I will report back".
+  # "when it finishes, I will send the counts", "will report back when done".
+  # A sentence runs to a period followed by space or end, so file names pass;
+  # "when you ..." waits on the user, whose reply is the wake.
+  def sentence: "(?:[^.\\n]|\\.(?=\\S)){0,80}";
   def promise:
-    [ match("\\b(I.ll|I will)\\s+(report|check|follow up|update you|let you know|come back|get back|post|reply|send)\\b[^.\\n]{0,80}\\b(when|once|after|as soon as)\\b"; "i"),
-      match("\\b(when|once|after)\\b[^.\\n]{0,60}\\b(finish|finishes|finished|complete|completes|completed|is done|done)\\b[^.\\n]{0,40}\\b(I.ll|I will)\\b"; "i"),
-      match("\\b(I.ll|I will) (report|check) back\\b"; "i") ]
+    [ match("\\b(I.ll|I will)\\s+(report|check|follow up|update you|let you know|come back|get back|post|reply|send|ping|notify|watch|monitor|keep (an eye|watching|monitoring))\\b" + sentence + "\\b(when|once|after|as soon as|later)\\b(?!\\s+you\\b)"; "i"),
+      match("\\b(when|once|after)\\b(?!\\s+you\\b)" + sentence + "\\b(finish|finishes|finished|complete|completes|completed|is done|done)\\b" + sentence + "\\b(I.ll|I will)\\b"; "i"),
+      match("\\b(I.ll|I will|will) (report|check|circle) back\\b"; "i") ]
     | .[0].string;
   def live: select(((.status // "running") | ascii_downcase | test("complet|done|finish|fail|kill|cancel|stopp")) | not);
   def describe: "\(.type // "task") \(.id // "?")" + (if (.command // .description) then " `\((.command // .description)[:100])`" else "" end);
   if .hook_event_name != "Stop" or .stop_hook_active == true then empty
   else
-    ([.background_tasks[]? | live] | map(describe)) as $tasks
+    ([.background_tasks[]? | live] | map(select((.id // "?" | tostring) as $id | $seen | index($id) | not))) as $tasks
     | if ($tasks | length) > 0 then
         {decision: "block",
-         reason: ("turn-check: \($tasks | length) background task(s) still running: \($tasks | join("; ")). A harness background command dies with the session, and in a scheduled or T3 run the session ends with this turn. Wait for it inside the turn (t3_background_wait, Monitor, or `bgjob wait NAME`) and report the result, or restart it under `bgjob start NAME -- <cmd>` and tell the user how to check it. If something will truly wake you, say so and stop again.")}
+         ids: ($tasks | map(.id // "?" | tostring)),
+         reason: ("turn-check: \($tasks | length) background task(s) still running: \($tasks | map(describe) | join("; ")). A harness background command dies with the session, and in a scheduled or T3 run the session ends with this turn. Wait for it inside the turn (t3_background_wait, Monitor, or `bgjob wait NAME`) and report the result, or restart it under `bgjob start NAME -- <cmd>` and tell the user how to check it. If it is meant to stay up (a dev server) or something will truly wake you, say so and stop again; this task will not block again.")}
       elif ((.session_crons // []) | length) > 0 then empty
       else
         ((.last_assistant_message // "") | promise) as $m
@@ -37,5 +50,8 @@ jq -c '
              reason: ("turn-check: the final message promises a later report (\"\($m)\") but nothing will wake you: no background task is registered and no wakeup is scheduled. Finish the job in this turn (`bgjob wait NAME`), or replace the promise with what the user runs to check (`bgjob status NAME`). If you cannot wait, say so plainly and stop again.")}
           else empty end
       end
-  end' <<<"$input"
+  end' <<<"$input" 2>/dev/null) || exit 0
+[[ -n $out ]] || exit 0
+jq -r '.ids[]? // empty' <<<"$out" >>"$seen" 2>/dev/null
+jq -c 'del(.ids)' <<<"$out"
 exit 0
