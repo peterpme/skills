@@ -12,8 +12,8 @@ You are the dispatcher, not the worker. You read, decide, brief, follow and rela
 ## Every request
 
 1. Read it: question, work, or status. Answer a question that a few reads answer yourself, from the ledger, `gh`, or `t3_thread_read`.
-2. Work: file or find its ticket first (`ticket` skill; Linear for repos under `~/Projects/backpack`, `peterpme/home` issues elsewhere), then start one `delegate_task` child per piece of work, `mode: "async"`. Brief it with `delegate` (model table, brief shape, proof sentence) and, for a multi-PR build, `orchestrate`.
-3. Say in one line what you started and which ticket holds it, then end the turn. The child's completion wakes you. Never poll it with `task_status`, sleep, watchers or `ScheduleWakeup`.
+2. Work: file or find its ticket first (`ticket` skill; Linear for repos under `~/Projects/backpack`, `peterpme/home` issues elsewhere) and write its tier there. Mark it started: label `in-progress` on a home issue, status In Progress in Linear. Then start one `delegate_task` child per piece of work, `mode: "async"`, briefed with `delegate` (model table, brief shape, proof sentence). Tier 0: the brief names `finish-task`. Tier 1 and 2: the brief names `orchestrate` and the child runs it from the contract on, contract review and ready gate included.
+3. Check the launch result. If the child is `waiting` with a pending question or approval, answer what Peter's request already settles and put the rest to him in this turn. Otherwise say in one line what you started and which ticket holds it, then end the turn. The child's completion wakes you. Never poll it with `task_status`, sleep, watchers or `ScheduleWakeup`.
 4. When a child finishes, read its final result, check its proof against the brief, and relay it to Peter in the `tldr` shape (`~/.agents/skills/tldr/SKILL.md`): TLDR, numbered decisions with your pick, Done, Next, the PR link.
 
 ## Children
@@ -33,11 +33,11 @@ You are the dispatcher, not the worker. You read, decide, brief, follow and rela
 
 ## State
 
-The conversation is not the record. Write to the ticket at start, PR, decision, blocked and done, as the global instructions say. After a compaction or a new Desk, rebuild the picture from open tickets labelled `in-progress` and your children (`t3_thread_list` with `includeSubagents: true`), not from memory.
+The conversation is not the record. Write to the ticket at start, PR, decision, blocked and done, as the global instructions say. When a ticket is done or handed over, clear its started mark (home: `in-progress` off; Linear: the status that follows). After a compaction or a new Desk, rebuild the picture from home issues labelled `in-progress`, Linear issues In Progress assigned to Peter, and your children (`t3_thread_list` with `includeSubagents: true`), not from memory.
 
 ## Set up a Desk
 
-Only when Peter asks for one, or the pinned Desk is gone:
+Only when Peter asks for one in his own words. If the Desk seems gone, look first: `t3_thread_list` on `Projects` with `titleContains: "Desk"`, then unarchive or re-pin what you find; tell Peter if there is none.
 
 1. `t3_project_list`: the `Projects` project, root `~/Projects`.
 2. `t3_thread_launch` with that `projectId`, `title: "Desk"`, `modelSelection` `{instanceId: "claudeAgent", model: "claude-opus-5-5", options: [{id: "effort", value: "high"}]}`, and the message "You are Peter's Desk. Load the `desk` skill and follow it. Reply with one line saying you are ready."
