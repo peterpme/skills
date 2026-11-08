@@ -25,7 +25,7 @@ It prints, per provider instance (`claude1_`, `claudeAgent`), the latest `five_h
 
 An account is **out** when five-hour OR weekly remaining is under 2%. It is **recovered** when five-hour remaining is over 50% (and weekly is over 2%).
 
-## 1b. Stop rule (Peter, 2026-10-20: overrides the move rules below)
+## 1b. Stop rule (overrides the move rules below)
 
 If any Claude account's five-hour OR weekly `remaining_pct` is under 2%, or `status: rejected`, or `is_using_overage: true`, immediately stop all work. Do not move threads instead.
 
@@ -59,7 +59,7 @@ Rules, in order:
 
 1. **Move off an out account.** For each thread on an out Claude account, pick the first target that is not out: the other Claude account, then cursor (Opus/Sonnet only). If both Claude accounts are out and the model has no cursor row (Fable, Haiku), leave it and report it.
 2. **Move back when recovered.** For each thread currently on cursor (or any fallback) that the ledger shows you moved, go back to its original Claude account once that account is recovered (over 50%). Peter's standing permission: always switch back to claude1_ / claudeAgent from cursor when they are back over 50%.
-3. **Never ping-pong.** Do not move a thread that is already on a non-out account just to balance. Do not move a thread onto an account that is under 50% unless it is the only non-out choice. Peter explicitly placed `top-13997` on claude1_ on 2026-10-20; do not move it back to claudeAgent.
+3. **Never ping-pong.** Do not move a thread that is already on a non-out account just to balance. Do not move a thread onto an account that is under 50% unless it is the only non-out choice. Peter placed `top-13997` on claude1_; do not move it back to claudeAgent.
 4. **Priority threads and their subagents first**, then the rest.
 5. Moving a running thread: config may apply from its next turn. Say so in the report; do not interrupt it.
 
