@@ -17,7 +17,7 @@ Peter's goal: ask once, get finished PRs. Every time he has to say "no", "I said
 
 Save it as `.verification/<task>/CONTRACT.md` in the worktree. Every brief, review and report points at this file. Re-read it after `/compact` or a resume, before acting.
 
-On a program with several workers, keep your context for decisions: have a read-only worker do the repo investigation and draft the contract from Peter's words, then check the draft against his request and decide. For a single PR, write it yourself.
+On a program with several workers, keep your context for decisions: have a read-only worker do the repo investigation and draft the contract from Peter's words, then check the draft against his request and decide.
 
 1. **Goal.** Peter's request, quoted word for word, then one sentence on the outcome he will see.
 2. **Decisions.** Every choice already made, each with its source. Look in this order and record what you find:
@@ -70,9 +70,11 @@ On anything with several slices or workers, you are the orchestrator: you write 
 - the Verification checks this slice must show, with expected results copied from the contract, and the Validation scenario if this slice completes the feature;
 - "Do not change anything in Decisions or Out of scope. If the slice can't be done within them, stop and report why."
 
+Run long commands (builds, migrations, remote jobs) in the background with a timeout and a log.
+
 ## 4. Proof
 
-Each slice's PR body holds a table with one row per operation in scope (each flow, command or endpoint the change touches, not each function): the check, expected result, actual result, rung, and evidence. Expected comes from the contract, actual from running the real flow. Rungs: 0 compiles and lints, 1 unit test of pure logic, 2 real flow in a dev runtime, 3 real flow in the shipped runtime, 4 independent oracle, 5 before-and-after measurement; rungs 0 and 1 never prove a change alone. An operation with no check is still a row, marked `implemented, unverified` with the missing prerequisite; it never counts as a pass.
+Each slice's PR body holds a table with a row per acceptance check, grouped by operation (each flow, command or endpoint, not each function): expected result, actual result, rung, and evidence. Expected comes from the contract, actual from running the real flow. Rungs: 0 compiles and lints, 1 unit test of pure logic, 2 real flow in a dev runtime, 3 real flow in the shipped runtime, the minimum for anything a user touches, 4 an independent oracle sharing no code with the change, for signing and money, 5 before-and-after measurement, for any change meant to move a number. Rungs 0 and 1 never prove a change alone. Every operation in scope gets a row; one with no check is marked `implemented, unverified` with the missing prerequisite and never counts as a pass.
 
 ## 5. Diff review: two independent reviewers
 
@@ -84,14 +86,13 @@ When a slice's CI is green, review it with depth matched to risk:
 | Behavior changes | Two in parallel: the GPT reviewer and the Claude reviewer |
 | Security, keys, money or auth | Both at their highest effort, plus a check that only the intended files changed |
 
-Models and efforts come from `delegate`'s table. If Peter named the reviewers or their number, use his. Reviewers never see each other's findings. Give each the PR, the contract, and the commit SHA, and ask for `delegate`'s review reply format: a verdict, then findings with severity, file and line, and the command and output that show the failure. Also ask for contract violations, each a blocker:
+Models and efforts come from `delegate`'s table. Reviewers never see each other's findings. Give each the PR, the contract, and the commit SHA, and ask for `delegate`'s review reply format. Also ask for contract violations, each a blocker:
 
 - a decision ignored, scope crept, an acceptance check missing or faked, or a size cap exceeded;
 - a test rerun until green, or a retry added to a test or CI step, instead of a fix for the flake;
 - an assertion edited or deleted in a refactor or bug fix; tests change only when a requirement does, and the contract names it;
 - a bug fix without a test that fails on the old code and passes on the new, both runs shown in the PR.
 
-- Rerun each finding's command before passing it on. Drop what doesn't reproduce.
 - Fix blockers and should-fix findings. Nits are optional, and declined ones go in the PR body as follow-ups.
 - Compare `git diff --shortstat` before and after review. If review made the diff bigger, cut back to what the contract needs before the next round.
 - Each reviewer then re-checks only its own findings against the new SHA, in a new `delegate_task` round with the findings and responses.
@@ -102,11 +103,11 @@ Models and efforts come from `delegate`'s table. If Peter named the reviewers or
 A PR is ready only when all of these hold. Check them with the helpers, not from memory:
 
 - `pr-status <n>` exits 0: CI green, mergeable, no unresolved threads (`pr-threads <n>` is empty) after the review bots have commented on the head SHA.
-- The proof table has a row for every operation in scope, each passing or marked unverified with a reason.
+- The proof table covers every operation in scope, and every acceptance check passes or is marked unverified with a reason.
 - Both reviewers' findings are fixed or answered, and the reviewed SHA is the PR's head.
 - No contract violation from step 5 is open. A bug fix with no fail-before, pass-after test goes back to the worker.
 - The size is within the cap, or the PR body says why it can't be split.
-- Its base is `master` (or the repo's default branch). A stacked PR stays a draft while it targets a sibling branch, even after its veto window; run the gate once its parent merges and GitHub retargets it. Keep stacks under about five deep; fold a mechanical refactor into one PR unless each operation's PR is reviewable alone.
+- Its base is `master` (or the repo's default branch). A stacked PR stays a draft while it targets a sibling branch, even after its veto window; run the gate once its parent merges and GitHub retargets it. A mechanical refactor across many operations is one PR per operation only when each is reviewable alone and the stack stays under about five deep; otherwise fold.
 - The PR body states why it exists, what changed, the proof table, the reviewers with their model and reviewed SHA, and any codemod used.
 
 Merging follows the repo-class rule in the global instructions; no reviewer approval stands in for Peter's merge on a work repo. Then hand over in one message: one line per PR in merge order (`#n title: what it does, proof in one phrase`), followed by "Needs your call" with only what truly needs him, and what is unverified.
