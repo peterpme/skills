@@ -12,7 +12,7 @@ before it. Prints one stats line.
 
 Quiet path: when no thread has anything new, no digest is written, the cursor
 is advanced at once and the one line printed starts with "nothing new". The
-hourly run then costs one script call.
+run then costs one script call.
 
 Peter's own messages are shown plainly. Messages that an agent, watchdog or
 schedule sent into a thread are tagged [automated: <source>]; identical ones are

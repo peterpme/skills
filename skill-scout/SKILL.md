@@ -1,12 +1,12 @@
 ---
 name: skill-scout
-description: Every hour, read this machine's new T3 Code threads, record Peter's corrections verbatim in the home repo's feedback file, learn what frustrates him, what he looks for and how he works, find the shell commands that cost agents the most output, and file the patterns that recur as finding issues in Peter's private home repo, which the weekly skill review turns into scored changes to the skills. Use for the scheduled Skill scout run, when asked what agents keep getting wrong or what Peter prefers, or to set the scout up on a machine. Not for the weekly evaluation of the skills (skill-review).
+description: Once a day, read this machine's new T3 Code threads, record Peter's corrections verbatim in the home repo's feedback file, learn what frustrates him, what he looks for and how he works, find the shell commands that cost agents the most output, file the patterns that recur as finding issues in Peter's private home repo, and report how often agents read the skills, which the weekly skill review turns into scored changes to the skills. Use for the scheduled Skill scout run, when asked what agents keep getting wrong or what Peter prefers, or to set the scout up on a machine. Not for the weekly evaluation of the skills (skill-review).
 compatibility: T3 Code (reads its local database), gh and python3.
 ---
 
 # Skill scout
 
-Goal: Peter says a thing once, and from then on every agent does it by default, and no agent keeps paying for the same expensive command. One run, every hour: digest the new turns, record his corrections verbatim, find frustration and preference signals, update the ledger, file recurring patterns as finding issues, note what changed for the day's summary, commit the cursor. Once a day the run also ranks command costs and posts one summary comment. A run with nothing new is one script call and one line.
+Goal: Peter says a thing once, and from then on every agent does it by default, and no agent keeps paying for the same expensive command. One run a day: digest the new turns, record his corrections verbatim, find frustration and preference signals, update the ledger, file recurring patterns as finding issues, note what changed for the day's summary, commit the cursor. The daily run also ranks command costs, measures skill read rates and posts one summary comment. A run with nothing new is one script call and one line.
 
 - Read threads only. Never message, interrupt, configure, settle or archive another thread.
 - Never change the skills repo; the weekly skill review does that with evidence. Write only to the feedback file, the ledger and finding issues.
@@ -23,7 +23,7 @@ Goal: Peter says a thing once, and from then on every agent does it by default, 
 
    It reads this machine's T3 database read-only and writes every user-role message since the last committed run, each with the end of the agent message before it, to `~/.local/state/skill-scout/digests/<time>.md`, then prints a stats line. `**Peter, …**` marks his messages. `[automated: …]` marks messages an agent, watchdog or schedule sent; those are stall signals, not Peter's words. `--help` has the rules. When nothing is new, it prints one line starting `nothing new`, writes no digest and advances the cursor itself.
 3. Run `python3 -I ~/skills/skill-scout/scripts/summary.py daily`. Exit 0 once a day, on the first run after 06:00 local time: that run also does the command-cost pass (step 4) and posts the summary (section 7). Every other run skips both.
-4. On the daily run only, run `python3 -I ~/skills/skill-scout/scripts/commands.py --since 24h`. It ranks the shell commands agents ran by the output they pulled into context and writes `~/.local/state/skill-scout/commands/<time>.md`. Read its three tables for section 2's command-cost signals.
+4. On the daily run only, run `python3 -I ~/skills/skill-scout/scripts/commands.py --since 24h`. It ranks the shell commands agents ran by the output they pulled into context and writes `~/.local/state/skill-scout/commands/<time>.md`. Read its three tables for section 2's command-cost signals. Then run `python3 -I ~/skills/skill-scout/scripts/adherence.py --since 7d`: one row per skill, the share of editing threads that read it, split by Peter's threads, scheduled runs and subagents. It goes in the daily comment unchanged. A rule that merged and is still broken shows here as a rate, not as a new event.
 5. `nothing new` and not the daily run: reply with the one quiet line from section 7 and stop. Exit code 3 means T3's database layout changed: report that and stop. Never fall back to reading every thread by hand.
 6. Over about 120,000 characters: split at `## ` thread headings across foreground subagents run in parallel. Give each section 2 of this file and its chunk; each returns events in the section 2 format. You do sections 3 to 7.
 
@@ -147,12 +147,14 @@ Needs your call: <policy questions and other-repo notes with proposed text>
 
 Write the `Needs your call:` line only when something there needs Peter; otherwise leave it out. Show only rows that changed this run. Then, for each change, add one line to the day's summary: `python3 -I ~/skills/skill-scout/scripts/summary.py note "<change>"`, for example `feedback: 2 entries (thread titles)`, `filed #n: <pattern>`, `#n gained 1 event`, `helper candidate: <shape>`. Then run `python3 -I ~/skills/skill-scout/scripts/digest.py --commit`, so the next run starts after these turns; after a quiet digest it prints `nothing pending`, which is fine. Commit only after the report and any issue writes. If the run failed, leave the digest uncommitted and say what failed.
 
-**Daily run** (section 1 step 3 exited 0): after the above, run `python3 -I ~/skills/skill-scout/scripts/summary.py post`. Exit 1 means the day had nothing to report: post no comment. Otherwise comment once on the Morning brief issue (`gh issue comment 36 -R peterpme/home`) in this shape, with the printed lines as the list, and end the comment with `<!-- agent -->` on its own line:
+**Daily run** (section 1 step 3 exited 0): after the above, run `python3 -I ~/skills/skill-scout/scripts/summary.py post`. Exit 1 means the day had no changes: still post the comment, with the adherence table and no list. Otherwise comment once on the Morning brief issue (`gh issue comment 36 -R peterpme/home`) in this shape, with the printed lines as the list, and end the comment with `<!-- agent -->` on its own line:
 
 ```
 ### Skill scout · MM-DD
 **TLDR:** <one line: entries recorded, findings filed or fed, what needs Peter>
 - <the lines from summary.py post>
+
+<the table from adherence.py>
 
 Needs your call: <only when something needs him>
 ```
@@ -169,10 +171,10 @@ A T3 server can only read its own threads, so every machine running T3 Code need
    - `projectId`: the "No project" (scratch) project from `t3_project_list`;
    - `bindToCurrentThread: false`;
    - `title: "Skill scout"`;
-   - `schedule: {type: "interval", everyMs: 3600000}`;
+   - `schedule: {type: "fixed_time", timeOfDay: "06:30"}`;
    - this prompt:
 
-     > [t3-sentinel-run] Run the skill-scout skill: one hourly run on this machine. Read `~/skills/skill-scout/SKILL.md` and run the scripts next to it. Output only artifacts: the feedback file and finding issues in the private home repo, the local ledger, and the daily summary comment. If the digest prints "nothing new" and it is not the daily run, reply with the one quiet line and stop. If the skill file is missing, reply in one line starting with "Needs your call:" and stop.
+     > [t3-sentinel-run] Run the skill-scout skill: one daily run on this machine. Read `~/skills/skill-scout/SKILL.md` and run the scripts next to it. Output only artifacts: the feedback file and finding issues in the private home repo, the local ledger, and the daily summary comment. If the digest prints "nothing new" and it is not the daily run, reply with the one quiet line and stop. If the skill file is missing, reply in one line starting with "Needs your call:" and stop.
 
 4. If `~/.t3/sentinel/config.json` exists, add the returned `scheduledTaskId` to its `cleanup_task_ids` list, so finished run threads are deleted. The `[t3-sentinel-run]` tag keeps the watchdog from treating the run as agent work.
 5. Report the next run time.

@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Once-a-day bookkeeping for the hourly skill scout.
+"""Once-a-day bookkeeping for the skill scout.
 
 usage: summary.py daily          exit 0 on the first run after 06:00 local time each day, else 1
        summary.py note TEXT...    append one line to the day's summary
        summary.py post            print the day's lines and clear them; exit 1 when there are none
 
-The scout runs every hour. `daily` tells one run a day to do the daily work (the
-command-cost pass and the summary comment on the Morning brief) and records the
-date, so the other runs skip it. `note` collects what each run changed. `post`
-hands the collected lines to the run that comments and empties the file, so a
-day with nothing to report posts nothing.
+The scout runs once a day. If it runs more often, `daily` tells one run a day
+to do the daily work (the command-cost pass, the adherence table and the summary
+comment on the Morning brief) and records the date, so the other runs skip it.
+`note` collects what each run changed. `post` hands the collected lines to the
+run that comments and empties the file; exit 1 means the comment has no list.
 
 State lives in ~/.local/state/skill-scout/ (override with SKILL_SCOUT_STATE):
 summary.json holds the date of the last daily run, day.md the collected lines.
