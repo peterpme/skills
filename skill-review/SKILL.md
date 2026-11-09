@@ -1,12 +1,12 @@
 ---
 name: skill-review
-description: Weekly check that Peter's skills still earn their lines. Turns the scout's open finding issues into one scored change and merges it when the replays of real past tasks say it helps, and adds new replay cases from the week's friction. Use for the scheduled weekly Skill review, or when asked to evaluate or compare versions of the skills. Not for finding new patterns in threads (skill-scout) or for cutting text (skill-gardener).
+description: Weekly check that Peter's skills still earn their lines. Turns the scout's open finding issues into one scored change and merges it when the replays of real past tasks say it helps, adds new replay cases from the week's friction, and reports skill read rates and merged rules that still gain events. Use for the scheduled weekly Skill review, or when asked to evaluate or compare versions of the skills. Not for finding new patterns in threads (skill-scout) or for cutting text (skill-gardener).
 compatibility: Runs on the machine that holds the private eval cases (~/.local/share/skill-evals/orchestrate). Needs the claude and codex CLIs, gh and node.
 ---
 
 # Skill review
 
-Goal: every scout change reaches Peter with evidence. One run: add cases, score the filed findings, report. This review measures and adds; cutting text is skill-gardener's job, every three days.
+Goal: every scout change reaches Peter with evidence. One run: add cases, score the filed findings, check adherence, report. This review measures and adds; cutting text is skill-gardener's job, every three days.
 
 - Never commit cases, transcripts or run output to the skills repo. The repo is public; cases come from private work. They live in `~/.local/share/skill-evals/orchestrate/`.
 - Budget: at most two eval comparisons per run, about $30 each (32 agent sessions plus judging). Run each in the background with a log (`runq` or a background command), and wait for it to finish before going on. Never end the turn while one runs.
@@ -30,11 +30,17 @@ List them: `gh issue list -R peterpme/home --label finding --state open --json n
 
 Case ids and judge notes name private work, so they go only in the T3 report and the finding issues, never in the skills PR.
 
-## 3. Cuts and sizes
+## 3. Adherence
+
+1. Run `python3 -I ~/skills/skill-scout/scripts/adherence.py --since 7d` and keep its table for the report. Exit 3 means the T3 database layout changed; report that instead of the table.
+2. In the ledger table, take every row whose status starts with `merged` and compare its Events count with the `Merged rules:` line of the last `climb.md` entry. A count that rose means the merged rule is not holding. List each one in the report with old and new counts. It needs an open `finding` issue with the new events; if the scout has not reopened or filed one, do it under skill-scout section 6.
+3. With no earlier `Merged rules:` line, record the counts and flag nothing.
+
+## 4. Cuts and sizes
 
 Not here. Skill-gardener cuts duplicated, stale and narrated lines and flags oversized skills every three days. A line that is wrong rather than surplus is a `finding` issue, scored in section 2.
 
-## 4. Report
+## 5. Report
 
 ```
 **Skill review, <date>:** <N findings merged as PR #n / M dropped; nothing to do>
@@ -43,10 +49,13 @@ Not here. Skill-gardener cuts duplicated, stale and narrated lines and flags ove
 |---|---|
 | Findings PR #n | train <main> → <PR> (<cases>), holdout <…>, verdict, issues closed |
 | New cases | N (ids) |
+| Merged rules still gaining events | <candidate old → new, finding #n; none> |
 | Spend | $N |
 ```
 
-Then append the run to `climb.md`: the date, what was compared, the scores, and what was kept.
+Then the adherence table, unchanged.
+
+Then append the run to `climb.md`: the date, what was compared, the scores, what was kept, and one line `Merged rules: <candidate> <events>, …` for every `merged` ledger row.
 
 ## Set up
 
