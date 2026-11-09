@@ -18,7 +18,7 @@ Personal agent skills. One folder per skill at the repository root.
 - [effect-v4](effect-v4/SKILL.md): Effect v4 reference for writing, reviewing and testing Effect TypeScript code.
 - [new-repo](new-repo/SKILL.md): Create or standardize a GitHub repo: branch ruleset with one required `ci` check, cached Rust (BeautifulRust lints) or TypeScript (Vite+, tsrs) CI, Dependabot, and Railway deploys gated on CI. `scripts/github-setup` applies the settings.
 - [clean-disk](clean-disk/SKILL.md): Daily on each machine, free disk space from merged or idle agent worktrees, stale Rust `target/` folders, build folders (through Mole), replaced simulator runtimes and oversized caches. `bin/disk-clean` holds the rules and backs up uncommitted changes first.
-- [harness-first](harness-first/SKILL.md): Before any change meant to improve a number, find or build a harness in the repo and land a baseline from unchanged code first; every change then reports its delta in the same environment, plus one real end-to-end run per flow it touches.
+- [harness-first](harness-first/SKILL.md): Land a baseline from a harness in the repo before any change meant to improve a number.
 - [skill-scout](skill-scout/SKILL.md): Hourly read of this machine's T3 threads; Peter's corrections go verbatim into the private home ledger's feedback file, and recurring friction and the shell commands that cost agents the most output become finding issues there, never an open PR. `bin/feedback` is the helper every agent uses to record a correction.
 
 The repo also holds the global agent instructions (`global/AGENTS.md`) and agent helper commands (`bin/`).

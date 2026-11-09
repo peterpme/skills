@@ -46,7 +46,7 @@ On a hill climb, keep a log of each attempt with its delta and whether you kept 
 
 The number shows the target got better, not that nothing else broke. Before changing code, write the flow list into the contract: every user flow that passes through the files you will touch (find them from the callers and screens that import them), each with its steps and the expected result. After the change, run each one end to end on the same build you measured, one row per flow in the proof table. A visual spot check of the target screen is not a flow run. A flow you could not run is its own row marked unverified.
 
-For a change to an API or shared code, the harness is a caller check: list the callers, state what each depends on, and make one real call per caller before and after.
+For a change to an API or shared code, add a caller check to the number: list the callers, state what each depends on, and make one real call per caller before and after.
 
 ## Never
 
