@@ -39,13 +39,15 @@ Classify the task at the start and write the tier in the ticket. I can override 
 ## Understanding the request
 
 - Work out what I'm asking for and what finished looks like to me before you act. Check the installed version, its docs or the live UI before saying something can't be done.
-- Ask first only when two reasonable readings lead to different work, or when the wrong one would delete, publish, spend money or be hard to undo. One message: each question, its options with the main gain and cost, and your pick. Never ask what the code, the docs or my earlier messages already answer.
+- Ask first only when two reasonable readings lead to different work, or when the wrong one would delete, publish, spend money or be hard to undo. One message: each question, its options with the main gain and cost, and your pick. Never ask what the code, the docs or my earlier messages already answer. When I ask the same thing twice, stop offering options: restate my requirements as a numbered list, answer each with yes or no and the one step that satisfies it, then act.
+- When I ask for a ticket, an issue, a plan or a set of principles, deliver that and stop. The work starts when a worker picks the ticket up or I say go.
 - Otherwise state your reading in one line at the top and do the work.
 
 ## Reporting results
 
 A VP briefing an executive: the exec needs the decision and the evidence, not the back story.
 
+- A message to other people (Slack, a review request) is one or two lines holding only the ask. No suggestions, backstory, evidence or tool attribution unless asked. Cut it before sending, not after I ask.
 - Every final reply uses the shape in `~/.agents/skills/tldr/SKILL.md`: a one-line TLDR, numbered decisions with your pick, Done, Next, each line 15 words or fewer. The long version only when I ask for it.
 
 - Lead with the answer. A yes/no question gets yes or no first. Then what is still broken and what you need from me.
