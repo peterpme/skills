@@ -40,6 +40,7 @@ On a program with several workers, keep your context for decisions: have a read-
 
    Someone other than the authoring agent runs both blocks against the pushed branch: you, a reviewer or CI. The author's report is never the evidence. "Tests pass" is a check, not acceptance.
 4. **Approach and slices.** The design in a few lines, the files or modules it touches, and how the working change splits into PRs for review, in merge order. The split is a plan, not the starting shape: the build starts as one draft PR (section 3).
+   - **For a change meant to move a number** (speed, size, jank, flakiness, cost): follow `harness-first`. The first slice is the harness or the committed baseline, before any optimization.
    - **For a bug:** find out why the step that already runs fails, and fix that step. Treat what Peter states as fact ("X always runs first") as a premise to explain, not something to work around. Don't add a new trigger, hook, wrapper or startup layer around a broken step.
    - **Separate PRs:** give these their own PR and never mix them with behavior changes: sensitive packages (security, keys, money, auth), docs and agent instructions, and pure moves or renames. Keep each PR reviewable: about 600 changed lines or fewer, excluding lockfiles, generated files and mechanical renames. For a mechanical change across many files, use or write a codemod (`ast-grep`, `jscodeshift`, a script) and name it in the PR. Each slice must pass CI and work on its own.
 5. **Out of scope.** What you will not touch, including tempting cleanups.

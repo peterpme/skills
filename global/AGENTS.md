@@ -26,7 +26,7 @@ Classify the task at the start and write the tier in the ticket. I can override 
 | Tier | Examples | Gates |
 |---|---|---|
 | 0 | Typo, config, one-file fix, question | finish-task only |
-| 1 | Feature, refactor, dependency change, hill climb on data | Contract, ledger, one draft PR split for review, proof table, harness before the climb |
+| 1 | Feature, refactor, dependency change, hill climb on data | Contract, ledger, one draft PR split for review, proof table, harness before the climb (`harness-first`) |
 | 2 | Money, keys, releases, public API, perf claims | Tier 1 plus the domain model, verify-first, an independent oracle, review by the other model family |
 
 ## Where state lives

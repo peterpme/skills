@@ -18,7 +18,7 @@ Kinds: **hook** (runs in the harness), **CI** (runs on the PR), **scheduled** (a
 | Never deploy unless the task is the deploy | none | prose | home#105 |
 | Tier 2 PR stays a draft two hours after the contract | none | prose | home#105 |
 | Never `/tmp` | none | prose | home#105 |
-| Measure, change, measure | none | prose | home#105 |
+| Measure, change, measure | `harness-first` skill: a committed baseline lands before the optimization PR | prose | Planning is scored by the orchestrate eval perf cases; no check yet that a PR carries both numbers: home#105 |
 | Never write secrets in home | none | prose | home#105 |
 | Tier 2 review by the other model family | `orchestrate` steps 2 and 5 | prose | Pending decision home#100 |
 | Never merge in work repos | Work repos' branch rules | branch rule | Not checked from here |
