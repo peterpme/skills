@@ -10,7 +10,7 @@ Kinds: **hook** (runs in the harness), **CI** (runs on the PR), **scheduled** (a
 | Promise a later report only when something will wake you | `bin/turn-check` Stop hook, cases in `tests/turn-check/` | hook | |
 | Remove a worktree once its branch is merged or abandoned | `bin/disk-clean`, daily through `clean-disk` | scheduled | |
 | Close your own PR when superseded or idle for 14 days | `chief-of-staff` daily run | scheduled | "Same turn" for a superseded PR is prose: home#105 |
-| Feedback goes in with `feedback add` the same turn | `bin/feedback`; `skill-scout` hourly adds what was missed | helper, scheduled | |
+| Feedback goes in with `feedback add` the same turn | `bin/feedback`; `skill-scout` daily adds what was missed | helper, scheduled | |
 | Every review thread is resolved before draft ends and before handover | `bin/pr-status`, `bin/pr-threads`, called by the `orchestrate` ready gate | helper | No branch rule requires resolved threads; the gate's checklist is the control |
 | Worktrees and `.verification/` stay out of PRs | Each repo's `.gitignore` | prose | Not in the global excludes file: home#102 |
 | PRs under 400 hand-written lines | none | prose | home#103 |

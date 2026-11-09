@@ -6,7 +6,7 @@ compatibility: T3 Code (reads its local database), gh and python3.
 
 # Skill scout
 
-Goal: Peter says a thing once, and from then on every agent does it by default, and no agent keeps paying for the same expensive command. One run a day: digest the new turns, record his corrections verbatim, find frustration and preference signals, update the ledger, file recurring patterns as finding issues, note what changed for the day's summary, commit the cursor. The daily run also ranks command costs, measures skill read rates and posts one summary comment. A run with nothing new is one script call and one line.
+Goal: Peter says a thing once, and from then on every agent does it by default, and no agent keeps paying for the same expensive command. One run a day: digest the new turns, record his corrections verbatim, find frustration and preference signals, update the ledger, file recurring patterns as finding issues, note what changed for the day's summary, commit the cursor. The daily run also ranks command costs, measures skill read rates and posts one summary comment, even on a day with nothing new.
 
 - Read threads only. Never message, interrupt, configure, settle or archive another thread.
 - Never change the skills repo; the weekly skill review does that with evidence. Write only to the feedback file, the ledger and finding issues.
@@ -147,7 +147,7 @@ Needs your call: <policy questions and other-repo notes with proposed text>
 
 Write the `Needs your call:` line only when something there needs Peter; otherwise leave it out. Show only rows that changed this run. Then, for each change, add one line to the day's summary: `python3 -I ~/skills/skill-scout/scripts/summary.py note "<change>"`, for example `feedback: 2 entries (thread titles)`, `filed #n: <pattern>`, `#n gained 1 event`, `helper candidate: <shape>`. Then run `python3 -I ~/skills/skill-scout/scripts/digest.py --commit`, so the next run starts after these turns; after a quiet digest it prints `nothing pending`, which is fine. Commit only after the report and any issue writes. If the run failed, leave the digest uncommitted and say what failed.
 
-**Daily run** (section 1 step 3 exited 0): after the above, run `python3 -I ~/skills/skill-scout/scripts/summary.py post`. Exit 1 means the day had no changes: still post the comment, with the adherence table and no list. Otherwise comment once on the Morning brief issue (`gh issue comment 36 -R peterpme/home`) in this shape, with the printed lines as the list, and end the comment with `<!-- agent -->` on its own line:
+**Daily run** (section 1 step 3 exited 0): after the above, run `python3 -I ~/skills/skill-scout/scripts/summary.py post`, then comment once on the Morning brief issue (`gh issue comment 36 -R peterpme/home`) in this shape, with the printed lines as the list, and end the comment with `<!-- agent -->` on its own line. Exit 1 from `post` means the day had no changes: post the comment anyway, with TLDR `no changes` and no list, so the adherence table still lands.
 
 ```
 ### Skill scout · MM-DD
