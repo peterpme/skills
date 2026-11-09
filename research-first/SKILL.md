@@ -1,6 +1,6 @@
 ---
 name: research-first
-description: Before building a tool, script, harness, checker, benchmark, library or architecture, write a one-page prior-art note in 30 minutes or less - who the specialist is, what they reach for, what they measure and with what, what the repo already has, and a recommendation - then build on the best existing option. Use when a request would have you write new tooling ("write a script that…", "build a harness for…", "add a check that…"), pick a framework, work in an unfamiliar domain, or start a performance investigation. Not for a bug with a reproduction or an edit inside existing code.
+description: Before building a tool, script, harness, checker, benchmark, library or architecture, write a one-page prior-art note in 30 minutes or less - who the specialist is, what they reach for, what they measure and with what, what the repo already has, and a recommendation - then build on the best existing option. Use when a request would have you write new tooling ("write a script that…", "build a harness for…", "add a check that…"), pick a framework, work in an unfamiliar domain, or start a performance investigation, including when extending an existing script with a new capability. Not for a bug with a reproduction or maintenance that adds no new capability.
 ---
 
 # Research first
@@ -21,7 +21,7 @@ Write it before the plan, in `.verification/<task>/PRIOR-ART.md`, and put its re
 
 | Source | How |
 |---|---|
-| This machine | `command -v <tool>`, `brew list`, `~/dotfiles/docs/tools/`, `tldr <tool>` |
+| This machine | `command -v <tool>`, `brew list`, `~/dotfiles/docs/tools/`; for each installed candidate, its `--help` or `tldr` for the subcommand that does the job |
 | The repo | `scripts/`, `bin/`, package scripts, CI workflows, repo skills, `.verification/`, the agents file |
 | Earlier work | `gh pr list --search <topic> --state all`, `t3_thread_search`, the ledger |
 | The ecosystem | The framework's own docs and tooling, the specialist's standard tools, then a web search for "<problem> cli" or "<problem> library" |
@@ -29,10 +29,11 @@ Write it before the plan, in `.verification/<task>/PRIOR-ART.md`, and put its re
 ## Rules
 
 - The plan's first build step uses the tool the note recommends. A plan that opens with "write a script that…" when field 2 or 4 names a tool has skipped the gate.
+- Ruling out an installed tool takes evidence: its help output or a dry run showing it cannot do the job. A missing flag is a reason to wrap the tool, not to replace it.
 - Prefer a measurement from outside the code you write: an independent reference, a published vector, a profiler. Your own output is not an oracle.
 - **Performance work:** climb the ladder in [references/perf-ladder.md](references/perf-ladder.md) one rung at a time, cheapest instrument first, and record which rung found the problem.
-- **Greenfield in an unknown domain:** compare two or three candidate frameworks on criteria Peter cares about (speed, size, agent and tool support, native versus web), then spike the riskiest assumption and measure it before the real plan. The comparison and the spike go in the note.
-- Skip the note for a bug with a reproduction, an edit inside existing code, or a task whose tool Peter already named. His choice is a decision, not a candidate.
+- **Greenfield in an unknown domain:** compare two or three candidate frameworks on criteria Peter cares about (speed, size, agent and tool support, native versus web), then write the spike's expected measurement into the contract, spike the riskiest assumption, and record the result in the note before the full plan.
+- Skip the note for a bug with a reproduction, maintenance that adds no new capability, or a task whose tool Peter already named. His choice is a decision, not a candidate.
 
 ## Template
 
