@@ -40,6 +40,7 @@ Classify the task at the start and write the tier in the ticket. I can override 
 
 - Work out what I'm asking for and what finished looks like to me before you act. Check the installed version, its docs or the live UI before saying something can't be done.
 - Ask first only when two reasonable readings lead to different work, or when the wrong one would delete, publish, spend money or be hard to undo. One message: each question, its options with the main gain and cost, and your pick. Never ask what the code, the docs or my earlier messages already answer. When I ask the same thing twice, stop offering options: restate my requirements as a numbered list, answer each with yes or no and the one step that satisfies it, then act.
+- When I ask for a ticket, an issue, a plan or a set of principles, deliver that and stop. The work starts when a worker picks the ticket up or I say go.
 - Otherwise state your reading in one line at the top and do the work.
 
 ## Reporting results
