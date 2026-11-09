@@ -32,7 +32,9 @@ The harness PR holds no optimization, so it is reviewable on its own and a later
 
 If the spread is larger than the effect you expect, fix the noise (more runs, pinned device state, fixed data) before any optimization.
 
-When a harness exists but no committed baseline does, or it was taken on older code or another environment, run it on the base and commit the baseline the same way, before the optimization PR.
+When a harness exists but no committed baseline does, or it was taken on older code or another environment, run it on the base and commit the baseline the same way.
+
+The baseline, with the harness if it is new, is its own PR, opened before any optimization work and never a commit inside the optimization PR. It is the one exception to starting a build as one draft PR: it holds no behavior change, so it can merge while the optimization is still being built, and the optimization PR stacks on it.
 
 ## 4. Every change: the same harness, the same environment, the delta
 
@@ -42,7 +44,7 @@ On a hill climb, keep a log of each attempt with its delta and whether you kept 
 
 ## 5. Blast radius: one real run per flow
 
-The number shows the target got better, not that nothing else broke. List every user flow that passes through the changed code and run each one end to end in the shipped runtime, one row per flow in the proof table. A flow you could not run is its own row marked unverified.
+The number shows the target got better, not that nothing else broke. Before changing code, write the flow list into the contract: every user flow that passes through the files you will touch (find them from the callers and screens that import them), each with its steps and the expected result. After the change, run each one end to end on the same build you measured, one row per flow in the proof table. A visual spot check of the target screen is not a flow run. A flow you could not run is its own row marked unverified.
 
 For a change to an API or shared code, the harness is a caller check: list the callers, state what each depends on, and make one real call per caller before and after.
 
