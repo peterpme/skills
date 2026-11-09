@@ -70,7 +70,7 @@ On anything with several slices or workers, you are the orchestrator: you write 
 - the Verification checks this slice must show, with expected results copied from the contract, and the Validation scenario if this slice completes the feature;
 - "Do not change anything in Decisions or Out of scope. If the slice can't be done within them, stop and report why."
 
-Run long commands (builds, migrations, remote jobs) in the background with a timeout and a log.
+Run builds, migrations and remote jobs in the background with a timeout and a log.
 
 ## 4. Proof
 
