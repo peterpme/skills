@@ -43,8 +43,10 @@ SCOPES = [
                   "and json_extract(t.payload_json, '$.lineage.parentThreadId') is null"),
     ("Subagents", "json_extract(t.payload_json, '$.lineage.parentThreadId') is not null"),
 ]
-# A command that prints the file: the reader and the path in one pipeline segment.
-READ_COMMAND = r"\b(cat|sed -n|head|tail|nl|bat|less|more)\b[^|;&\n]*{path}"
+# A command that prints the file: the reader starts a pipeline segment (or a `zsh -lc`
+# string), and the path follows in that segment with no redirect between them.
+READ_COMMAND = (r"""(?:^|[;&|\n(]|-lc\s+["']?)\s*(?:sudo\s+)?"""
+                r"(?:cat|sed\s+-n|head|tail|nl|bat|less|more)\b[^|;&\n>]*{path}")
 SQL = """
 with editing as (
   select distinct thread_id from orchestration_v2_projection_turn_items
@@ -57,9 +59,9 @@ scoped as (
 readers as (
   select distinct i.thread_id from orchestration_v2_projection_turn_items i join scoped using (thread_id)
   where (i.type = 'command_execution' and json_extract(i.payload_json, '$.input') regexp :command)
-     or (i.type = 'dynamic_tool' and json_extract(i.payload_json, '$.toolName') = 'Read'
+     or (i.type = 'dynamic_tool' and lower(json_extract(i.payload_json, '$.toolName')) = 'read'
          and json_extract(i.payload_json, '$.input') like :path)
-     or (i.type = 'dynamic_tool' and json_extract(i.payload_json, '$.toolName') = 'Skill'
+     or (i.type = 'dynamic_tool' and lower(json_extract(i.payload_json, '$.toolName')) = 'skill'
          and (json_extract(i.payload_json, '$.input.skill') = :skill
               or json_extract(i.payload_json, '$.input.skill') like '%:' || :skill))
 )
