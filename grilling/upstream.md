@@ -1,4 +1,7 @@
-<!-- Verbatim body of skills/productivity/grilling/SKILL.md from https://github.com/mattpocock/skills at 4ae2317ddb22b046e26455e4f9c9b3aaaf62212d. MIT licence in LICENSE. Do not edit here; put local rules in SKILL.md. -->
+---
+name: grilling
+description: Grill the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test their thinking, or uses any 'grill' trigger phrases.
+---
 
 Interview the user relentlessly until you reach a shared understanding. Map this as a **design tree**: every decision branches into the decisions that hang off it.
 
