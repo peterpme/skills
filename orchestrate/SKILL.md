@@ -1,6 +1,6 @@
 ---
 name: orchestrate
-description: Ask once, get finished PRs. Turns a build request into a written contract (Peter's goal, his decisions, acceptance checks, slices, defaults for open questions), has it reviewed once by the other model family, builds through workers, reviews each diff by risk, and hands over only PRs that pass a ready gate. Use for a feature, fix or refactor that needs a PR and more than one file, for multi-PR programs, and whenever you coordinate several workers. Not for a one-file fix (finish-task) or one-off research or review (delegate).
+description: Ask once, get finished PRs. Turns a build request into a written contract (Peter's goal, his decisions, acceptance checks, slices, defaults for open questions), builds through workers, runs one findings-only review per diff, and hands over only PRs that pass a ready gate. Use for a feature, fix or refactor that needs a PR and more than one file, for multi-PR programs, and whenever you coordinate several workers. Not for a one-file fix (finish-task) or one-off research or review (delegate).
 ---
 
 # Orchestrate
@@ -10,7 +10,7 @@ Peter's goal: ask once, get finished PRs. Every time he has to say "no", "I said
 | Task size | Do |
 |---|---|
 | Small fix, one file, obvious proof | `finish-task` only |
-| One PR | Contract (steps 1 and 2), build, diff review, gate |
+| One PR | Contract (step 1), build, diff review, gate |
 | Several PRs or several workers | All steps, and you only orchestrate |
 
 ## 1. Write the contract before any code
@@ -51,16 +51,9 @@ On a program with several workers, keep your context for decisions: have a read-
 
 When Peter adds or changes a decision mid-task, update the contract right away and send it to every running worker (`t3_thread_send`, `mode: "steer"`).
 
-## 2. Contract review, once
+## 2. No contract review
 
-Send the contract to one reviewer from the other model family, routed with `delegate`'s table: the GPT reviewer if a Claude model wrote it, the Claude reviewer if GPT wrote it. Give it the contract path, the repo and revision, and the request thread or Peter's words. Ask exactly:
-
-- Which acceptance check is missing, or would pass while the result is still wrong?
-- Which part contradicts one of Peter's decisions, the repo's rules, or earlier review feedback?
-- Where will Peter most likely reject the result or have to step in? Look at slicing, size, approach, and proof.
-- Which open question should have been decided instead of asked, and which decision needed Peter?
-
-Settle each point yourself: accept it and change the contract, or reject it with one line of reasoning. Note it under "Review changes" in the contract. One revision only. No back-and-forth between models.
+Model review of the contract is dropped (home#100): agreement between models is not evidence. Check the contract yourself against Peter's words and the repo's rules, then build. Peter's veto window is the contract review.
 
 ## 3. Build through workers
 
@@ -76,17 +69,17 @@ Run builds, migrations and remote jobs in the background with a timeout and a lo
 
 Each slice's PR body holds a table with a row per acceptance check, grouped by operation (each flow, command or endpoint, not each function): expected result, actual result, rung, and evidence. Expected comes from the contract, actual from running the real flow. Rungs: 0 compiles and lints, 1 unit test of pure logic, 2 real flow in a dev runtime, 3 real flow in the shipped runtime, the minimum for anything a user touches, 4 an independent oracle sharing no code with the change, for signing and money, 5 before-and-after measurement, for any change meant to move a number. Rungs 0 and 1 never prove a change alone. Every operation in scope gets a row; one with no check is marked `implemented, unverified` with the missing prerequisite and never counts as a pass.
 
-## 5. Diff review: two independent reviewers
+## 5. Diff review: findings only
 
-When a slice's CI is green, review it with depth matched to risk:
+Review is not proof (home#100). One reviewer per slice, and only a finding that comes with a failing command counts: the command, its output, and the file and line. A finding without one is a note; drop it unless it is a contract violation below.
 
-| Change | Reviewers |
+| Change | Reviewer |
 |---|---|
-| Deleting dead code, pure moves, docs | One: the GPT reviewer |
-| Behavior changes | Two in parallel: the GPT reviewer and the Claude reviewer |
-| Security, keys, money or auth | Both at their highest effort, plus a check that only the intended files changed |
+| Deleting dead code, pure moves, docs | None beyond CI |
+| Behavior changes | One: the GPT reviewer |
+| Security, keys, money or auth | One at its highest effort, plus a check that only the intended files changed |
 
-Models and efforts come from `delegate`'s table. Reviewers never see each other's findings. Give each the PR, the contract, and the commit SHA, and ask for `delegate`'s review reply format. Also ask for contract violations, each a blocker:
+Models and efforts come from `delegate`'s table. Give the reviewer the PR, the contract, and the commit SHA, and ask for `delegate`'s review reply format, each finding with its failing command. Also ask for contract violations, each a blocker:
 
 - a decision ignored, scope crept, an acceptance check missing or faked, or a size cap exceeded;
 - a test rerun until green, or a retry added to a test or CI step, instead of a fix for the flake;
@@ -95,7 +88,7 @@ Models and efforts come from `delegate`'s table. Reviewers never see each other'
 
 - Fix blockers and should-fix findings. Nits are optional, and declined ones go in the PR body as follow-ups.
 - Compare `git diff --shortstat` before and after review. If review made the diff bigger, cut back to what the contract needs before the next round.
-- Each reviewer then re-checks only its own findings against the new SHA, in a new `delegate_task` round with the findings and responses.
+- The reviewer then re-checks only its own findings against the new SHA, in a new `delegate_task` round with the findings and responses.
 - At most two rounds. You decide what is left. Drop pure taste. If a disagreement changes what Peter gets, put it under "Needs your call".
 
 ## 6. Ready gate: nothing reaches Peter before this
@@ -104,11 +97,11 @@ A PR is ready only when all of these hold. Check them with the helpers, not from
 
 - `pr-status <n>` exits 0: CI green, mergeable, no unresolved threads (`pr-threads <n>` is empty) after the review bots have commented on the head SHA.
 - The proof table covers every operation in scope, and every acceptance check passes or is marked unverified with a reason.
-- Both reviewers' findings are fixed or answered, and the reviewed SHA is the PR's head.
+- The reviewer's findings are fixed or answered, and the reviewed SHA is the PR's head.
 - No contract violation from step 5 is open. A bug fix with no fail-before, pass-after test goes back to the worker.
 - The size is within the cap, or the PR body says why it can't be split.
 - Its base is `master` (or the repo's default branch). A stacked PR stays a draft while it targets a sibling branch, even after its veto window; run the gate once its parent merges and GitHub retargets it. A mechanical refactor across many operations is one PR per operation only when each is reviewable alone and the stack stays under about five deep; otherwise fold.
-- The PR body states why it exists, what changed, the proof table, the reviewers with their model and reviewed SHA, and any codemod used.
+- The PR body states why it exists, what changed, the proof table, the reviewer with model and reviewed SHA, and any codemod used.
 
 Merging follows the repo-class rule in the global instructions; no reviewer approval stands in for Peter's merge on a work repo. Then hand over in one message: one line per PR in merge order (`#n title: what it does, proof in one phrase`), followed by "Needs your call" with only what truly needs him, and what is unverified.
 
