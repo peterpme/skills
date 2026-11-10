@@ -31,6 +31,8 @@ Apply the merge rule exactly as the global instructions state it that morning. M
 
 Closure is more than closing. When you close the last PR of a stream, or an epic has had no PR, comment or decision for 21 days, park it: write `~/Projects/home/docs/learnings/YYYY-MM-DD-<slug>.md` with four parts (tried, stopped because, learned, reuse), commit and push it to main, close the epic with a link to the file and the `learnings` label, and move its branches to the Backlog issue. If the reason it stopped is unknown, write that, and ask Peter once in the brief.
 
+For each open `blocked` home issue, record every failed check or new review thread on its PR since its last comment as one comment on the issue (check or thread link, head SHA); leave the status as it is (control panel, Status).
+
 Every issue you touch carries one area label (`backpack` or `personal`) and one project label; fix any that are missing. Never deploy. Never nudge a teammate; name who should be asked and why.
 
 ## Retargeted stacks
