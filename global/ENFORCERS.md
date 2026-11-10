@@ -20,7 +20,7 @@ Kinds: **hook** (runs in the harness), **CI** (runs on the PR), **scheduled** (a
 | Never `/tmp` | none | prose | home#105 |
 | Measure, change, measure | `harness-first` skill: a committed baseline lands before the optimization PR | prose | Planning is scored by the orchestrate eval perf cases; no check yet that a PR carries both numbers: home#105 |
 | Never write secrets in home | none | prose | home#105 |
-| Tier 2 review by the other model family | `orchestrate` steps 2 and 5 | prose | Pending decision home#100 |
+| Tier 2 review is findings with a failing command, never votes | `orchestrate` step 5 | prose | Decided in home#100 |
 | Never merge in work repos | Work repos' branch rules | branch rule | Not checked from here |
 | Commands Claude Code prompts on (`rsync`, `cd` before `git`, ...) | Claude Code's permission prompt | hook | The rule describes the harness, so the harness holds it |
 | GNU `sed`, `grep`, `date` and `stat` | dotfiles put GNU tools first on PATH | setup | A BSD-style flag fails loudly |
