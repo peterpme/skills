@@ -69,6 +69,8 @@ Run builds, migrations and remote jobs in the background with a timeout and a lo
 
 Each slice's PR body holds a table with a row per acceptance check, grouped by operation (each flow, command or endpoint, not each function): expected result, actual result, rung, and evidence. Expected comes from the contract, actual from running the real flow. Rungs: 0 compiles and lints, 1 unit test of pure logic, 2 real flow in a dev runtime, 3 real flow in the shipped runtime, the minimum for anything a user touches, 4 an independent oracle sharing no code with the change, for signing and money, 5 before-and-after measurement, for any change meant to move a number. Rungs 0 and 1 never prove a change alone. Every operation in scope gets a row; one with no check is marked `implemented, unverified` with the missing prerequisite and never counts as a pass.
 
+Each test names the user-visible rule or bug it protects in its title ("an expired quote cannot be accepted") and runs through the public API, so it changes only when a requirement does. Cut tests that echo the code, such as one per state transition or a mock asserting it was called. A count of tests, paths or transitions is never evidence; name the rules. For a mechanical change, the proof is the codemod's check mode reporting zero remaining matches, or an emit-equivalence check showing the build output unchanged.
+
 ## 5. Diff review: findings only
 
 Review is not proof (home#100). One reviewer per slice, and only a finding that comes with a failing command counts: the command, its output, and the file and line. A finding without one is a note; drop it unless it is a contract violation below.
@@ -83,7 +85,7 @@ Models and efforts come from `delegate`'s table. Give the reviewer the PR, the c
 
 - a decision ignored, scope crept, an acceptance check missing or faked, or a size cap exceeded;
 - a test rerun until green, or a retry added to a test or CI step, instead of a fix for the flake;
-- an assertion edited or deleted in a refactor or bug fix; tests change only when a requirement does, and the contract names it;
+- an assertion edited or deleted in a refactor or bug fix without a changed requirement the contract names;
 - a bug fix without a test that fails on the old code and passes on the new, both runs shown in the PR.
 
 - Fix blockers and should-fix findings. Nits are optional, and declined ones go in the PR body as follow-ups.
