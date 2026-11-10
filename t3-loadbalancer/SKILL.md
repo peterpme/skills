@@ -49,6 +49,7 @@ Equivalence table. Same model first.
 |---|---|---|
 | Claude Opus 5.5 | claude1_ / claude-opus-5-5 | claudeAgent / claude-opus-5-5; cursor / claude-opus-5-5 |
 | Claude Sonnet 5.5 | claude1_ / claude-sonnet-5-5 | claudeAgent / claude-sonnet-5-5; cursor / claude-sonnet-5-5 |
+| Claude Fable 5.2 | claude1_ / claude-fable-5-2 | claudeAgent / claude-fable-5-2 |
 | Claude Fable 5.1 | claude1_ / claude-fable-5-1 | claudeAgent / claude-fable-5-1 |
 | Claude Haiku 5.5 | claude1_ / claude-haiku-5-5 | claudeAgent / claude-haiku-5-5 |
 | Grok 4.7 | grok / grok-4.7 | cursor / grok-4.7 |

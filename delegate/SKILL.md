@@ -16,7 +16,7 @@ Grok is never used, for anything, through any provider. A Grok review does not s
 | Implementation ticket | `claude-sonnet-5-5`, alternating `claudeAgent` and `claude1_` | high |
 | Read-only investigation: inventories, "find every place that…", log digging, spec or backend research | `claude-sonnet-5-5` (`claudeAgent` / `claude1_`) | medium |
 | The GPT reviewer: review of a PR, design or contract | Sol (`gpt-6.1-sol`) on `codex` | xhigh |
-| The Claude reviewer: second independent diff reviewer, or reviewer of a GPT-written contract | `claude-fable-5-1` on `claudeAgent` / `claude1_` | high |
+| The Claude reviewer: second independent diff reviewer, or reviewer of a GPT-written contract | `claude-fable-5-2` on `claudeAgent` / `claude1_` | high |
 | Hardest reviews only | `claude-opus-5-5` on `claudeAgent` / `claude1_` | high |
 | Scheduled workers (the Worker task and any task that does ticket work); create the task from a thread set to this, since `schedule_task` copies the caller's model. No scheduled task runs Fable; Fable is for the chief of staff chat | `claude-opus-5-5` on `claudeAgent` | high |
 
