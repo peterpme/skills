@@ -28,6 +28,7 @@ Read each of `global/AGENTS.md` and `*/SKILL.md` whole. Cut these, nothing else:
 | Narration | what an earlier version did, who said it when, reassurance, "note that", an incident or PR number standing in for the rule | delete the history; keep the one clause that says why a constraint exists, because a rule without its reason gets applied where it does not fit |
 | Stale caution | a "never", "stop" or "ask first" line whose reason no longer holds, or that names no scope | file a `finding` with the scope and reason it should carry; a caution is never cut silently |
 | Stale date | "since <date>", "as of", "today", "(Peter, <date>: …)", "still", "now", a dated status | delete the date, or the line when the date was its point |
+| Unused skill | a skill added 30 or more days ago (`git log --diff-filter=A`) with 0 threads in `python3 -I skill-scout/scripts/adherence.py --all --since 30d` | delete its folder, its README line and every pointer to it; after merge, `unlink` its dangling links under `~/.agents`, `~/.claude`, `~/.codex`, `~/.cursor` and `~/.pi/agent`. Peter's rule: a skill that is not used is deleted |
 | Lines no check backs | a tool, path, model, flag, task or pause that no longer exists (`command -v`, `ls`, `rg` the repo and `~/dotfiles/docs/tools/`) | delete the line, or the section when nothing else is left |
 | Same-meaning rules | two rules that differ only in wording | merge into the one with the exact command or number |
 | Enforced prose | a rule a script, hook or CI check already enforces | keep one pointer to the check |
