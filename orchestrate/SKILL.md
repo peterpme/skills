@@ -15,7 +15,7 @@ Peter's goal: ask once, get finished PRs. Every time he has to say "no", "I said
 
 ## 1. Write the contract before any code
 
-Save it as `.verification/<task>/CONTRACT.md` in the worktree. Every brief, review and report points at this file. Re-read it after `/compact` or a resume, before acting.
+Post it on the ticket, which is the source, and keep a working copy at `.verification/<task>/CONTRACT.md` in the worktree for briefs, reviews and reports to point at. Re-read it after `/compact` or a resume, before acting.
 
 On a program with several workers, keep your context for decisions: have a read-only worker do the repo investigation and draft the contract from Peter's words, then check the draft against his request and decide.
 
@@ -43,17 +43,17 @@ On a program with several workers, keep your context for decisions: have a read-
    - **For a change meant to move a number** (speed, size, jank, flakiness, cost): follow `harness-first`. The harness or committed baseline is its own PR, opened before the optimization work, and the one exception to starting as one draft PR.
    - **For a bug:** find out why the step that already runs fails, and fix that step. Treat what Peter states as fact ("X always runs first") as a premise to explain, not something to work around. Don't add a new trigger, hook, wrapper or startup layer around a broken step.
    - **For a change to shared code:** list its blast radius: who imports it, which flows run through it, and which of those flows have no automated check today. Each unchecked flow gets a Verification check or an unverified proof row.
-   - **Separate PRs:** give these their own PR and never mix them with behavior changes: sensitive packages (security, keys, money, auth), docs and agent instructions, and pure moves or renames. Keep each PR reviewable: about 600 changed lines or fewer, excluding lockfiles, generated files and mechanical renames. For a mechanical change across many files, use or write a codemod (`ast-grep`, `jscodeshift`, a script) and name it in the PR. Each slice must pass CI and work on its own.
+   - **Separate PRs:** give these their own PR and never mix them with behavior changes: sensitive packages (security, keys, money, auth), docs and agent instructions, and pure moves or renames. Keep each PR reviewable: under 400 hand-written changed lines, excluding lockfiles, generated files and mechanical renames. For a mechanical change across many files, use or write a codemod (`ast-grep`, `jscodeshift`, a script) and name it in the PR. Each slice must pass CI and work on its own.
 5. **Out of scope.** What you will not touch, including tempting cleanups.
 6. **Open questions.** Only questions where the answer changes what gets built and neither the request, the repo nor history answers it. Most tasks have none, one or two. Each carries your default and why. For a feature, design or multi-PR request, ask them as one `grilling` round (at most three), then **proceed on the defaults**.
 
    Never ask Peter to approve the plan, confirm your defaults, or pick between equivalent options. Decide routine choices (names, file locations, test layout, equivalent APIs) yourself, record them as decisions, and act on them.
 
-When Peter adds or changes a decision mid-task, update the contract right away and send it to every running worker (`t3_thread_send`, `mode: "steer"`).
+When Peter adds or changes a decision mid-task, update the contract on the ticket and in the copy right away and send it to every running worker (`t3_thread_send`, `mode: "steer"`).
 
-## 2. No contract review
+## 2. Check the contract yourself
 
-Model review of the contract is dropped (home#100): agreement between models is not evidence. Check the contract yourself against Peter's words and the repo's rules, then build. Peter's veto window is the contract review.
+Check the contract against Peter's words and the repo's rules, then build. No model reviews it: agreement between models is not evidence, and Peter's veto window is the contract review.
 
 ## 3. Build through workers
 
@@ -73,7 +73,7 @@ Each test names the user-visible rule or bug it protects in its title ("an expir
 
 ## 5. Diff review: findings only
 
-Review is not proof (home#100). One reviewer per slice, and only a finding that comes with a failing command counts: the command, its output, and the file and line. A finding without one is a note; drop it unless it is a contract violation below.
+Review is not proof. One reviewer per slice, and only a finding that comes with a failing command counts: the command, its output, and the file and line. A finding without one is a note; drop it unless it is a contract violation below.
 
 | Change | Reviewer |
 |---|---|

@@ -2,7 +2,8 @@
 # Runs bin/turn-check on every case in cases/*.json and prints expected next to
 # actual. A case is {"expect":"block"|"allow","input":{...Stop hook input...}},
 # {"expect":[...],"inputs":[...]} for a sequence sharing one state dir, or
-# {"expect":..., "raw":"<stdin as is>"}. Each case gets a fresh state dir.
+# {"expect":..., "raw":"<stdin as is>"}. A "transcript" list is written out as the session
+# transcript and passed as transcript_path. Each case gets a fresh state dir.
 # Exits 1 if any case disagrees.
 set -uo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
@@ -29,6 +30,9 @@ for f in "$here"/cases/*.json; do
   for ((i = 0; i < n; i++)); do
     expect=$(jq -r --argjson i "$i" 'if (.expect|type)=="array" then .expect[$i] else .expect end' "$f")
     if jq -e 'has("raw")' "$f" >/dev/null; then line=$(jq -rj .raw "$f" | run_one)
+    elif jq -e 'has("transcript")' "$f" >/dev/null; then
+      jq -c '.transcript[]' "$f" >"$work/$name.jsonl"
+      line=$(jq -c --arg t "$work/$name.jsonl" '.input + {transcript_path: $t}' "$f" | run_one)
     elif jq -e 'has("inputs")' "$f" >/dev/null; then line=$(jq -c --argjson i "$i" '.inputs[$i]' "$f" | run_one)
     else line=$(jq -c .input "$f" | run_one)
     fi

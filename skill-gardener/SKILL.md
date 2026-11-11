@@ -25,7 +25,8 @@ Read each of `global/AGENTS.md` and `*/SKILL.md` whole. Cut these, nothing else:
 | Cruft | Looks like | Do |
 |---|---|---|
 | Duplicated rule | the same rule in two files, or twice in one | keep it in the skill that owns the step; delete the other |
-| Narration | why a rule exists, what an earlier version did, who said it when, reassurance, "note that" | delete; reasons live in git history and the home ledger |
+| Narration | what an earlier version did, who said it when, reassurance, "note that", an incident or PR number standing in for the rule | delete the history; keep the one clause that says why a constraint exists, because a rule without its reason gets applied where it does not fit |
+| Stale caution | a "never", "stop" or "ask first" line whose reason no longer holds, or that names no scope | file a `finding` with the scope and reason it should carry; a caution is never cut silently |
 | Stale date | "since <date>", "as of", "today", "(Peter, <date>: …)", "still", "now", a dated status | delete the date, or the line when the date was its point |
 | Lines no check backs | a tool, path, model, flag, task or pause that no longer exists (`command -v`, `ls`, `rg` the repo and `~/dotfiles/docs/tools/`) | delete the line, or the section when nothing else is left |
 | Same-meaning rules | two rules that differ only in wording | merge into the one with the exact command or number |

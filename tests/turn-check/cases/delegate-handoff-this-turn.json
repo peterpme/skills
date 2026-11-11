@@ -1,0 +1,54 @@
+{
+ "expect": "allow",
+ "input": {
+  "hook_event_name": "Stop",
+  "session_id": "delegate-handoff-this-turn",
+  "last_assistant_message": "Started the child for home#83. I'll post you the results when the child finishes."
+ },
+ "transcript": [
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": "fix the thing"
+   }
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "name": "mcp__t3-code__delegate_task",
+      "input": {}
+     }
+    ]
+   }
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "type": "tool_result",
+      "content": "ok"
+     }
+    ]
+   }
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "role": "assistant",
+    "content": [
+     {
+      "type": "text",
+      "text": "Started the child for home#83. I'll post you the results when the child finishes."
+     }
+    ]
+   }
+  }
+ ]
+}

@@ -41,7 +41,7 @@ cd ~/skills && npm run setup
 
 Edits are live through the symlinks. A merged PR reaches every machine within 30 minutes. `git pull` automatically links new skills after a merge or rebase. Run `npm run sync` to sync manually. If a destination already contains a different folder or link, sync moves it to `~/.local/state/personal-skills/backups/` before linking; it does not delete those files.
 
-Hooks need Node on your PATH. A failed sync leaves the Git update in place; fix the reported error and run `npm run sync`. Hooks do not remove links for deleted skills. To remove one, delete its links from the global skill folders.
+Sync links only from the main checkout: run from a linked git worktree it does nothing, so a branch under review never becomes what the harnesses read. Hooks need Node on your PATH. A failed sync leaves the Git update in place; fix the reported error and run `npm run sync`. Hooks do not remove links for deleted skills. To remove one, delete its links from the global skill folders.
 
 ## Change a skill
 
@@ -73,7 +73,7 @@ CI fails a PR that adds more lines to `global/AGENTS.md` than it removes, unless
 
 ## Agent helpers
 
-`bin/` holds small commands that replace the `gh` and `git` pipelines agents kept rewriting: `pr-status`, `pr-wait`, `pr-threads`, `runq`, `bgjob`, `repo-state` and `disk-clean`. Each prints a compact summary and has `--help`. `global/AGENTS.md` lists them, which is how agents learn they exist; shell aliases would not work, because agent shells drop them. Keep the output short, since every line lands in an agent's context.
+`bin/` holds small commands that replace the `gh` and `git` pipelines agents kept rewriting: `pr-status`, `pr-wait`, `pr-threads`, `runq`, `bgjob`, `repo-state`, `disk-clean` and `ledger-comment` (comments on a home issue and adds the marker that tells an agent's comment from Peter's). Each prints a compact summary and has `--help`. `global/AGENTS.md` lists them, which is how agents learn they exist; shell aliases would not work, because agent shells drop them. Keep the output short, since every line lands in an agent's context.
 
 `bin/turn-check` is not a command agents call: it is a Claude Code `Stop` hook, and sync registers its `~/.local/bin` link in the `settings.json` of every Claude Code config dir on the machine (`~/.claude`, any `~/.claude<n>` account, `$CLAUDE_CONFIG_DIR`). When an agent ends a turn while a harness background task is still running, or its last message promises to report later ("I'll check the files once it finishes") with no scheduled wakeup, the hook sends it back once with the reason: finish the job in the turn (`bgjob wait`), or hand it over with the command that checks it. A task blocks once per session (state in `~/.local/state/turn-check`), so a dev server left up costs one turn, not every turn. Sync rewrites `settings.json` with two-space indent and follows a symlink, so a dotfiles-tracked file is updated in place. Home ledger #40 holds the 16 events behind it. `tests/turn-check/run` replays the cases in `tests/turn-check/cases/` and runs in CI; add a case for every new false positive or miss.
 

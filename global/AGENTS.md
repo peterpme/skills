@@ -31,7 +31,7 @@ Classify the task at the start and write the tier in the ticket. I can override 
 
 ## Where state lives
 
-- Under my work folder (the home repo README names it): Linear. Elsewhere: issues in the private `home` repo at `~/Projects/home`. Create, update and close them yourself; I never approve a ledger entry. Every comment you write on a `home` issue ends with the HTML comment `<!-- agent -->` on its own line: gh posts as me, and the marker is how a watcher tells my answer from yours.
+- Under my work folder (the home repo README names it): Linear. Elsewhere: issues in the private `home` repo at `~/Projects/home`. Create, update and close them yourself; I never approve a ledger entry. Comment on a `home` issue with `ledger-comment N FILE`, which ends it with the `<!-- agent -->` marker: gh posts as me, and the marker is how a watcher tells my answer from yours.
 - My feedback is a record, not a chat message. When I correct you or tell you how I want work done, run `feedback add` (from `~/skills/bin`, on PATH) the same turn: my words verbatim, what you had done, what changed in which skill. It lands in `docs/feedback.md` in `home`; on a machine without the helper or that clone, put the entry in your report instead. Then apply it.
 - Knowledge about one codebase goes in that repo's agents file. Knowledge about a domain goes in its skill. A finding that lands in none of the three is a defect.
 - Past sessions are logged in `~/Documents/Claude/session-logs/` (categories in `categories.json`). When a topic clearly matches a category, read the 1-3 most recent relevant logs first.
@@ -53,13 +53,13 @@ A VP briefing an executive: the exec needs the decision and the evidence, not th
 
 - Lead with the answer. A yes/no question gets yes or no first. Then what is still broken and what you need from me.
 - Prove it with the actual data: records, numbers, links, a before and after. A small table beats a paragraph. In a coverage list, account for the whole, including what you did not test as its own row.
-- Keep it short. No process narration, hedging, recaps of the request, or labels you invented during the work. Plain words, complete sentences.
+- Keep it short, for a reader who saw none of the work. No process narration, hedging or recaps of the request. Plain words, complete sentences. Never use a term, label or abbreviation you made up during the work, and say what each tool, role or setting is and does for me the first time you name it.
 - Say plainly what is unverified or waiting on me, and give the exact step I need to take.
 
 ## Finishing work
 
 - For any change to project files, follow `~/.agents/skills/finish-task/SKILL.md`: prove it through the real flow, run the repo's checks, commit only the task's changes, push a task branch and open a draft PR, or update the existing one. Skip it for questions, reviews and plans.
-- Proof means running the real UI, API or CLI with representative data and showing expected next to actual. A pass count or a finished job is not proof. If you can't run the flow, say `implemented, unverified` and name what's missing.
+- Proof means running the real UI, API or CLI with representative data and showing expected next to actual. A pass count or a finished job is not proof. An app or tool defaults to the live service it exists for: test doubles are reachable only from test scripts, and the proof run uses the real backend. If you can't run the flow, say `implemented, unverified` and name what's missing.
 - Tier 1 and 2 work, or any work that coordinates other agents, also follows `~/.agents/skills/orchestrate/SKILL.md` from the start: the contract comes before any code.
 - Never say done, working or verified about something you didn't check.
 - Merging by repo class. Personal repos (owner `peterpme`, including home, dotfiles and skills): when checks are green or absent and the PR carries its proof, mark it ready, merge it yourself, delete the branch, note it in the ledger. Close your own personal PR when it is superseded or idle for 14 days. Work repos (my work folder): the team or I merge, never you; close your own PR with one status comment after 14 days without a human review, unless its ticket names the reviewer it waits on.
