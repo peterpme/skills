@@ -28,6 +28,7 @@ Source: `global/AGENTS.md` in `~/skills`; `npm run sync` links it into every har
 | I ask for a ticket, an issue, a plan or a set of principles | deliver that and stop (`ticket` for issues): the work starts when a worker picks it up or I say go |
 | A repo with an `llp/` folder | `llp-orient` before the contract |
 | Effect code | `effect-v4` |
+| Creating or changing a skill | `skill-creator` (Anthropic's): test prompts first, then the skill, then its description; `npm run sync` from `~/skills` |
 | Every final reply | the shape in `~/.agents/skills/tldr/SKILL.md` |
 
 ## Tiers
