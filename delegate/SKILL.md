@@ -32,7 +32,7 @@ For these routes, use T3 `delegate_task` with `target.providerInstanceId`, `targ
 ]
 ```
 
-Use `effort: "medium"` for Sonnet work and `effort: "high"` for Opus and Fable reviews; raise a Sonnet ticket to `high` only when its first attempt came back wrong. Options inherit only for the same provider instance and model; explicit entries override individual inherited values. Do not copy options to models that do not support them. Check the returned provider, model, and options against the requested target before trusting the task's work.
+Raise a Sonnet ticket to `high` only when its first attempt came back wrong. Options inherit only for the same provider instance and model; explicit entries override individual inherited values. Do not copy options to models that do not support them. Check the returned provider, model, and options against the requested target before trusting the task's work.
 
 Retain the returned `taskId` and `childThreadId`; manage the task by `taskId`. Use a distinct `clientRequestId` for each ticket or independent review round and reuse it only for retries of that launch. For another review round call `delegate_task` again with the original brief, prior findings, responses, and unresolved objections; do not start the round by messaging the old child thread. Never use `t3_thread_launch` or `create_threads` as substitutes for subagents.
 
@@ -49,8 +49,6 @@ A subagent starts with no parent conversation and no global instructions, so the
 7. **Report**: short enough to read in a minute, written for a reader who saw none of the work, and exactly what to include (SHAs, changed paths, expected versus actual proof, check results, anything skipped or blocked).
 8. **Obstacles and scratch files**: errors, timeouts and failing tools are ordinary: diagnose and work through them. Retrying a read-only command needs no approval. Report as blocked only when access was withheld on purpose, the ticket's hard rules forbid the next step, or the same step failed twice for the same cause. Scratch files go in `.verification/<task>/`, never in a folder the task shares; delete only files you created, by name.
 9. **Stop condition**: the observable acceptance result and exact command when applicable (e.g. `yarn exchange-core:verify` → the independently established expected result). A blocker also requires a final report, not endless retries. Say: "end the turn immediately after the final report; do not call Get task output, continue polling, or start follow-up work".
-
-Keep implementation briefs tight: exact files to touch, nothing open-ended.
 
 Use `delegate_task` with `isolation: "worktree"` when tasks edit files in parallel or the main checkout is in use. It starts from the parent local commit and runs project setup; uncommitted edits are not copied. Commit required inputs before launch, or pass necessary context explicitly. Do not ask the child to create its own worktree. Read-only tasks may share the checkout; avoid concurrent commands that change it.
 
@@ -81,4 +79,4 @@ R1 blocker|should|nit path:line — what goes wrong, with the input or state —
 
 Do not review the code yourself when orchestrating; the reviewer does that (see `orchestrate` step 5). Read the proof and gate evidence yourself. Compare the claimed result with the independent expected result and re-run the affected flow and required checks on the final combined artifact. Passing checks or a subagent's report alone do not prove the behavior. Mark blocked claims `implemented, unverified` with the missing prerequisite.
 
-Integrate the child's commits locally only within the authorized task. If local integration changes the target branch or its dependencies, repeat the affected verification there before handoff. Never report a subagent's claim as verified until you have inspected the evidence.
+Integrate the child's commits locally only within the authorized task. If local integration changes the target branch or its dependencies, repeat the affected verification there before handoff.
