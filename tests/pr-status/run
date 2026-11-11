@@ -10,7 +10,7 @@ spec = importlib.util.spec_from_loader("pr_status", loader)
 m = importlib.util.module_from_spec(spec)
 loader.exec_module(m)
 
-f = lambda name, a, d=0: {"filename": name, "additions": a, "deletions": d}
+f = lambda name, a, d=0, st="modified": {"filename": name, "additions": a, "deletions": d, "status": st}
 attrs = m.generated_patterns("docs/api/* linguist-generated=true\n*.txt text\n")
 cases = [
     ("small hand-written PR", [f("bin/x", 20, 4)], "", (24, False)),
@@ -21,6 +21,8 @@ cases = [
     ("one over the cap", [f("a", 300, 101)], "", (401, True)),
     ("over, Unsplittable: line", [f("a", 457)], "why\nUnsplittable: one generated move", (457, False)),
     ("over, empty Unsplittable:", [f("a", 457)], "Unsplittable:", (457, True)),
+    ("deleted folders not counted (skills#91)", [f("old/SKILL.md", 0, 767, "removed"), f("README.md", 40, 36)], "", (76, False)),
+    ("edit that empties a file still counts", [f("a", 0, 450)], "", (450, True)),
 ]
 bad = 0
 print(f"{'case':<34} {'expect':<12} {'actual':<12} ok")
