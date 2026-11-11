@@ -43,7 +43,7 @@ On a program with several workers, keep your context for decisions: have a read-
    - **For a change meant to move a number** (speed, size, jank, flakiness, cost): follow `harness-first`. The harness or committed baseline is its own PR, opened before the optimization work, and the one exception to starting as one draft PR.
    - **For a bug:** find out why the step that already runs fails, and fix that step. Treat what Peter states as fact ("X always runs first") as a premise to explain, not something to work around. Don't add a new trigger, hook, wrapper or startup layer around a broken step.
    - **For a change to shared code:** list its blast radius: who imports it, which flows run through it, and which of those flows have no automated check today. Each unchecked flow gets a Verification check or an unverified proof row.
-   - **Separate PRs:** give these their own PR and never mix them with behavior changes: sensitive packages (security, keys, money, auth), docs and agent instructions, and pure moves or renames. Keep each PR reviewable: under 400 hand-written changed lines, excluding lockfiles, generated files and mechanical renames. For a mechanical change across many files, use or write a codemod (`ast-grep`, `jscodeshift`, a script) and name it in the PR. Each slice must pass CI and work on its own.
+   - **Separate PRs:** give these their own PR and never mix them with behavior changes: sensitive packages (security, keys, money, auth), docs and agent instructions, and pure moves or renames. Keep each PR reviewable: under 400 hand-written changed lines, excluding lockfiles, generated files and mechanical renames. `pr-status` counts it and exits 3 over 400; a PR that truly can't be split carries a body line starting `Unsplittable: <reason>`. For a mechanical change across many files, use or write a codemod (`ast-grep`, `jscodeshift`, a script) and name it in the PR. Each slice must pass CI and work on its own.
 5. **Out of scope.** What you will not touch, including tempting cleanups.
 6. **Open questions.** Only questions where the answer changes what gets built and neither the request, the repo nor history answers it. Most tasks have none, one or two. Each carries your default and why. For a feature, design or multi-PR request, ask them as one `grilling` round (at most three), then **proceed on the defaults**.
 
@@ -101,7 +101,7 @@ A PR is ready only when all of these hold. Check them with the helpers, not from
 - The proof table covers every operation in scope, and every acceptance check passes or is marked unverified with a reason.
 - The reviewer's findings are fixed or answered, and the reviewed SHA is the PR's head.
 - No contract violation from step 5 is open. A bug fix with no fail-before, pass-after test goes back to the worker.
-- The size is within the cap, or the PR body says why it can't be split.
+- The size is within the cap (`pr-status` shows the count), or the PR body has an `Unsplittable: <reason>` line.
 - Its base is `master` (or the repo's default branch). A stacked PR stays a draft while it targets a sibling branch, even after its veto window; run the gate once its parent merges and GitHub retargets it. A mechanical refactor across many operations is one PR per operation only when each is reviewable alone and the stack stays under about five deep; otherwise fold.
 - The PR body states why it exists, what changed, the proof table, the reviewer with model and reviewed SHA, and any codemod used.
 

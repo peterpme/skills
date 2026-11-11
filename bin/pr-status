@@ -3,19 +3,32 @@
 
 One compact view of a pull request: state, draft, mergeability, review
 decision, head commit, CI counts with only the non-passing checks listed, and
-the number of unresolved review threads. PR defaults to the current branch's.
-Exit 0 when CI is green, 1 when a check failed, 8 while checks are pending.
+the number of unresolved review threads, and the hand-written changed lines
+(additions plus deletions, minus lockfiles and generated paths). PR defaults to
+the current branch's. Exit 1 when a check failed, 8 while checks are pending,
+3 when the PR is over 400 hand-written lines and its body has no line starting
+"Unsplittable: <reason>", else 0.
 """
 import argparse
+import fnmatch
 import json
+import os
+import re
 import subprocess
 import sys
 import time
 
-FIELDS = "number,title,url,state,isDraft,mergeable,mergeStateStatus,reviewDecision,baseRefName,headRefName,headRefOid,statusCheckRollup"
+FIELDS = "number,title,url,body,state,isDraft,mergeable,mergeStateStatus,reviewDecision,baseRefName,headRefName,headRefOid,statusCheckRollup"
 PASS = {"SUCCESS", "NEUTRAL"}
 SKIP = {"SKIPPED"}
 FAIL = {"FAILURE", "ERROR", "CANCELLED", "TIMED_OUT", "ACTION_REQUIRED", "STARTUP_FAILURE", "STALE"}
+
+LINE_CAP = 400
+# Same lockfiles and generated artifacts that ~/.rgrc excludes from search.
+GENERATED = ["package-lock.json", "pnpm-lock.yaml", "yarn.lock", "bun.lock", "bun.lockb", "Cargo.lock",
+             "uv.lock", "poetry.lock", "Gemfile.lock", "go.sum", "*.min.js", "*.min.css", "*.map",
+             "*.tsbuildinfo", "*.heapsnapshot", "*.cpuprofile"]
+UNSPLITTABLE = re.compile(r"^\s*unsplittable:\s*\S", re.I | re.M)
 
 
 def gh(*args):
@@ -48,6 +61,32 @@ def check_rows(rollup):
     return rows
 
 
+def generated_patterns(attributes):
+    """GENERATED plus every .gitattributes pattern marked linguist-generated."""
+    patterns = list(GENERATED)
+    for line in attributes.splitlines():
+        parts = line.split()
+        if len(parts) > 1 and any(a in ("linguist-generated", "linguist-generated=true") for a in parts[1:]):
+            patterns.append(parts[0].lstrip("/"))
+    return patterns
+
+
+def is_generated(path, patterns):
+    name = path.rsplit("/", 1)[-1]
+    return any(fnmatch.fnmatch(name, p) or fnmatch.fnmatch(path, p) or path.startswith(p.rstrip("/") + "/") for p in patterns)
+
+
+def hand_written_lines(files, patterns):
+    """files: [{filename, additions, deletions}] as the GitHub pulls/files API returns them."""
+    return sum(f["additions"] + f["deletions"] for f in files if not is_generated(f["filename"], patterns))
+
+
+def size_verdict(files, body, patterns):
+    lines = hand_written_lines(files, patterns)
+    reason = UNSPLITTABLE.search(body or "")
+    return lines, lines > LINE_CAP and not reason, bool(reason)
+
+
 def unresolved_threads(repo, number):
     owner, name = repo.split("/", 1)
     query = """query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){
@@ -75,9 +114,20 @@ def main():
     rows = check_rows(pr.pop("statusCheckRollup"))
     counts = {b: sum(1 for r in rows if r[0] == b) for b in ("pass", "skipped", "fail", "pending")}
     threads = unresolved_threads(repo, pr["number"])
+    # PR_STATUS_FILES / PR_STATUS_BODY replace the fetched file list and body (test fixtures).
+    if os.environ.get("PR_STATUS_FILES"):
+        files = json.load(open(os.environ["PR_STATUS_FILES"]))
+    else:
+        files = json.loads(gh("api", "--paginate", "--slurp", f"repos/{repo}/pulls/{pr['number']}/files"))
+        files = [f for page in files for f in page]
+    fetched_body = pr.pop("body", None)
+    body = os.environ.get("PR_STATUS_BODY", fetched_body)
+    attrs = subprocess.run(["gh", "api", f"repos/{repo}/contents/.gitattributes?ref={pr['headRefOid']}",
+                            "-H", "Accept: application/vnd.github.raw"], capture_output=True, text=True)
+    lines, oversize, excused = size_verdict(files, body, generated_patterns(attrs.stdout if attrs.returncode == 0 else ""))
 
     if args.json:
-        print(json.dumps({**pr, "checks": counts, "unresolvedThreads": threads,
+        print(json.dumps({**pr, "handWrittenLines": lines, "lineCap": LINE_CAP, "oversize": oversize, "checks": counts, "unresolvedThreads": threads,
                           "notPassing": [{"state": s, "name": n, "url": u} for b, s, n, u in rows if b in ("fail", "pending")]}))
     else:
         draft = " draft" if pr["isDraft"] else ""
@@ -85,9 +135,11 @@ def main():
         print(f"  {repo}  {pr['baseRefName']} <- {pr['headRefName']}@{pr['headRefOid'][:7]}")
         print(f"  mergeable={pr['mergeable']} ({pr['mergeStateStatus']})  review={pr['reviewDecision'] or 'NONE'}  unresolved threads={threads}")
         print(f"  checks: {counts['pass']} pass, {counts['fail']} fail, {counts['pending']} pending, {counts['skipped']} skipped")
+        note = f" over {LINE_CAP}, no Unsplittable: line in the PR body" if oversize else f" over {LINE_CAP}, excused by Unsplittable: line" if excused and lines > LINE_CAP else ""
+        print(f"  hand-written lines: {lines} (cap {LINE_CAP}){note}")
         for bucket, state, name, url in sorted(r for r in rows if r[0] in ("fail", "pending")):
             print(f"    {state:<10} {name}  {url}")
-    sys.exit(1 if counts["fail"] else 8 if counts["pending"] else 0)
+    sys.exit(1 if counts["fail"] else 8 if counts["pending"] else 3 if oversize else 0)
 
 
 if __name__ == "__main__":

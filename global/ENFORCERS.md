@@ -13,7 +13,7 @@ Kinds: **hook** (runs in the harness), **CI** (runs on the PR), **scheduled** (a
 | Feedback goes in with `feedback add` the same turn | `bin/feedback`; `skill-scout` daily adds what was missed | helper, scheduled | |
 | Every review thread is resolved before draft ends and before handover | `bin/pr-status`, `bin/pr-threads`, called by the `orchestrate` ready gate | helper | No branch rule requires resolved threads; the gate's checklist is the control |
 | Worktrees and `.verification/` stay out of PRs | The global excludes file (`~/.gitignore`, from dotfiles) | setup | |
-| PRs under 400 hand-written lines | `orchestrate` ready gate | prose | One number in both files; no tool counts it yet: home#103 |
+| PRs under 400 hand-written lines | `bin/pr-status` (exit 3 over the cap without an `Unsplittable:` body line), called by the `orchestrate` ready gate | helper | Not a CI check; the gate runs it. Counts exclude lockfiles and generated paths |
 | `<!-- agent -->` ends every home comment | `bin/ledger-comment` adds it | helper | |
 | Never deploy unless the task is the deploy | none | prose | home#105 |
 | Tier 2 PR stays a draft two hours after the contract | none | prose | home#105 |

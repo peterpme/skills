@@ -3,7 +3,7 @@
 #
 # Block until a PR's checks stop pending, then print pr-status. For each failed
 # GitHub Actions job, also print the last 40 lines of its failed-step log.
-# Exit 0 when green, 1 when a check failed, 124 on timeout (default 1800s).
+# Exit 0 when green, 1 when a check failed, 3 when over the line cap (see pr-status), 124 on timeout (default 1800s).
 set -uo pipefail
 
 pr=() repo=() timeout=1800 interval=30
