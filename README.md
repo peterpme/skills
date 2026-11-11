@@ -85,4 +85,6 @@ CI fails a PR that adds more lines to `global/AGENTS.md` than it removes, unless
 
 `bin/perf-claim <pr>` fails a PR that claims a speed, latency, memory or size gain without a before and after number, and `bin/pr-status` exits 9 for a tier 2 draft whose contract comment is under two hours old (home#105). The `orchestrate` ready gate runs both. `tests/perf-claim/run` and `tests/pr-status-hold/run` run in CI.
 
+`bin/scheduled-models` lists the T3 scheduled tasks from the local T3 database and flags an enabled one on Fable, Grok or opencode, or a Worker off the delegate table; `bin/pr-dupes` lists open PRs that a newer PR says it supersedes. The chief of staff runs both daily (home#105). `tests/scheduled-models/run` and `tests/pr-dupes/run` run in CI.
+
 Machine settings, including the zsh setup agents rely on, live in [dotfiles](https://github.com/peterpme/dotfiles), cloned at `~/dotfiles`.

@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+"""pr-dupes [--author LOGIN] [--json-file FILE]
+
+Finds open PRs that should already be closed because a newer open PR says it
+supersedes or replaces them ("Close the superseded PR in the same turn", home#105).
+Reads the author's open PRs across GitHub (default author: @me). Prints, per
+pair, `SUPERSEDED  <old url>  by <new url>`; also prints `CHECK` lines for two
+open PRs from one author in one repo that name the same ticket without
+a supersedes link (a legitimate split, or a forgotten close; the caller
+decides). Exit 1 if any SUPERSEDED pair exists, else 0. The chief-of-staff
+skill runs it daily and closes the old PR of each pair.
+--json-file reads `gh search prs --json number,title,body,url,repository,isDraft,createdAt` output instead of calling gh (tests).
+"""
+import argparse
+import json
+import re
+import subprocess
+import sys
+
+SUPERSEDES = re.compile(
+    r"\b(?:supersedes|supersede|replaces|replace)\s+(?:pr\s+)?(?:https://github\.com/([\w.-]+/[\w.-]+)/pull/|([\w.-]+/[\w.-]+)#|#)(\d+)",
+    re.I,
+)
+TICKET = re.compile(r"\b(?:closes|fixes|resolves|refs?|part of|ticket|for)\s*:?\s*(?:https://github\.com/([\w.-]+/[\w.-]+)/issues/|([\w.-]+/[\w.-]+)#|([a-z][\w.-]*)#|#)(\d+)", re.I)
+
+
+def load(args):
+    if args.json_file:
+        return json.load(open(args.json_file))
+    cmd = ["gh", "search", "prs", "--author", args.author, "--state", "open", "--limit", "200",
+           "--json", "number,title,body,url,repository,isDraft,createdAt"]
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    if r.returncode:
+        sys.exit(r.stderr.strip() or "gh search prs failed")
+    return json.loads(r.stdout)
+
+
+def main():
+    parser = argparse.ArgumentParser(usage=__doc__.splitlines()[0], description=__doc__.split("\n", 2)[2])
+    parser.add_argument("--author", default="@me")
+    parser.add_argument("--json-file")
+    args = parser.parse_args()
+    prs = load(args)
+    key = lambda p: (p["repository"]["nameWithOwner"], p["number"])
+    by_key = {key(p): p for p in prs}
+    superseded = []
+    for new in prs:
+        repo = new["repository"]["nameWithOwner"]
+        for m in SUPERSEDES.finditer(new.get("body") or ""):
+            old = by_key.get((m.group(1) or m.group(2) or repo, int(m.group(3))))
+            if old and key(old) != key(new):
+                superseded.append((old, new))
+    for old, new in superseded:
+        print(f"SUPERSEDED  {old['url']}  by {new['url']}  (close the old one with a comment naming the new one)")
+    named = {k for old, _ in superseded for k in [key(old)]}
+    groups = {}
+    for p in prs:
+        if key(p) in named:
+            continue
+        for m in TICKET.finditer(p.get("body") or ""):
+            ref = m.group(1) or m.group(2) or (m.group(3) and f"peterpme/{m.group(3)}") or p["repository"]["nameWithOwner"]
+            groups.setdefault((p["repository"]["nameWithOwner"], ref, m.group(4)), set()).add(p["url"])
+    for (repo, ref, n), urls in sorted(groups.items()):
+        if len(urls) > 1:
+            print(f"CHECK  {len(urls)} open PRs in {repo} name {ref}#{n}: {' '.join(sorted(urls))}")
+    if not superseded and not any(len(u) > 1 for u in groups.values()):
+        print("pr-dupes: none")
+    sys.exit(1 if superseded else 0)
+
+
+if __name__ == "__main__":
+    main()
