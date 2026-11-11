@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Runs bin/pr-dupes on canned `gh search prs` data: expected next to actual
+# (exit code and the first word of the output). Exits 1 on any disagreement.
+set -uo pipefail
+here=$(cd "$(dirname "$0")" && pwd)
+tool=$here/../../bin/pr-dupes
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+fail=0
+pr() { # repo number body
+  jq -cn --arg r "$1" --argjson n "$2" --arg b "$3" '{number: $n, title: "t", body: $b, url: "https://github.com/\($r)/pull/\($n)", repository: {nameWithOwner: $r}, isDraft: true, createdAt: "2026-11-10T00:00:00Z"}'
+}
+check() { # name expect_exit expect_first_word  pr-lines...
+  local name=$1 exp=$2 word=$3; shift 3
+  printf '%s\n' "$@" | jq -s . >"$work/in.json"
+  local out code first ok=yes
+  out=$("$tool" --json-file "$work/in.json" 2>&1); code=$?
+  first=$(awk '{print $1; exit}' <<<"$out")
+  [[ $code == "$exp" && $first == "$word" ]] || { ok=NO; fail=1; }
+  printf '%-46s expect %s %-10s actual %s %-10s %s\n' "$name" "$exp" "$word" "$code" "$first" "$ok"
+  [[ $ok == yes ]] || echo "$out" | sed 's/^/    /'
+}
+printf '%-46s\n' case
+check "new PR supersedes an open one" 1 SUPERSEDED \
+  "$(pr peterpme/skills 10 'First attempt. Part of peterpme/home#105')" \
+  "$(pr peterpme/skills 11 'Supersedes #10. Part of peterpme/home#105')"
+check "supersedes by URL across repos" 1 SUPERSEDED \
+  "$(pr peterpme/home 7 'old')" \
+  "$(pr peterpme/skills 12 'Replaces https://github.com/peterpme/home/pull/7')"
+check "supersedes a PR that is already closed" 0 pr-dupes: \
+  "$(pr peterpme/skills 11 'Supersedes #3. Part of peterpme/home#105')"
+check "two PRs, one ticket, no link" 0 CHECK \
+  "$(pr peterpme/skills 20 'Part of peterpme/home#105, slice 1')" \
+  "$(pr peterpme/skills 21 'Part of peterpme/home#105, slice 2')"
+check "different tickets" 0 pr-dupes: \
+  "$(pr peterpme/skills 30 'Part of peterpme/home#105')" \
+  "$(pr peterpme/skills 31 'Part of peterpme/home#106')"
+check "superseded by (wrong direction) is not a hit" 0 pr-dupes: \
+  "$(pr peterpme/skills 40 'Superseded by #41')" \
+  "$(pr peterpme/skills 41 'new')"
+exit $fail

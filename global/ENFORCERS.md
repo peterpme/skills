@@ -9,7 +9,7 @@ Kinds: **hook** (runs in the harness), **CI** (runs on the PR), **scheduled** (a
 | Cut a rule when you add one (`AGENTS.md` may not grow) | `scripts/agents-md-budget`, required by the `main` ruleset | CI, branch rule | |
 | Promise a later report only when something will wake you | `bin/turn-check` Stop hook, cases in `tests/turn-check/` | hook | |
 | Remove a worktree once its branch is merged or abandoned | `bin/disk-clean`, daily through `clean-disk` | scheduled | |
-| Close your own PR when superseded or idle for 14 days | `chief-of-staff` daily run | scheduled | "Same turn" for a superseded PR is prose: home#105 |
+| Close your own PR when superseded or idle for 14 days | `chief-of-staff` daily run; its `bin/pr-dupes` lists every open PR whose newer sibling says "supersedes #n" | scheduled, helper | "Same turn" is not held: a superseded PR is caught the next morning, not in the turn |
 | Feedback goes in with `feedback add` the same turn | `bin/feedback`; `skill-scout` daily adds what was missed | helper, scheduled | |
 | Every review thread is resolved before draft ends and before handover | `bin/pr-status`, `bin/pr-threads`, called by the `orchestrate` ready gate | helper | No branch rule requires resolved threads; the gate's checklist is the control |
 | Worktrees and `.verification/` stay out of PRs | The global excludes file (`~/.gitignore`, from dotfiles) | setup | |
@@ -33,3 +33,4 @@ Kinds: **hook** (runs in the harness), **CI** (runs on the PR), **scheduled** (a
 | Run or dry-run a command before handing it to Peter | none | prose | Judgment; Peter sees the failure at once |
 | Pull home before inspecting or changing it | none | prose | A stale clone fails at push |
 | Grok and `opencode` are never used, through any provider (`delegate` table) | `bin/model-guard` PreToolUse hook denies a T3 tool call (`delegate_task`, `schedule_task`, thread launch) whose model or provider field names either | hook | Claude Code only; reads the model and provider fields, not the brief. A Grok run started outside T3 (a shell command) is not seen |
+| No scheduled task runs Fable; the Worker task runs Opus at high effort (`delegate` table) | `bin/scheduled-models`, run by the `chief-of-staff` daily run, flags an enabled task on Fable, Grok or opencode, or a Worker off the table | scheduled | Caught at the next morning's run, not when the task is saved. Reads the laptop's T3 database only |

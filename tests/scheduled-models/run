@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Builds a small T3-shaped database and runs bin/scheduled-models on it:
+# the delegate table's rules, expected next to actual. Exits 1 on any disagreement.
+set -uo pipefail
+here=$(cd "$(dirname "$0")" && pwd)
+tool=$here/../../bin/scheduled-models
+bash -n "$tool" || { echo "scheduled-models does not parse"; exit 1; }
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+fail=0
+make_db() { # file, then "title|enabled|model_selection_json" rows
+  local db=$1; shift
+  sqlite3 "$db" "create table scheduled_tasks (title TEXT, prompt TEXT, enabled INTEGER, model_selection_json TEXT, webhook_secret TEXT);"
+  local row title en sel
+  for row in "$@"; do
+    title=${row%%|*}; row=${row#*|}; en=${row%%|*}; sel=${row#*|}
+    sqlite3 "$db" "insert into scheduled_tasks values ('$title', 'secret prompt text', $en, '$sel', 'whsec_do_not_print');"
+  done
+}
+check() { # name expect_exit expect_text db
+  local out code ok=yes
+  out=$("$tool" --db "$4" 2>&1); code=$?
+  [[ $code == "$2" ]] || ok=NO
+  [[ -z $3 ]] || grep -q -- "$3" <<<"$out" || ok=NO
+  grep -q 'whsec_\|secret prompt' <<<"$out" && ok=LEAK
+  [[ $ok == yes ]] || fail=1
+  printf '%-40s expect exit %s %-28s actual exit %s %s\n' "$1" "$2" "${3:+(\"$3\")}" "$code" "$ok"
+  [[ $ok == yes ]] || echo "$out" | sed 's/^/    /'
+}
+opus='{"instanceId":"claudeAgent","model":"claude-opus-5-5","options":[{"id":"effort","value":"high"}]}'
+sonnet='{"instanceId":"claudeAgent","model":"claude-sonnet-5-5","options":[{"id":"effort","value":"high"}]}'
+fable='{"instanceId":"claudeAgent","model":"claude-fable-5-1","options":[{"id":"effort","value":"high"}]}'
+grok='{"instanceId":"cursor","model":"grok-4.7"}'
+printf '%-40s %s\n' case result
+
+make_db "$work/clean.db" "Worker (sentinel webhook)|1|$opus" "Chief of staff|1|$sonnet"
+check "table-conforming tasks" 0 "0 enabled and flagged" "$work/clean.db"
+
+make_db "$work/fable.db" "Worker (sentinel webhook)|1|$opus" "Skill scout|1|$fable"
+check "enabled task on Fable" 1 "FORBIDDEN" "$work/fable.db"
+
+make_db "$work/grok.db" "Disk cleanup|1|$grok"
+check "enabled task on Grok" 1 "FORBIDDEN" "$work/grok.db"
+
+make_db "$work/drift.db" "Worker (sentinel webhook)|1|$sonnet"
+check "Worker not on Opus high" 1 "DRIFT" "$work/drift.db"
+
+make_db "$work/off.db" "Skill scout|0|$fable"
+check "disabled Fable task is listed, not failed" 0 "1 tasks, 0 enabled and flagged" "$work/off.db"
+
+check "no database on this machine" 0 "nothing to check" "$work/missing.db"
+exit $fail

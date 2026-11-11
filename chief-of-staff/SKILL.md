@@ -33,7 +33,7 @@ Closure is more than closing. When you close the last PR of a stream, or an epic
 
 For each open `blocked` home issue, take every open PR that references it (its timeline), and post one issue comment per failed check (name, head SHA, link if any) or review thread (link) that no earlier comment on the issue names; leave the status as it is (control panel, Status).
 
-Every issue you touch carries one area label (`backpack` or `personal`) and one project label; fix any that are missing. Run `~/Projects/home/sentinel/ledger-status-check.sh` and fix each issue it lists, so every open issue has one status. Apply the control panel's Postmortems and Revert budget sections: file the postmortem a trigger calls for, and record an area that is over its budget on its epic. Never deploy. Never nudge a teammate; name who should be asked and why.
+Every issue you touch carries one area label (`backpack` or `personal`) and one project label; fix any that are missing. Run `~/Projects/home/sentinel/ledger-status-check.sh` and fix each issue it lists, so every open issue has one status. Run `pr-dupes`: close the old PR of each `SUPERSEDED` pair with one comment naming the new one (personal repos; in a work repo list it under Other), add it to the Backlog issue, and mention each `CHECK` line only when the two PRs are not a split the epic describes. Run `scheduled-models`: each flagged task goes under Other with its fix (`delegate`'s table), since only Peter or a thread set to the table can change a scheduled task. Apply the control panel's Postmortems and Revert budget sections: file the postmortem a trigger calls for, and record an area that is over its budget on its epic. Never deploy. Never nudge a teammate; name who should be asked and why.
 
 ## Retargeted stacks
 

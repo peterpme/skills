@@ -43,3 +43,7 @@ jobs:
         run: tests/perf-claim/run
       - name: pr-status tier 2 hold cases
         run: tests/pr-status-hold/run
+      - name: scheduled-models cases
+        run: tests/scheduled-models/run
+      - name: pr-dupes cases
+        run: tests/pr-dupes/run
