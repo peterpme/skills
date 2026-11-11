@@ -22,4 +22,6 @@ check "speedup with before and after in a table" 0 "Make the parser faster" $'| 
 check "before and after on separate lines" 0 "Reduce memory" $'Before: 512 MB peak.\nAfter: 301 MB peak, same input.'
 check "no perf claim" 0 "Fix typo in README" "Corrects a typo."
 check "word 'before' without numbers" 1 "Improve performance" "Before this the function was slow; after it is fast."
+check "skill about perf work, no claim (real PR 65)" 0 "harness-first: baseline from a harness before any change meant to move a number" "A skill: name the number, find the harness, commit a baseline before any performance work."
+check "performance gain, no numbers" 1 "Performance improvement for search" "Cuts the work in the loop."
 exit $fail

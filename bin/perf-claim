@@ -17,7 +17,7 @@ import sys
 CLAIM = re.compile(
     r"\b(faster|slower|speed(?:s|ed)?[ -]?ups?|latency|throughput|startup time|cold start|"
     r"(?:less|lower|reduced?|reduces|smaller|fewer)\b[^.\n]{0,30}\b(?:memory|ram|bundle|size|time|latency|calls|requests|renders)|"
-    r"perf(?:ormance)?|\d+(?:\.\d+)?\s?(?:x|%)\s+(?:faster|slower|smaller|less|lower))\b",
+    r"(?:improv\w+|boost\w*|better|optimi[sz]\w*)\s+(?:the\s+)?perf(?:ormance)?|perf(?:ormance)?\s+(?:gains?|improvements?|boosts?|wins?|regressions?)|\d+(?:\.\d+)?\s?(?:x|%)\s+(?:faster|slower|smaller|less|lower))\b",
     re.I,
 )
 NUMBER = re.compile(r"\d[\d.,]*\s?(?:ms|µs|us|s|sec|seconds|x|%|kb|mb|gb|fps|rps|req/s|tokens?|lines?|calls?|renders?)?\b", re.I)
