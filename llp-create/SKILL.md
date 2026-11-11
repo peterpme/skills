@@ -1,6 +1,6 @@
 ---
 name: llp-create
-description: Create a new LLP document with the next available number (top-level NNNN or a dotted sub-LLP under a parent), the NNNN-slug.type.md filename convention, and a scaffolded metadata header, linked into llp/current/ — or extend an existing LLP when one already covers the topic.
+description: "Use when writing a new LLP (spec, plan, explainer or sub-LLP) or turning an RFC into one: picks the next number and filename, or extends the LLP that already covers the topic."
 source: ccheever/llp@v0.5.2
 ---
 

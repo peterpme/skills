@@ -1,6 +1,6 @@
 ---
 name: llp-ship
-description: Take one or more tasks (Linear tickets, ticket files, accepted LLPs, free text) end to end — plan lanes, implement in run-namespaced worktrees, integrate on a run branch, verify and review the exact integrated commit, deliver per repo policy (direct push by default), and clean up without destroying recoverable work. Use when the user invokes /llp-ship or hands over tasks to be implemented and shipped.
+description: "Use when Peter types /llp-ship or hands over decided work to build and land in an LLP repo: Linear tickets, ticket files, tasks, or an accepted LLP (\"it's accepted, implement it\"). Builds in worktrees, integrates, verifies, delivers."
 source: ccheever/llp@v0.5.2
 ---
 

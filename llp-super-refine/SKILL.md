@@ -1,6 +1,6 @@
 ---
 name: llp-super-refine
-description: Author-invoked dual-family refine loop for one or more Draft/Review LLPs — each round, two fresh mutually-blind reviews from different model families, orchestrator revision, verdict-lined artifacts — until both families mark the same revision READY, a delta round finds no MATERIAL concern in pre-existing text across families, or a bounded stop rule escalates to the author. Use when the user invokes /llp-super-refine or asks to refine an LLP until independent models agree it is ready.
+description: "Use when Peter types /llp-super-refine or wants a Draft or Review LLP refined until two model families independently mark the same revision READY: rounds of blind reviews and revisions with a bounded stop rule. For a single review round, use llp-review."
 source: ccheever/llp@v0.5.2
 ---
 

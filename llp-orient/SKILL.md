@@ -1,6 +1,6 @@
 ---
 name: llp-orient
-description: Before editing a subsystem, file, or starting a task, assemble the governing LLP context — read the root LLP, follow the @ref annotations on the code in scope, and find the LLPs covering the relevant systems. Produces a compact context pack of the constraints a change must respect. Read-only.
+description: "Use before editing code or starting a task in a repo with an llp/ folder: gathers the root LLP and the LLPs the code's @refs point to, and returns the constraints the change must respect."
 source: ccheever/llp@v0.5.2
 ---
 

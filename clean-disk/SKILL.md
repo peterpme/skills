@@ -1,6 +1,6 @@
 ---
 name: clean-disk
-description: Free disk space on Peter's machines with `disk-clean`, which removes merged or idle agent git worktrees (T3 Code, Claude, Codex, Cursor), Rust target folders not built in a week, build folders through Mole's `mo purge`, idle or orphaned Xcode DerivedData, replaced simulator runtimes and old trash-cli items, and empties uv, Gradle, Yarn and npm caches that pass a size cap. Use for the scheduled Disk cleanup run, when a machine is low on disk space, when asked to delete stale worktrees or cargo targets, or when asked to set up daily disk cleanup on a machine.
+description: "Use when a machine is low on disk space, when worktrees, Rust targets, build folders, Xcode DerivedData or caches should go (\"clean up disk\", \"close out their worktrees\"), for the scheduled Disk cleanup run, or to set daily cleanup up on a machine. Runs `disk-clean`. Not for app bundle size, CI runner disk or personal files."
 compatibility: macOS or Linux with git, gh and python3. Uses Mole (`mo`) and Xcode's `simctl` when installed. Reads T3 Code's local database when present.
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: overnight
-description: Work a task through the night while Peter sleeps - never wait for him, think each open question through and decide it yourself, record every decision as a closed decision issue with its one-word undo, finish the work, and leave one morning summary on the Morning brief. Use when Peter types /overnight <task>, says he is going to sleep and to figure it out, or for the scheduled Worker's runs.
+description: "Use when Peter types /overnight, says he is going to bed and to figure it out, or for the scheduled Worker run: don't wait for him, decide open questions yourself, log each decision with its undo, leave a morning summary."
 ---
 
 # Overnight

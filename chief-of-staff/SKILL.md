@@ -1,6 +1,6 @@
 ---
 name: chief-of-staff
-description: Peter's chief of staff, one run a day. Reads every open PR and ledger epic of his across his work org and personal repos, applies the merge and 14-day rules from the global instructions, gets closure on PRs, parks stale experiments and writes their learnings, keeps the ledger epics current, and posts one brief a day with only the decisions no rule covers. Use for the scheduled Chief of staff run, or when asked where things stand, what needs him, or to close out a stream.
+description: "Use for the daily Chief of staff run, or when Peter asks where things stand, what needs him, what is worth merging, or to close out PRs or a stream he no longer cares about. Triages his open PRs and ledger epics across repos and posts one brief of the decisions only he can make. Not for one named PR."
 compatibility: macOS or Linux with gh authenticated as Peter and the private home repo cloned at ~/Projects/home.
 ---
 

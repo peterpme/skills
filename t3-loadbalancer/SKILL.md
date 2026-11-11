@@ -1,6 +1,6 @@
 ---
 name: t3-loadbalancer
-description: Keep Peter's running T3 Code threads moving by reading each Claude account's 5-hour usage and moving threads between claude1_ (Tom), claudeAgent (Jerry) and cursor when an account runs low or recovers. Use when acting as the Load Balancer thread or when asked to rebalance T3 threads by usage.
+description: "Use when acting as the Load Balancer thread, or when asked to move running T3 Code threads between Claude accounts (Tom, Jerry) and cursor because one is low on 5-hour usage or has recovered."
 ---
 
 # T3 load balancer

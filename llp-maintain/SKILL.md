@@ -1,6 +1,6 @@
 ---
 name: llp-maintain
-description: "Keep an LLP corpus in sync with its code. Detects code/doc drift, validates @ref annotations interactively, checks provenance tags, and proposes reconciliations, ref repairs, status changes, and overlay changes. Modes — pre-pr, audit, reconcile, retire-proposal, curate (the promote → archive → realign pass). Proposes; never applies."
+description: "Use when LLP docs and code may have drifted: before a PR in an LLP repo, when a doc disagrees with code, or to audit @refs, rename or retire an LLP, or curate llp/current. Proposes fixes, never applies them."
 source: ccheever/llp@v0.5.2
 ---
 
