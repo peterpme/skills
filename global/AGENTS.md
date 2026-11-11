@@ -58,14 +58,13 @@ Classify the task at the start and write the tier in the ticket. I can override 
 
 ## Finish every change
 
-Any change to project files ends this way without being asked; skip it for questions, reviews and plans.
+Any change to project files ends this way without being asked; skip it for questions, reviews and plans. Never stop at a plan or an offer to do work already asked for.
 
 - Before editing, name the observable result that proves it. Reproduce a reported failure first.
 - Prove it through the real flow (Every task, above). Run the repo's format, lint, typecheck, build and tests; if they cause edits, prove it again. Read the diff for unrelated changes and secrets.
 - Tests cover only what would hurt if it broke: the wrong signer, money moved twice, data lost, a broken contract. Each risk gets at most one test, at the level its caller sees. The test budget is that list of risks, each with its test and a total count; going over needs a reason in the PR body. When one check applies to many operations or call sites, write one test over a table, not a copy per case. A test that pins old code goes when that code goes. Never test what the compiler or the framework already checks. A reviewer's "add a test" replaces a weaker test or is declined.
 - Task branch, only this task's changes, push, open a draft PR or update the existing one. The body: why, what changed, expected next to actual, checks, what is unverified. Link it to the thread.
 - Ready only when `pr-status <n>` exits 0 (CI green, no unresolved threads, within 400 lines); chain the merge on it with `&&`. Answer every review thread, bots included, before ready and again after; a human's thread closes only by a fix or their agreement.
-- Never stop at a plan or an offer to do work already asked for. What you can't run is `implemented, unverified`, with what's missing.
 
 ## Reporting
 
