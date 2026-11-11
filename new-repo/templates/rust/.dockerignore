@@ -1,6 +1,0 @@
-target/
-.git/
-.github/
-**/node_modules/
-.env*
-.railway/

@@ -3,9 +3,7 @@
 Personal agent skills. One folder per skill at the repository root.
 
 - [tldr](tldr/SKILL.md): Cut the last response down to a one-sentence summary, your decisions, and what is next.
-- [tldr-go](tldr-go/SKILL.md): Approve the last `/tldr` picks and have the agent do its next steps. Pass overrides like `/tldr-go 1 no, 2 B`.
 - [word-this](word-this/SKILL.md): Make a draft coherent while preserving your voice, casing, and prose. Invoke explicitly; automatic invocation is disabled.
-- [trace](trace/SKILL.md): Answer feature questions using the repository's docs and code. Invoke `$trace how does … work?`; automatic invocation is disabled.
 - [ticket](ticket/SKILL.md): One line from Peter becomes one well-formed ledger issue (home or Linear) or a decision issue, filed by a cheap model.
 - [chief-of-staff](chief-of-staff/SKILL.md): Daily run that keeps every stream moving: applies the merge and 14-day rules, closes or parks stale work and writes its learnings, posts one brief with only the decisions no rule covers.
 - [research-first](research-first/SKILL.md): Before building a tool, script, harness or library, a one-page prior-art note (expert, their tools, their measurement, what the repo has, recommendation); `references/perf-ladder.md` holds the performance ladder.
@@ -14,10 +12,8 @@ Personal agent skills. One folder per skill at the repository root.
 - [orchestrate](orchestrate/SKILL.md): Build without Peter steering: a contract (his decisions, acceptance checks, slices, defaulted questions) workers build, one reviewer reports findings that come with a failing command, and only PRs that pass the ready gate reach him. `evals/orchestrate/` replays real tasks to score it.
 - [skill-review](skill-review/SKILL.md): Weekly: turns filed findings into one scored change and merges it when the replay eval says it helps, and adds replay cases.
 - [skill-gardener](skill-gardener/SKILL.md): Every three days: cuts duplicated, stale and narrated lines from `global/AGENTS.md` and the skills in one PR with a words-before-and-after table, merged when the replay eval holds. `scripts/words` prints the table.
-- [desk](desk/SKILL.md): Run the Desk, the one pinned T3 thread Peter talks to; every piece of work runs as a hidden `delegate_task` child and comes back in the tldr shape.
 - [t3-loadbalancer](t3-loadbalancer/SKILL.md): Move running T3 Code threads between Claude accounts and Cursor as 5-hour usage runs low or recovers.
 - [effect-v4](effect-v4/SKILL.md): Effect v4 reference for writing, reviewing and testing Effect TypeScript code.
-- [new-repo](new-repo/SKILL.md): Create or standardize a GitHub repo: branch ruleset with one required `ci` check, cached Rust (BeautifulRust lints) or TypeScript (Vite+, tsrs) CI, Dependabot, and Railway deploys gated on CI. `scripts/github-setup` applies the settings.
 - [clean-disk](clean-disk/SKILL.md): Daily on each machine, free disk space from merged or idle agent worktrees, stale Rust `target/` folders, build folders (through Mole), replaced simulator runtimes and oversized caches. `bin/disk-clean` holds the rules and backs up uncommitted changes first.
 - [harness-first](harness-first/SKILL.md): Land a baseline from a harness in the repo before any change meant to improve a number.
 - [grilling](grilling/SKILL.md): Before a feature's contract, explore first, then at most three questions per round, each with a default and its gain and cost, and proceed on the defaults. Wraps Matt Pocock's `grilling` (`grilling/upstream.md`, MIT); two-week trial from 2026-11-08.
