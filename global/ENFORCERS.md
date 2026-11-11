@@ -26,7 +26,7 @@ Kinds: **hook** (runs in the harness), **CI** (runs on the PR), **scheduled** (a
 | GNU `sed`, `grep`, `date` and `stat` | dotfiles `.zshenv` puts GNU tools first on PATH in every zsh, agent shells included | setup | A BSD-style flag fails loudly |
 | Define done first; never say verified without checking | `orchestrate` proof table and ready gate | prose | Judgment. A false "verified" is a postmortem trigger in the home ledger, so a miss gets a tool |
 | Contract before code; tier written on the ticket | `orchestrate` step 1; the Worker reads the tier from the ticket | prose | Judgment about content; a missing contract shows on the ticket |
-| Use what exists; no one-off script in a PR | `research-first` prior-art note before new tooling; diff review | prose | Judgment; a missing note shows in the plan and the contract |
+| Use what exists; no one-off script in a PR | the installed tool's help and docs read first; diff review | prose | Judgment; whether a tool already does the job cannot be checked mechanically |
 | Align before you build; go on picks only when told or unattended | `npm run eval` (`orchestrate` replay) | eval | Judgment; the eval scores needed against routine questions |
 | Report like a VP, in the `tldr` shape | `npm run eval` scores the shape | prose | Style; the eval catches drift in the skill, not in one reply |
 | State lives in the ledger | `chief-of-staff` reads every epic daily | scheduled | A missing event shows as a stale epic |
