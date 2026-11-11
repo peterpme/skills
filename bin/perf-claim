@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+"""perf-claim [PR] [-R owner/repo] | --title T --body-file F
+
+Checks the rule "measure, change, measure": a PR whose title or body claims a
+speed, latency, memory or size gain must carry a before and an after number.
+Exit 0 when there is no claim or both numbers are there, 1 when a claim has no
+before and after pair (a contract violation for the orchestrate review and
+ready gate). It reads wording, so a clean pass is not proof the numbers are
+real; a false hit is answered by putting the measurement in the PR body.
+"""
+import argparse
+import json
+import re
+import subprocess
+import sys
+
+CLAIM = re.compile(
+    r"\b(faster|slower|speed(?:s|ed)?[ -]?ups?|latency|throughput|startup time|cold start|"
+    r"(?:less|lower|reduced?|reduces|smaller|fewer)\b[^.\n]{0,30}\b(?:memory|ram|bundle|size|time|latency|calls|requests|renders)|"
+    r"(?:improv\w+|boost\w*|better|optimi[sz]\w*)\s+(?:the\s+)?perf(?:ormance)?|perf(?:ormance)?\s+(?:gains?|improvements?|boosts?|wins?|regressions?)|\d+(?:\.\d+)?\s?(?:x|%)\s+(?:faster|slower|smaller|less|lower))\b",
+    re.I,
+)
+NUMBER = re.compile(r"\d[\d.,]*\s?(?:ms|µs|us|s|sec|seconds|x|%|kb|mb|gb|fps|rps|req/s|tokens?|lines?|calls?|renders?)?\b", re.I)
+
+
+def claim_of(text):
+    m = CLAIM.search(text)
+    return m.group(0) if m else None
+
+
+def has_pair(body):
+    """A line (or table row) holding 'before' and 'after' with 2+ numbers, or
+    a before line and an after line that each hold a number, or a table with
+    both words in its header and a row of two numbers."""
+    before = after = header = False
+    for line in body.splitlines():
+        has_b, has_a = re.search(r"\bbefore\b|\bbaseline\b", line, re.I), re.search(r"\bafter\b", line, re.I)
+        n = len(NUMBER.findall(re.sub(r"[`*_]", "", line)))
+        if has_b and has_a and n >= 2:
+            return True
+        if line.lstrip().startswith("|"):  # a table: before and after in the header, numbers in a row
+            if has_b and has_a:
+                header = True
+            elif header and n >= 2:
+                return True
+        before = before or (bool(has_b) and n >= 1)
+        after = after or (bool(has_a) and n >= 1)
+    return before and after
+
+
+def main():
+    parser = argparse.ArgumentParser(usage=__doc__.splitlines()[0], description=__doc__.split("\n", 2)[2])
+    parser.add_argument("pr", nargs="?")
+    parser.add_argument("-R", "--repo")
+    parser.add_argument("--title", help="with --body-file: check text instead of a PR")
+    parser.add_argument("--body-file")
+    args = parser.parse_args()
+    if args.body_file:
+        title, body, label = args.title or "", open(args.body_file).read(), "text"
+    else:
+        cmd = ["gh", "pr", "view", *([args.pr] if args.pr else []), "--json", "number,title,body", *(["-R", args.repo] if args.repo else [])]
+        r = subprocess.run(cmd, capture_output=True, text=True)
+        if r.returncode:
+            sys.exit(r.stderr.strip() or "gh pr view failed")
+        pr = json.loads(r.stdout)
+        title, body, label = pr["title"], pr["body"] or "", f"#{pr['number']}"
+    claim = claim_of(title) or claim_of(body)
+    if not claim:
+        print(f"perf-claim {label}: no speed, latency, memory or size claim")
+    elif has_pair(body):
+        print(f"perf-claim {label}: claim ({claim!r}) carries a before and after number")
+    else:
+        print(f"perf-claim {label}: CONTRACT VIOLATION: claims {claim!r} with no before and after number. Add the baseline, the change and the same measurement again.")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

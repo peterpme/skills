@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Runs bin/pr-status against a fake `gh` (canned PR, threads and ticket JSON) to
+# check the tier 2 ready hold: expected next to actual (exit code). Time is
+# fixed with PR_STATUS_NOW. Exits 1 on any disagreement.
+set -uo pipefail
+here=$(cd "$(dirname "$0")" && pwd)
+tool=$here/../../bin/pr-status
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+mkdir -p "$work/bin"
+cat >"$work/bin/gh" <<'EOF'
+#!/usr/bin/env bash
+# Fake gh. $FIX/pr.json, $FIX/ticket.json hold the canned answers.
+args="$*"
+case $args in
+  "api graphql"*) echo '{"data":{"repository":{"pullRequest":{"reviewThreads":{"nodes":[]}}}}}' ;;
+  "api"*) exit 1 ;;
+  "pr view"*) cat "$FIX/pr.json" ;;
+  "issue view"*) cat "$FIX/ticket.json" ;;
+  *) echo "fake gh: unexpected $args" >&2; exit 1 ;;
+esac
+EOF
+chmod +x "$work/bin/gh"
+fail=0
+now=2026-11-10T12:00:00Z
+case_() { # name expect_exit expect_text draft body ticket_json
+  local name=$1 exp=$2 text=$3 draft=$4 body=$5 ticket=$6 out code ok=yes
+  export FIX=$work/$name; mkdir -p "$FIX"
+  jq -cn --argjson d "$draft" --arg b "$body" '{number: 5, title: "t", body: $b, url: "https://github.com/peterpme/skills/pull/5", state: "OPEN", isDraft: $d, mergeable: "MERGEABLE", mergeStateStatus: "CLEAN", reviewDecision: null, baseRefName: "main", headRefName: "b", headRefOid: "0123456789abcdef", statusCheckRollup: []}' >"$FIX/pr.json"
+  echo '[]' >"$FIX/files.json"
+  printf '%s' "$ticket" >"$FIX/ticket.json"
+  out=$(PATH="$work/bin:$PATH" PR_STATUS_NOW=$now PR_STATUS_FILES="$FIX/files.json" "$tool" 5 -R peterpme/skills 2>&1); code=$?
+  [[ $code == "$exp" ]] || ok=NO
+  [[ -z $text ]] || grep -q -- "$text" <<<"$out" || ok=NO
+  [[ $ok == yes ]] || fail=1
+  printf '%-44s expect %s %-12s actual %s %s\n' "$name" "$exp" "${text:+HOLD}" "$code" "$ok"
+  [[ $ok == yes ]] || echo "$out" | sed 's/^/    /'
+}
+contract='{"createdAt":"2026-11-10T11:00:00Z","body":"Contract\n## Verification\n1. x\n## Validation\nflow"}'
+old_contract='{"createdAt":"2026-11-10T09:00:00Z","body":"Contract\n## Verification\n1. x\n## Validation\nflow"}'
+chatter='{"createdAt":"2026-11-10T11:30:00Z","body":"claim #1"}'
+printf '%-44s\n' case
+case_ "tier-2 contract 1h old, draft" 9 "stays a draft until 2026-11-10 13:00Z" true "Part of peterpme/home#105" "{\"body\":\"Tier: 2\",\"labels\":[],\"comments\":[$chatter,$contract]}"
+case_ "tier-2 contract 3h old, draft" 0 "" true "Part of peterpme/home#105" "{\"body\":\"Tier: 2\",\"labels\":[],\"comments\":[$old_contract]}"
+case_ "tier-2 by label, no contract comment" 9 "no contract comment" true "Closes #7" '{"body":"x","labels":[{"name":"tier-2"}],"comments":[]}'
+case_ "tier-1 ticket, contract 1h old" 0 "" true "Part of peterpme/home#105" "{\"body\":\"Tier 1 work\",\"labels\":[],\"comments\":[$contract]}"
+case_ "ticket only discusses tier 2 in a table" 0 "" true "Part of peterpme/home#105" "{\"body\":\"| Tier 2 PR stays a draft | pr-status |\",\"labels\":[],\"comments\":[$contract]}"
+case_ "tier-2, contract 1h old, already ready" 0 "" false "Part of peterpme/home#105" "{\"body\":\"Tier: 2\",\"labels\":[],\"comments\":[$contract]}"
+case_ "PR body names no ticket" 0 "" true "Just a change" '{}'
+exit $fail

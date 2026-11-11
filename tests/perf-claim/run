@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Runs bin/perf-claim on PR bodies and prints expected next to actual (exit code).
+# Exits 1 if any case disagrees.
+set -uo pipefail
+here=$(cd "$(dirname "$0")" && pwd)
+tool=$here/../../bin/perf-claim
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+fail=0
+check() { # name expect_exit title body
+  printf '%s\n' "$4" >"$work/body"
+  local out code ok=yes
+  out=$("$tool" --title "$3" --body-file "$work/body" 2>&1); code=$?
+  [[ $code == "$2" ]] || { ok=NO; fail=1; }
+  printf '%-44s expect %s actual %s %s\n' "$1" "$2" "$code" "$ok"
+  [[ $ok == yes ]] || echo "    $out"
+}
+printf '%-44s\n' case
+check "faster, no numbers" 1 "Make the parser faster" "Rewrote the loop. It is much faster now."
+check "latency claim, only an after number" 1 "Cut latency" "p95 latency is now 120 ms."
+check "speedup with before and after in a table" 0 "Make the parser faster" $'| | before | after |\n|---|---|---|\n| parse 1k files | 840 ms | 310 ms |'
+check "before and after on separate lines" 0 "Reduce memory" $'Before: 512 MB peak.\nAfter: 301 MB peak, same input.'
+check "no perf claim" 0 "Fix typo in README" "Corrects a typo."
+check "word 'before' without numbers" 1 "Improve performance" "Before this the function was slow; after it is fast."
+check "skill about perf work, no claim (real PR 65)" 0 "harness-first: baseline from a harness before any change meant to move a number" "A skill: name the number, find the harness, commit a baseline before any performance work."
+check "performance gain, no numbers" 1 "Performance improvement for search" "Cuts the work in the loop."
+exit $fail
