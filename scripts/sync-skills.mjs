@@ -19,8 +19,13 @@ if (!process.env.SKILLS_HOME && await realpath(root) !== await realpath(canonica
   console.log(`Skipped sync: ${root} is not ${canonical}. Run npm run sync there.`);
   process.exit(0);
 }
+// A second Claude account (~/.claude<n>, see t3-loadbalancer) reads only its own skills folder, so it
+// needs the links too; without them its threads saw 7 of the 27 skills (home#156).
+const claudeAccounts = (await readdir(home, { withFileTypes: true }).catch(() => []))
+  .filter((entry) => entry.isDirectory() && /^\.claude\d+$/.test(entry.name))
+  .map((entry) => `${entry.name}/skills`);
 // Folders each harness reads, from github.com/vercel-labs/skills docs/agents.md and each harness's own docs.
-const destinations = [".agents/skills", ".claude/skills", ".codex/skills", ".pi/agent/skills", ".cursor/skills", ".grok/skills", ".gemini/config/skills"];
+const destinations = [".agents/skills", ".claude/skills", ...claudeAccounts, ".codex/skills", ".pi/agent/skills", ".cursor/skills", ".grok/skills", ".gemini/config/skills"];
 // Other harnesses the skills CLI knows: linked only when the harness's home folder already exists on this machine.
 const optional = {
   ".config/opencode": ".config/opencode/skills",
