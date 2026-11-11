@@ -2,6 +2,7 @@
 
 Personal agent skills. One folder per skill at the repository root.
 
+- [skill-creator](skill-creator/SKILL.md): Anthropic's skill for creating, testing and tuning skills, vendored unchanged (see `UPSTREAM.md`).
 - [tldr](tldr/SKILL.md): Cut the last response down to a one-sentence summary, your decisions, and what is next.
 - [word-this](word-this/SKILL.md): Make a draft coherent while preserving your voice, casing, and prose. Invoke explicitly; automatic invocation is disabled.
 - [ticket](ticket/SKILL.md): One line from Peter becomes one well-formed ledger issue (home or Linear) or a decision issue, filed by a cheap model.
