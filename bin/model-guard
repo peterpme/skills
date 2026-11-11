@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# model-guard: Claude Code PreToolUse hook on the T3 tools that start another
+# agent (delegate_task, schedule_task, t3_thread_launch, create_threads,
+# t3_thread_configure, ...). The delegate table says "Grok is never used, for
+# anything, through any provider" and never the opencode provider; this denies
+# a call whose model or provider field names either, so the table is not just
+# skill text (home#105, home#60). Only the model and provider fields are read,
+# never the task text, so a brief that mentions Grok does not trip it. Reads
+# the hook input on stdin; no output and exit 0 for anything else.
+# scripts/sync-skills.mjs registers it in each ~/.claude*/settings.json;
+# tests/tool-guard/run checks it.
+set -uo pipefail
+case ${1:-} in -h | --help) sed -n '2,12p' "$0" | cut -c3-; exit 0 ;; esac
+command -v jq >/dev/null 2>&1 || PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+command -v jq >/dev/null 2>&1 || exit 0
+input=$(cat 2>/dev/null) || exit 0
+jq -e 'type == "object"' >/dev/null 2>&1 <<<"$input" || exit 0
+hit=$(jq -r '[.tool_input | .. | objects | (.model?, .modelId?, .providerInstanceId?, .instanceId?, .provider?, .providerId?) | strings | select(test("grok|opencode"; "i"))] | first // empty' <<<"$input" 2>/dev/null)
+[[ -n $hit ]] || exit 0
+jq -cn --arg hit "$hit" '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny",
+  permissionDecisionReason: ("Refused: \($hit). The delegate table never uses Grok or the opencode provider, for anything. Pick the model from the table in the delegate skill.")}}'
+exit 0

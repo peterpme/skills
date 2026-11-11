@@ -80,11 +80,17 @@ for (const entry of await readdir(join(root, "bin"), { withFileTypes: true })) {
 // - SessionStart and PreToolUse, bin/start-task: opens every session with the folder's tracker, its
 //   search command and the Tiers table, and denies the first file edit of a session with no ticket
 //   link, once, so the ticket and tier come before any other action (home #17).
+// - PreToolUse, bin/tool-guard: a permission ask on deploy commands and a warning on /tmp paths
+//   (home #105).
+// - PreToolUse, bin/model-guard: denies a T3 tool call that names Grok or the opencode provider
+//   (home #105).
 const claudeHooks = [
   { event: "Stop", name: "turn-check" },
   { event: "PermissionRequest", name: "scheduled-allow" },
   { event: "SessionStart", name: "start-task" },
   { event: "PreToolUse", name: "start-task", matcher: "Edit|Write|MultiEdit|NotebookEdit|Bash" },
+  { event: "PreToolUse", name: "tool-guard", matcher: "Bash|Write|Edit|NotebookEdit" },
+  { event: "PreToolUse", name: "model-guard", matcher: "mcp__t3-code__.*" },
 ];
 async function registerClaudeHooks() {
   const dirs = new Set([join(home, ".claude")]);

@@ -33,8 +33,8 @@ for f in "$here"/cases/*.json; do
   if jq -e 'has("transcript_raw")' "$f" >/dev/null; then jq -rj .transcript_raw "$f" >"$transcript"
   elif ! jq -e '.no_transcript == true' "$f" >/dev/null; then jq -c '.transcript[]?' "$f" >"$transcript"
   fi
-  input=$(jq -cn --arg t "$transcript" --arg tool "$(jq -r '.tool // "Bash"' "$f")" --arg s "$name" --arg ev "$(jq -r '.event // "PermissionRequest"' "$f")" \
-    '{session_id: $s, transcript_path: $t, hook_event_name: $ev, tool_name: $tool, tool_input: {command: "true"}}')
+  input=$(jq -cn --arg t "$transcript" --arg tool "$(jq -r '.tool // "Bash"' "$f")" --arg s "$name" --arg ev "$(jq -r '.event // "PermissionRequest"' "$f")" --arg cmd "$(jq -r '.command // "true"' "$f")" \
+    '{session_id: $s, transcript_path: $t, hook_event_name: $ev, tool_name: $tool, tool_input: {command: $cmd}}')
   n=$(jq -r 'if (.expect|type)=="array" then (.expect|length) else 1 end' "$f")
   for ((i = 0; i < n; i++)); do
     expect=$(jq -r --argjson i "$i" 'if (.expect|type)=="array" then .expect[$i] else .expect end' "$f")
