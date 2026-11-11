@@ -12,6 +12,13 @@ if (!process.env.SKILLS_HOME && (await lstat(join(root, ".git")).catch(() => nul
   console.log(`Skipped sync: ${root} is a linked git worktree. Run npm run sync from the main checkout.`);
   process.exit(0);
 }
+// A second full clone (one on a feature branch, say) would relink whatever it holds away from
+// ~/skills, so the harnesses would read two checkouts at once (home#144). Only ~/skills links the real home.
+const canonical = join(homedir(), "skills");
+if (!process.env.SKILLS_HOME && await realpath(root) !== await realpath(canonical).catch(() => null) && await lstat(canonical).catch(() => null)) {
+  console.log(`Skipped sync: ${root} is not ${canonical}. Run npm run sync there.`);
+  process.exit(0);
+}
 // Folders each harness reads, from github.com/vercel-labs/skills docs/agents.md and each harness's own docs.
 const destinations = [".agents/skills", ".claude/skills", ".codex/skills", ".pi/agent/skills", ".cursor/skills", ".grok/skills", ".gemini/config/skills"];
 // Other harnesses the skills CLI knows: linked only when the harness's home folder already exists on this machine.
@@ -97,7 +104,8 @@ async function registerClaudeHooks() {
   for (const entry of await readdir(home, { withFileTypes: true })) {
     if (entry.isDirectory() && /^\.claude\d+$/.test(entry.name)) dirs.add(join(home, entry.name));
   }
-  if (process.env.CLAUDE_CONFIG_DIR) dirs.add(resolve(process.env.CLAUDE_CONFIG_DIR));
+  // A test home (SKILLS_HOME) must never touch the real config dir an agent's shell names (home#144).
+  if (process.env.CLAUDE_CONFIG_DIR && !process.env.SKILLS_HOME) dirs.add(resolve(process.env.CLAUDE_CONFIG_DIR));
   for (const dir of dirs) {
     if (!(await stat(dir))?.isDirectory()) continue;
     try {
