@@ -10,11 +10,12 @@ Carry the user's requested changes through to a reviewable result. Do not stop a
 ## Complete and prove the change
 
 - Before editing, define the observable result that would demonstrate the requested behavior. Derive expectations from the request, source data, or an independent reference. Reproduce a reported failure when practical.
-- Inspect the relevant instructions, existing changes, and project workflows. Preserve unrelated work. Make reasonable routine decisions and continue until the requested outcome is complete; ask only for information or authorization that actually blocks it. Continue independent work while waiting.
+- Inspect the relevant instructions, existing changes, and project workflows. Preserve unrelated work. Stop only processes whose PIDs you started and recorded. Make reasonable routine decisions and continue until the requested outcome is complete; ask only for information or authorization that actually blocks it. Continue independent work while waiting.
 - Exercise the affected flow through its real UI, API, CLI, or exported entry point with representative inputs. Compare expected and actual output, including persistence where relevant. Include boundaries or exclusions that would catch a plausible wrong implementation. Use the project's verification instructions; a pass count or successful response alone is not proof.
 - Inspect the final diff for omissions, regressions, unrelated changes, and accidental secrets. Fix problems introduced by this work, then run required formatting, lint, typecheck, build, and repository checks. Repeat the affected behavioral proof if those checks cause edits.
+- Before pushing, reread every line of prose you added or changed (comments, docs, commit and PR text) as a reader new to the work: cut what the code or diff already says, history and diary, and anything ambiguous. Keep a comment only for what the code cannot show.
 - Scale verification to the change. Do not invent runtime tests for prose edits, run unrelated paid generation, or add tests that merely mirror the implementation. Keep useful proof artifacts reviewable and free of secrets.
-- If a required flow cannot run, try reasonable recovery within scope. Do not keep retrying the same failure or fabricate success. Label the affected claim `implemented, unverified`, name the missing prerequisite, and finish everything else possible. Distinguish pre-existing failures from failures caused by this change.
+- If a required flow cannot run, try reasonable recovery within scope. Give one failure three fix rounds, then stop and say so; never fabricate success. Label the affected claim `implemented, unverified`, name the missing prerequisite, and finish everything else possible. Distinguish pre-existing failures from failures caused by this change.
 
 ## Deliver a draft pull request
 
