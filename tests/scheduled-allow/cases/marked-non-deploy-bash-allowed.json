@@ -1,0 +1,1 @@
+{"expect":"allow","tool":"Bash","command":"git commit -m 'note railway up'","transcript":[{"type":"queue-operation"},{"type":"user","message":{"role":"user","content":"[t3-sentinel-run] Worker run."}}]}

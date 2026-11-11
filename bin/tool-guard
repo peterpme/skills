@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# tool-guard: Claude Code PreToolUse hook for Bash, Write, Edit and NotebookEdit.
+# Two global rules the harness can hold (home#105):
+#  - "Never deploy unless the task is the deploy": a Bash command that runs
+#    railway up/deploy, vercel (deploy, --prod, promote, rollback), wrangler
+#    deploy, fly/flyctl, netlify, firebase deploy or eas submit gets a
+#    permission "ask", never a deny. Only a command position counts, so
+#    `git commit -m "railway up"` stays quiet.
+#  - "Never /tmp": a command or file path under /tmp (or /private/tmp) adds a
+#    warning to the agent's context. It never blocks; /tmp/claude* is the
+#    harness's own scratch and is skipped.
+# `tool-guard --is-deploy` reads the same input and exits 0 for a deploy
+# command, 1 otherwise; scheduled-allow uses it to leave a deploy prompt alone.
+# Always exits 0 otherwise. scripts/sync-skills.mjs registers it in each
+# ~/.claude*/settings.json; tests/tool-guard/run checks it.
+set -uo pipefail
+case ${1:-} in -h | --help) sed -n '2,15p' "$0" | cut -c3-; exit 0 ;; esac
+command -v jq >/dev/null 2>&1 || PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+command -v jq >/dev/null 2>&1 && jq_ok=1 || jq_ok=
+mode=${1:-}
+[[ -n $jq_ok ]] || { [[ $mode == --is-deploy ]] && exit 1; exit 0; }
+input=$(cat 2>/dev/null) || input=
+jq -e 'type == "object"' >/dev/null 2>&1 <<<"$input" || { [[ $mode == --is-deploy ]] && exit 1; exit 0; }
+
+tool=$(jq -r '.tool_name // ""' <<<"$input" 2>/dev/null)
+nl=$'\n'
+# A command position: start of the string or after ; & | ( or a newline, then
+# optional sudo/env/VAR=x and a package-runner prefix.
+pre="(^|[;&|(${nl}])[[:space:]]*((sudo|env|time|exec|command)[[:space:]]+)*([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+)*((npx|bunx)[[:space:]]+(-y[[:space:]]+|--yes[[:space:]]+)?|pnpm[[:space:]]+(dlx|exec)[[:space:]]+|yarn[[:space:]]+(dlx[[:space:]]+)?|npm[[:space:]]+exec[[:space:]]+(--[[:space:]]+)?)?"
+end="([[:space:]]|[;&|)]|$)"
+deploy_re="${pre}("
+deploy_re+="railway[[:space:]]+(up|deploy|redeploy)"
+deploy_re+="|vercel([[:space:]]+(deploy|promote|rollback|redeploy)|[[:space:]]+--(prod|prebuilt)|[[:space:]]*$|[[:space:]]*[;&|)])"
+deploy_re+="|wrangler[[:space:]]+(deploy|publish|(versions|pages|triggers)[[:space:]]+deploy)"
+deploy_re+="|(fly|flyctl)[[:space:]]+deploy"
+deploy_re+="|netlify[[:space:]]+deploy"
+deploy_re+="|firebase[[:space:]]+deploy"
+deploy_re+="|eas[[:space:]]+submit"
+deploy_re+=")${end}"
+
+command=
+[[ $tool == Bash ]] && command=$(jq -r '.tool_input.command // ""' <<<"$input" 2>/dev/null)
+is_deploy=
+[[ -n $command && $command =~ $deploy_re ]] && is_deploy=1
+if [[ $mode == --is-deploy ]]; then [[ -n $is_deploy ]]; exit; fi
+
+if [[ -n $is_deploy ]]; then
+  jq -cn '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "ask",
+    permissionDecisionReason: "This command deploys. Global rule: never deploy unless the task is the deploy. Confirm it is."}}'
+  exit 0
+fi
+
+tmp=
+case $tool in
+  Bash)
+    tmp_re="(^|[^A-Za-z0-9_./~-])/(private/)?tmp(/|[[:space:]]|$|[\"'])"
+    if [[ $command =~ $tmp_re ]]; then
+      rest=${command//\/tmp\/claude/}
+      rest=${rest//\/private\/tmp\/claude/}
+      [[ $rest =~ $tmp_re ]] && tmp=1
+    fi ;;
+  Write | Edit | NotebookEdit)
+    path=$(jq -r '.tool_input.file_path // .tool_input.notebook_path // ""' <<<"$input" 2>/dev/null)
+    case $path in /tmp/claude* | /private/tmp/claude*) ;; /tmp/* | /private/tmp/*) tmp=1 ;; esac ;;
+esac
+if [[ -n $tmp ]]; then
+  jq -cn '{hookSpecificOutput: {hookEventName: "PreToolUse",
+    additionalContext: "Warning, nothing was blocked: the global rule is never /tmp. Put logs, scripts and proof output in .verification/<task>/ in the repo (kept out of PRs by the global excludes file) and use that path instead."}}'
+fi
+exit 0

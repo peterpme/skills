@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+# Runs bin/tool-guard and bin/model-guard on the inputs below and prints
+# expected next to actual. Verdicts: ask (deploy permission ask), deny, warn
+# (/tmp context warning), none (no output). Exits 1 if any case disagrees.
+set -uo pipefail
+here=$(cd "$(dirname "$0")" && pwd)
+bin=$here/../../bin
+for h in tool-guard model-guard; do
+  # A parse error would exit 2, which Claude Code reads as a block.
+  bash -n "$bin/$h" || { echo "$h does not parse"; exit 1; }
+  /bin/bash -n "$bin/$h" 2>/dev/null || { echo "$h does not parse under /bin/bash"; exit 1; }
+done
+fail=0
+verdict() { # stdin = hook output -> ask|deny|warn|none|bad
+  local out; out=$(cat)
+  [[ -z $out ]] && { echo none; return; }
+  jq -r '.hookSpecificOutput | if .permissionDecision then .permissionDecision elif .additionalContext then "warn" else "bad" end' <<<"$out" 2>/dev/null || echo bad
+}
+row() { # name expect actual
+  local ok=yes; [[ $2 == "$3" ]] || { ok=NO; fail=1; }
+  printf '%-44s %-5s %-5s %s\n' "$1" "$2" "$3" "$ok"
+}
+bash_case() { # name expect command
+  local input actual code
+  input=$(jq -cn --arg c "$3" '{hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: {command: $c}}')
+  actual=$("$bin/tool-guard" <<<"$input" | verdict); code=$?
+  row "$1" "$2" "$actual"
+}
+file_case() { # name expect tool path
+  local input
+  input=$(jq -cn --arg t "$3" --arg p "$4" '{hook_event_name: "PreToolUse", tool_name: $t, tool_input: {file_path: $p}}')
+  row "$1" "$2" "$("$bin/tool-guard" <<<"$input" | verdict)"
+}
+model_case() { # name expect tool tool_input_json
+  local input
+  input=$(jq -cn --arg t "$3" --argjson i "$4" '{hook_event_name: "PreToolUse", tool_name: $t, tool_input: $i}')
+  row "$1" "$2" "$("$bin/model-guard" <<<"$input" | verdict)"
+}
+printf '%-44s %-5s %-5s %s\n' case expect actual ok
+
+# Never deploy unless the task is the deploy: ask, never deny.
+bash_case "railway up" ask "railway up"
+bash_case "railway up --service api" ask "railway up --service api"
+bash_case "vercel --prod after cd" ask "cd web && vercel --prod"
+bash_case "vercel deploy" ask "vercel deploy --prebuilt"
+bash_case "bare vercel deploys" ask "vercel"
+bash_case "npx wrangler deploy" ask "npx wrangler deploy"
+bash_case "env var then pnpm dlx wrangler deploy" ask "CI=1 pnpm dlx wrangler deploy"
+bash_case "wrangler pages deploy" ask "wrangler pages deploy dist"
+bash_case "fly deploy in a pipeline" ask "git pull && fly deploy"
+bash_case "deploy on a later line" ask $'echo start\nrailway up'
+bash_case "commit message names railway up" none "git commit -m 'document railway up and vercel deploy'"
+bash_case "gh comment names a deploy" none "gh issue comment 1 --body 'run wrangler deploy later'"
+bash_case "vercel env pull" none "vercel env pull .env.local"
+bash_case "wrangler dev" none "wrangler dev"
+bash_case "railway logs" none "railway logs"
+bash_case "plain command" none "git status"
+
+# Never /tmp: warn, never block.
+bash_case "redirect to /tmp" warn "npm test > /tmp/out.log 2>&1"
+bash_case "cp into /tmp" warn "cp a.txt /tmp/a.txt"
+bash_case "/private/tmp path" warn "ls /private/tmp/x"
+bash_case ".verification path" none "npm test > .verification/t/out.log 2>&1"
+bash_case "path that ends in tmp" none "cat /Users/a/tmp/x"
+bash_case "harness scratch /tmp/claude" none "ls /tmp/claude-501/scratch"
+file_case "Write under /tmp" warn Write /tmp/notes.md
+file_case "Edit under /private/tmp" warn Edit /private/tmp/x.sh
+file_case "Write in repo" none Write /Users/a/repo/.verification/t/notes.md
+file_case "Write harness scratch" none Write /tmp/claude-501/s/a.html
+
+# --is-deploy is what scheduled-allow asks.
+chk=$(jq -cn '{tool_name: "Bash", tool_input: {command: "railway up"}}' | "$bin/tool-guard" --is-deploy; echo $?)
+row "--is-deploy on railway up" 0 "$chk"
+chk=$(jq -cn '{tool_name: "Bash", tool_input: {command: "git status"}}' | "$bin/tool-guard" --is-deploy; echo $?)
+row "--is-deploy on git status" 1 "$chk"
+row "bad JSON" none "$(echo '{nope' | "$bin/tool-guard" | verdict)"
+
+# Grok and opencode are never used: deny by model or provider field only.
+model_case "delegate_task grok model" deny mcp__t3-code__delegate_task '{"task":"review","target":{"providerInstanceId":"cursor","model":"grok-4.7"}}'
+model_case "delegate_task opencode provider" deny mcp__t3-code__delegate_task '{"task":"x","target":{"providerInstanceId":"opencode","model":"gpt-6.1-sol"}}'
+model_case "schedule_task grok" deny mcp__t3-code__schedule_task '{"title":"t","model_selection":{"instanceId":"cursor","model":"Grok-4.7"}}'
+model_case "delegate_task sonnet" none mcp__t3-code__delegate_task '{"task":"review","target":{"providerInstanceId":"claudeAgent","model":"claude-sonnet-5-5","options":{"effort":"medium"}}}'
+model_case "brief mentions Grok, target is Sol" none mcp__t3-code__delegate_task '{"task":"Never use Grok. Review the PR.","target":{"providerInstanceId":"codex","model":"gpt-6.1-sol"}}'
+model_case "no target" none mcp__t3-code__t3_thread_list '{}'
+row "model-guard bad JSON" none "$(echo 'nope' | "$bin/model-guard" | verdict)"
+exit $fail

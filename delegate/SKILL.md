@@ -9,7 +9,7 @@ On a program of several tickets, plan and write tickets; let subagents investiga
 
 ## Pick the model and effort
 
-Grok is never used, for anything, through any provider. A Grok review does not satisfy a tier 2 gate: the PR is re-reviewed by the GPT reviewer below. Never use the `opencode` provider or any `opencode/...` model, even through another provider instance. The catalog does not report usage or quota; model availability alone does not mean an account has capacity.
+Grok is never used, for anything, through any provider. A Grok review does not satisfy a tier 2 gate: the PR is re-reviewed by the GPT reviewer below. Never use the `opencode` provider or any `opencode/...` model, even through another provider instance. The `model-guard` hook denies a T3 call that names either, and `scheduled-models` flags a scheduled task on one. The catalog does not report usage or quota; model availability alone does not mean an account has capacity.
 
 | Work | Provider / model | Effort |
 | --- | --- | --- |

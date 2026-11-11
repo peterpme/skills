@@ -1,0 +1,1 @@
+{"expect":"none","tool":"Bash","command":"cd web && vercel --prod","transcript":[{"type":"queue-operation"},{"type":"user","message":{"role":"user","content":"[t3-sentinel-run] Worker run."}}]}
