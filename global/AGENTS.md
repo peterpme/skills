@@ -7,26 +7,25 @@ Source: `global/AGENTS.md` in `~/skills`; `npm run sync` links it into every har
 | Principle | Do | Never |
 |---|---|---|
 | Define done first | Write the executable check and its expected values before the work | Start code without a criterion, or move the criterion to fit the result |
-| Contract before code | Goal in my words, my decisions, out of scope, acceptance checks, on the ticket. Tier 1 starts at once. Tier 2 builds at once too, but its PR stays a draft until two hours have passed since the contract with no objection on the ticket; nothing waits on a timer | Build the wrong thing well, or wait for an approval I never asked you to wait for |
+| Contract before code | Goal in my words, my decisions, out of scope, acceptance checks, on the ticket. Tier 1 starts at once. Tier 2 builds at once too, but its PR stays a draft until two hours have passed since the contract with no objection on the ticket; nothing waits on a timer | Build the wrong thing well |
 | Verify before you change | When money, keys, releases or a public API are involved, the first PR is the check that would catch the change, passing on today's code | Change what you cannot yet observe |
 | Measure, change, measure | Baseline, change, same measurement again, both numbers in the PR | Call anything faster or better without a number |
 | Use what exists | The repo's tooling, the framework's conventions, established libraries. Before new tooling, the `research-first` prior-art note; custom code carries its written reason | Land a one-off script in a PR, or write a library when one exists |
 | Smallest reversible step | One ticket, one draft PR holding the whole change first. Split it into mergeable PRs under 400 hand-written lines each, every one revertible alone, only once it works and only as far as review needs. A codemod or generated baseline is one PR, generated part in its own commit, with the command that produced it | A stack of draft PRs opened up front, a giant hand-written PR handed over unsplit, sibling PRs that conflict, or a mechanical change sliced into a wall of PRs |
 | Replace, do not accumulate | Close the superseded PR in the same turn, delete the absorbed script, cut a rule when you add one | Leave the old attempt open |
 | State lives in the ledger | Write to the ticket at fixed events: start, contract, PR, decision, finding, blocked, done | Keep the status in the conversation |
-| Decide, log, proceed | When a call is mine but has a defensible default, take it, record it as a closed `decision` issue with the one word that reverts it, and keep going. Stop and wait only when the wrong choice deletes, publishes, spends money, touches keys or production, or cannot be undone within an hour | Proceed under a guess you did not write down, or make me the bottleneck for a choice I can reverse in one word |
+| Align before you build | In a thread I'm in, settle what I want and what done looks like before you build: up to three questions a round, each with your pick, then wait for my answers. Sometimes I find out what I want by answering. Look up anything the code, docs or history answer. When I say "figure it out yourself", or no one is there (a scheduled run), take your picks, write them on the ticket and go | Ask what you could have looked up, or build on a guess I could have corrected in a minute |
 | Report like a VP | The decision I need, the evidence as a table, what is blocked. Backstory on request | Narrate the work |
 
 ## Route
 
 | When | Read |
 |---|---|
-| Any change to project files | `~/.agents/skills/finish-task/SKILL.md`: real-flow proof, checks, draft PR, review threads |
 | Tier 1 or 2, a feature, or coordinating other agents | `orchestrate`, from the start: the contract comes before any code |
 | Handing anything to another agent | `delegate`: model table, brief, watching, review format |
 | About to write a tool, script, harness, checker or library | `research-first`: the prior-art note before the plan |
 | A change meant to move a number (speed, size, cost, flakiness) | `harness-first`: the baseline PR before the change |
-| A feature or design with open questions only I can answer | `grilling`: one round, then proceed on defaults |
+| Any new task in a thread I'm in, unless I said figure it out yourself | `grilling`: align with me first |
 | I ask for a ticket, an issue, a plan or a set of principles | deliver that and stop (`ticket` for issues): the work starts when a worker picks it up or I say go |
 | A repo with an `llp/` folder | `llp-orient` before the contract |
 | Effect code | `effect-v4` |
@@ -38,7 +37,7 @@ Classify the task at the start and write the tier in the ticket. I can override 
 
 | Tier | Examples | Gates |
 |---|---|---|
-| 0 | Typo, config, one-file fix, question | finish-task only |
+| 0 | Typo, config, one-file fix, question | Finish steps only |
 | 1 | Feature, refactor, dependency change, hill climb on data | Contract, ledger, one draft PR split for review, proof table, harness before the climb (`harness-first`) |
 | 2 | Money, keys, releases, public API, perf claims | Tier 1 plus the domain model, verify-first, an independent oracle, a reviewer whose findings carry a failing command |
 
@@ -51,11 +50,21 @@ Classify the task at the start and write the tier in the ticket. I can override 
 ## Every task
 
 - Work out what I'm asking and what finished looks like to me. State your reading in one line, then do the work. Check the installed version, its docs or the live UI before saying something can't be done.
-- Ask first only when two readings lead to different work, or the wrong one would delete, publish, spend money or be hard to undo: one message, each option's gain and cost, your pick. Never ask what the code, docs or my earlier messages answer. When I ask the same thing twice, restate my requirements as a numbered list, answer each yes or no with its step, then act.
+- When I ask the same thing twice, restate my requirements as a numbered list, answer each yes or no with its step, then act.
 - Every codebase is yours: what it's for and how it's built are your call, and you'll keep building on it. Merge duplicate code and fix nearby problems you find; list each one in the PR body.
 - Proof means running the real UI, API or CLI with representative data, expected next to actual, against the live service the tool exists for. A pass count is not proof. Never say done, working or verified about something you didn't check; otherwise say `implemented, unverified` and what's missing.
 - Never deploy unless the task is the deploy.
 - Run or dry-run a command yourself before handing it to me, and say which device it needs. Commands I paste run in my interactive shell, where `rm`, `cp` and `mv` prompt and `^ # ~ ( |` must be quoted.
+
+## Finish every change
+
+Any change to project files ends this way without being asked; skip it for questions, reviews and plans.
+
+- Before editing, name the observable result that proves it. Reproduce a reported failure first.
+- Prove it through the real flow (Every task, above). Run the repo's format, lint, typecheck, build and tests; if they cause edits, prove it again. Read the diff for unrelated changes and secrets.
+- Task branch, only this task's changes, push, open a draft PR or update the existing one. The body: why, what changed, expected next to actual, checks, what is unverified. Link it to the thread.
+- Ready only when `pr-status <n>` exits 0 (CI green, no unresolved threads, within 400 lines); chain the merge on it with `&&`. Answer every review thread, bots included, before ready and again after; a human's thread closes only by a fix or their agreement.
+- Never stop at a plan or an offer to do work already asked for. What you can't run is `implemented, unverified`, with what's missing.
 
 ## Reporting
 

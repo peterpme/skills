@@ -1,6 +1,6 @@
 ---
 name: orchestrate
-description: Ask once, get finished PRs. Turns a build request into a written contract (Peter's goal, his decisions, acceptance checks, slices, defaults for open questions), builds through workers, runs one findings-only review per diff, and hands over only PRs that pass a ready gate. Use for a feature, fix or refactor that needs a PR and more than one file, for multi-PR programs, and whenever you coordinate several workers. Not for a one-file fix (finish-task) or one-off research or review (delegate).
+description: Ask once, get finished PRs. Turns a build request into a written contract (Peter's goal, his decisions, acceptance checks, slices, defaults for open questions), builds through workers, runs one findings-only review per diff, and hands over only PRs that pass a ready gate. Use for a feature, fix or refactor that needs a PR and more than one file, for multi-PR programs, and whenever you coordinate several workers. Not for a one-file fix (the Finish steps in global AGENTS.md) or one-off research or review (delegate).
 ---
 
 # Orchestrate
@@ -9,7 +9,7 @@ Peter's goal: ask once, get finished PRs. Every time he has to say "no", "I said
 
 | Task size | Do |
 |---|---|
-| Small fix, one file, obvious proof | `finish-task` only |
+| Small fix, one file, obvious proof | The Finish steps in global AGENTS.md only |
 | One PR | Contract (step 1), build, diff review, gate |
 | Several PRs or several workers | All steps, and you only orchestrate |
 
@@ -24,7 +24,7 @@ On a program with several workers, keep your context for decisions: have a read-
    - Peter's messages in this thread, including side remarks ("no bignumber", "use tsrs", "exclude Aug 5").
    - The repo's `AGENTS.md`/`CLAUDE.md`, contributing and PR guides, and the docs for the area you are changing.
    - Earlier threads and PRs on the same topic: `t3_thread_search`, `gh pr list --search <topic> --state all`, and review comments on those PRs. A reviewer's past objection is a decision.
-   - Peter's global instructions and the skills that apply (`finish-task`, `delegate`).
+   - Peter's global instructions and the skills that apply (`delegate`).
 
    Everything the request states explicitly is a decision, and so is what it implies:
    - **Approaches and their order:** try the first one he named before falling back, and say what failed.
@@ -45,9 +45,9 @@ On a program with several workers, keep your context for decisions: have a read-
    - **For a change to shared code:** list its blast radius: who imports it, which flows run through it, and which of those flows have no automated check today. Each unchecked flow gets a Verification check or an unverified proof row.
    - **Separate PRs:** give these their own PR and never mix them with behavior changes: sensitive packages (security, keys, money, auth), docs and agent instructions, and pure moves or renames. Keep each PR reviewable: under 400 hand-written changed lines, excluding lockfiles, generated files and mechanical renames. `pr-status` counts it and exits 3 over 400; a PR that truly can't be split carries a body line starting `Unsplittable: <reason>`. For a mechanical change across many files, use or write a codemod (`ast-grep`, `jscodeshift`, a script) and name it in the PR. Each slice must pass CI and work on its own.
 5. **Out of scope.** What you will not touch, including tempting cleanups.
-6. **Open questions.** Only questions where the answer changes what gets built and neither the request, the repo nor history answers it. Most tasks have none, one or two. Each carries your default and why. For a feature, design or multi-PR request, ask them as one `grilling` round (at most three), then **proceed on the defaults**.
+6. **Open questions.** Only questions where the answer changes what gets built and neither the request, the repo nor history answers it. Most tasks have none, one or two. Each carries your default and why. For a feature, design or multi-PR request, ask them as one `grilling` round (at most three) and wait for Peter's answers, unless he said figure it out yourself or no one is there.
 
-   Never ask Peter to approve the plan, confirm your defaults, or pick between equivalent options. Decide routine choices (names, file locations, test layout, equivalent APIs) yourself, record them as decisions, and act on them.
+   Never ask Peter to pick between equivalent options. Decide routine choices (names, file locations, test layout, equivalent APIs) yourself, record them as decisions, and act on them.
 
 When Peter adds or changes a decision mid-task, update the contract on the ticket and in the copy right away and send it to every running worker (`t3_thread_send`, `mode: "steer"`).
 

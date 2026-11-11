@@ -11,6 +11,6 @@ export function score(c, g) {
     return 0;
   });
   const routine = g.questions.filter((q) => q.label === "routine").length;
-  const s = credit.reduce((a, b) => a + b, 0) / credit.length - Math.min(0.25, 0.05 * routine) - (g.waits_for_peter ? 0.1 : 0);
+  const s = credit.reduce((a, b) => a + b, 0) / credit.length - Math.min(0.25, 0.05 * routine);
   return Math.round(s * 1000) / 1000;
 }

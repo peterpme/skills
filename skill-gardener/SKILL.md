@@ -50,7 +50,7 @@ Title `gardener <date>: -N words`. Body, nothing else:
 
 Then:
 
-- **Holds:** follow finish-task's ready gate (`pr-status`, `pr-threads` empty, every bot thread answered), merge, delete the branch, then `git -C ~/skills pull --ff-only` and `npm run release` from `~/skills`.
+- **Holds:** follow the ready gate in global AGENTS.md (Finish every change) (`pr-status`, `pr-threads` empty, every bot thread answered), merge, delete the branch, then `git -C ~/skills pull --ff-only` and `npm run release` from `~/skills`.
 - **Drops or unscored:** leave the PR a draft with the score in the body. Next run, retry one of its files, largest cut first, as that run's whole batch on a fresh branch, and close the draft.
 - **Nothing to cut:** open no PR.
 
