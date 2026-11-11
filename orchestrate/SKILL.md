@@ -107,7 +107,7 @@ A PR is ready only when all of these hold. Check them with the helpers, not from
 - Its base is `master` (or the repo's default branch). A stacked PR stays a draft while it targets a sibling branch, even after its veto window; run the gate once its parent merges and GitHub retargets it. A mechanical refactor across many operations is one PR per operation only when each is reviewable alone and the stack stays under about five deep; otherwise fold.
 - The PR body states why it exists, what changed, the proof table, the reviewer with model and reviewed SHA, and any codemod used.
 
-Merging follows the repo-class rule in the global instructions; no reviewer approval stands in for Peter's merge on a work repo. Then hand over in one message: one line per PR in merge order (`#n title: what it does, proof in one phrase`), followed by "Needs your call" with only what truly needs him, and what is unverified.
+Merging follows the repo-class rule in the global instructions. Then hand over in one message: one line per PR in merge order (`#n title: what it does, proof in one phrase`), followed by "Needs your call" with only what truly needs him, and what is unverified.
 
 ## 7. Close out
 
@@ -118,7 +118,7 @@ After a PR merges: settle or close its worker threads, remove their worktrees, a
 LLP is numbered design docs in a repo's `llp/` folder plus `@ref` comments in code that point at them. In a repo that has `llp/`:
 
 - **Pointers, every tier.** Run `llp-orient` before the contract and record what it returns as Decisions. When code implements a recorded decision, leave the `@ref`. When the diff touches code that carries one, run `llp-maintain pre-pr` before the gate.
-- **Review of an LLP document** follows LLP 0005: proportional to what a mistake would cost, with no quota.
+- **Review of an LLP document** follows LLP 0005.
 
 | Stakes | Review |
 |---|---|
@@ -126,4 +126,4 @@ LLP is numbered design docs in a repo's `llp/` folder plus `@ref` comments in co
 | A bounded design with real trade-offs: tier 2 | `llp-review`, one round from the GPT reviewer. A finding counts when it names a wrong decision and the case that breaks it; a demand for more detail does not |
 | Foundational: what the code will grow around, or is expensive to reverse | `llp-super-refine`, only when Peter asks for it by name |
 
-Never start a review loop on day-to-day work because a document exists. Whatever the level, a review that did not run is never claimed.
+Whatever the level, a review that did not run is never claimed.
