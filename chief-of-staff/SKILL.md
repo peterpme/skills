@@ -33,7 +33,7 @@ Closure is more than closing. When you close the last PR of a stream, or an epic
 
 For each open `blocked` home issue, take every open PR that references it (its timeline), and post one issue comment per failed check (name, head SHA, link if any) or review thread (link) that no earlier comment on the issue names; leave the status as it is (control panel, Status).
 
-Every issue you touch carries one area label (`backpack` or `personal`) and one project label; fix any that are missing. Never deploy. Never nudge a teammate; name who should be asked and why.
+Every issue you touch carries one area label (`backpack` or `personal`) and one project label; fix any that are missing. Run `~/Projects/home/sentinel/ledger-status-check.sh` and fix each issue it lists, so every open issue has one status. Apply the control panel's Postmortems and Revert budget sections: file the postmortem a trigger calls for, and record an area that is over its budget on its epic. Never deploy. Never nudge a teammate; name who should be asked and why.
 
 ## Retargeted stacks
 
