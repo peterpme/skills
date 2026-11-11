@@ -6,7 +6,7 @@ compatibility: T3 Code (reads its local database), gh and python3.
 
 # Skill scout
 
-Goal: Peter says a thing once, and from then on every agent does it by default, and no agent keeps paying for the same expensive command. One run a day: digest the new turns, record his corrections verbatim, find frustration and preference signals, update the ledger, file recurring patterns as finding issues, note what changed for the day's summary, commit the cursor. The daily run also ranks command costs, measures skill read rates and posts one summary comment, even on a day with nothing new.
+Goal: Peter says a thing once, and from then on every agent does it by default, and no agent keeps paying for the same expensive command. The daily run also ranks command costs, measures skill read rates and posts one summary comment, even on a day with nothing new.
 
 - Read threads only. Never message, interrupt, configure, settle or archive another thread.
 - Never change the skills repo; the weekly skill review does that with evidence. Write only to the feedback file, the ledger and finding issues.
@@ -159,7 +159,7 @@ Write the `Needs your call:` line only when something there needs Peter; otherwi
 Needs your call: <only when something needs him>
 ```
 
-On machines that clean up scheduled-run threads, a run thread is deleted a few minutes after it finishes, and the feedback file, the finding issues, the ledger and the daily comment keep the record. So put a question for Peter in the daily comment or a finding, never only in the run's reply.
+A run thread is deleted shortly after it finishes on machines that clean up scheduled runs, so put a question for Peter in the daily comment or a finding, never only in the run's reply.
 
 ## Set up on a machine
 
