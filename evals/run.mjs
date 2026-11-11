@@ -48,18 +48,20 @@ function grade(fixture, text) {
     if (cur && /^(-|\d+\.)\s/.test(l)) sections[cur].push(l);
   }
   const words = (l) => l.replace(/^(-|\d+\.)\s+/, "").replace(/\*\*TLDR:\*\*/, "").replace(/[*`→]/g, " ").split(/\s+/).filter(Boolean).length;
-  const longLines = lines.filter((l) => !header.test(l) && words(l) > 15);
+  // No word cap in the skill: a line is one short sentence. The eval backstop flags paragraphs only.
+  const body = lines.filter((l) => !header.test(l));
+  const longLines = body.filter((l) => words(l) > 30);
   const res = {
     startsWithTldr: /^\*\*TLDR:\*\*/.test(lines[0] ?? ""),
     doneMax3: (sections.Done ?? []).length <= 3,
     nextMax3: (sections.Next ?? []).length <= 3,
-    wordsMax15: longLines.length === 0,
+    wordsMax30: longLines.length === 0,
     noExtraHeaders: !lines.some((l) => /^#|^\*\*[^*]+\*\*:?$/.test(l) && !header.test(l)),
     decisionsWithinSource: (sections.Decide ?? []).length <= c.maxDecisions,
     mustMatch: c.mustMatch.every((p) => new RegExp(p, "i").test(text)),
     mustNotMatch: c.mustNotMatch.every((p) => !new RegExp(p, "i").test(text)),
   };
-  return { res, longLines };
+  return { res, longLines, maxWords: Math.max(0, ...body.map(words)) };
 }
 
 const JUDGE_PROMPT = (task, source, brief) => `TASK is what the reader asked for. SOURCE is an agent's report on it. BRIEF is a rewrite that must use only SOURCE. BRIEF's format requires numbered decisions with a recommended pick: a pick is fine if SOURCE made that choice, leaned that way, or named it as the reader's next action.
@@ -91,7 +93,7 @@ for (const f of readdirSync(join(here, "fixtures")).filter((f) => f.endsWith(".m
     for (const v of variants) {
       const out = claude(["--resume", seed.session_id, "--fork-session", "--plugin-dir", v.dir], `/${v.name}:tldr`);
       const text = out.result.trim();
-      const { res, longLines } = grade(fixture, text);
+      const { res, longLines, maxWords } = grade(fixture, text);
       let verdict = "skipped";
       if (judge) {
         verdict = claude(["--model", "sonnet"], JUDGE_PROMPT(task, source, text)).result.trim();
@@ -102,8 +104,8 @@ for (const f of readdirSync(join(here, "fixtures")).filter((f) => f.endsWith(".m
       totals[v.ref] ??= { passed: 0, total: 0 };
       totals[v.ref].passed += passed;
       totals[v.ref].total += total;
-      rows.push({ fixture, version: v.ref, run: r, score: `${passed}/${total}`, failed: Object.keys(res).filter((k) => !res[k]).join(",") || "-" });
-      writeFileSync(join(work, `${fixture}.${v.name}.${r}.md`), `${text}\n\n---\n${JSON.stringify({ res, longLines }, null, 1)}\n\nJUDGE:\n${verdict}\n`);
+      rows.push({ fixture, version: v.ref, run: r, score: `${passed}/${total}`, maxWords, failed: Object.keys(res).filter((k) => !res[k]).join(",") || "-" });
+      writeFileSync(join(work, `${fixture}.${v.name}.${r}.md`), `${text}\n\n---\n${JSON.stringify({ res, longLines, maxWords }, null, 1)}\n\nJUDGE:\n${verdict}\n`);
     }
   }
 }
