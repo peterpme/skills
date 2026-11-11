@@ -22,9 +22,9 @@ Use only what that response says. Shorten and reword it, but add no decision, re
 Rules:
 - Decisions most urgent first, numbered so the reader can reply "1 yes, 2 B". Name another option only if the response did.
 - Turn their actions into decisions ("Merge PR #6? → **yes**"). Include any call you made for them that they might veto.
-- At most 3 Done lines and 3 Next lines. Every line, the TLDR too, is 15 words or fewer. Fragments are fine.
+- At most 3 Done lines and 3 Next lines. Every line, the TLDR too, is one short sentence. Fragments are fine.
 - Skip empty sections. If nothing needs them, end the TLDR with "Nothing needed from you."
-- Plain words. Drop labels and IDs invented during the work unless they need one to act.
+- Plain words. Give a tool, role or setting the few words that define it the first time it appears. Drop labels and IDs invented during the work unless they need one to act.
 - No preamble, recap, narration, praise, or hedging.
 
 Example:

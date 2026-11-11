@@ -16,4 +16,4 @@ Limits:
 - If an item needs something you can't get, such as credentials, a person, or access, skip it and say exactly what is missing.
 - If an item shows your pick was wrong, stop that item and bring it back as a decision.
 
-End with a new brief covering only this run, in the same format: **TLDR:** one sentence; **Decide**, numbered with your picks; **Done** and **Next**, at most 3 lines each; at most 15 words per line.
+End with a new brief covering only this run, in the same format: **TLDR:** one sentence; **Decide**, numbered with your picks; **Done** and **Next**, at most 3 lines each; one short sentence per line.
