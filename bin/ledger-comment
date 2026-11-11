@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# ledger-comment [--close] N [FILE]
+#
+# Post a comment on issue N of the home ledger (peterpme/home, or $LEDGER_REPO)
+# from FILE or stdin, ending with the `<!-- agent -->` marker on its own line.
+# gh posts as Peter, and the marker is how the sentinel tells his answers from
+# an agent's, so every agent comment goes through here. --close also closes
+# the issue after the comment. LEDGER_DRY_RUN=1 prints the body and posts nothing.
+# exit 0 posted, 1 gh failed, 2 usage error or empty body
+set -euo pipefail
+case ${1:-} in -h | --help) sed -n '2,9p' "$0" | cut -c3-; exit 0 ;; esac
+close=
+[[ ${1:-} == --close ]] && { close=1; shift; }
+n=${1:-}
+[[ $n =~ ^[0-9]+$ ]] || { echo "usage: ledger-comment [--close] N [FILE]" >&2; exit 2; }
+body=$(cat -- "${2:--}")
+marker='<!-- agent -->'
+# Drop a marker the caller already wrote, so the body carries exactly one, last.
+body=$(printf '%s\n' "$body" | grep -vxF -- "$marker" || true)
+[[ -n ${body//[[:space:]]/} ]] || { echo "ledger-comment: empty body" >&2; exit 2; }
+body=$(printf '%s\n\n%s\n' "$body" "$marker")
+repo=${LEDGER_REPO:-peterpme/home}
+if [[ -n ${LEDGER_DRY_RUN:-} ]]; then printf '%s\n' "$body"; exit 0; fi
+gh issue comment "$n" -R "$repo" --body-file - <<<"$body"
+[[ -z $close ]] || gh issue close "$n" -R "$repo" >/dev/null

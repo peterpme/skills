@@ -24,7 +24,22 @@ mkdir -p "$state" 2>/dev/null && find "$state" -type f -mtime +7 -delete 2>/dev/
 [[ -f $seen ]] || : >"$seen" 2>/dev/null
 seenjson=$(jq -R . "$seen" 2>/dev/null | jq -s . 2>/dev/null) || seenjson='[]'
 
-out=$(jq -c --argjson seen "$seenjson" '
+# A delegate_task child started since the user's last message wakes this thread when it
+# finishes, so a promise to relay its result has its wake. Read from the transcript.
+delegated=false
+transcript=$(jq -r '.transcript_path // "" | tostring' <<<"$input" 2>/dev/null)
+if [[ -n $transcript && -f $transcript ]]; then
+  delegated=$(tail -n 400 "$transcript" 2>/dev/null | jq -s '
+    map(select(.type == "user" or .type == "assistant"))
+    | (map(.type == "user" and ((.message.content | type) == "string"
+        or ((.message.content | type) == "array" and any(.message.content[]; .type == "text")))) | rindex(true) // -1) as $u
+    | .[$u + 1:]
+    | any(.[]; .type == "assistant" and ((.message.content | type) == "array")
+        and any(.message.content[]; .type == "tool_use" and ((.name // "") | test("delegate_task$"))))' 2>/dev/null) || delegated=false
+  [[ $delegated == true ]] || delegated=false
+fi
+
+out=$(jq -c --argjson seen "$seenjson" --argjson delegated "$delegated" '
   # A promise to report later: "I will check the files once it finishes",
   # "when it finishes, I will send the counts", "will report back when done".
   # A sentence runs to a period followed by space or end, so file names pass;
@@ -51,6 +66,7 @@ out=$(jq -c --argjson seen "$seenjson" '
          ids: ($tasks | map(.id // "?" | tostring)),
          reason: ("turn-check: \($tasks | length) background task(s) still running: \($tasks | map(describe) | join("; ")). A harness background command dies with the session, and in a scheduled or T3 run the session ends with this turn. Wait for it inside the turn (t3_background_wait, Monitor, or `bgjob wait NAME`) and report the result, or restart it under `bgjob start NAME -- <cmd>` and tell the user how to check it. If it is meant to stay up (a dev server) or something will truly wake you, say so and stop again; this task will not block again.")}
       elif ((.session_crons // []) | length) > 0 then empty
+      elif $delegated then empty
       else
         ((.last_assistant_message // "") | promise) as $m
         | if $m then
