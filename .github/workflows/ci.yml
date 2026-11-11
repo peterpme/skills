@@ -1,7 +1,7 @@
 name: CI
 
-# One check: a PR may not grow global/AGENTS.md, and bin/turn-check and
-# bin/scheduled-allow and bin/pr-status must pass their cases (tests/<hook>/run). Lines added must not exceed
+# One check: a PR may not grow global/AGENTS.md, and bin/turn-check,
+# bin/scheduled-allow, bin/pr-status and bin/start-task must pass their cases (tests/<hook>/run). Lines added must not exceed
 # lines removed unless the PR body has a line "Why more lines: <reason>".
 # "edited" is in the trigger list so fixing the body re-runs the check.
 # Pull requests only: a push to main has no body to read.
@@ -35,3 +35,5 @@ jobs:
         run: tests/scheduled-allow/run
       - name: pr-status size cases
         run: tests/pr-status/run
+      - name: start-task cases
+        run: tests/start-task/run

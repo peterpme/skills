@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+# start-task: what every task does first. Prints the tracker for the folder,
+# the command that searches it, and the Tiers table from global/AGENTS.md.
+# Run it yourself (Codex, Cursor), or let Claude Code run it as a hook: on
+# SessionStart it reads .cwd from stdin and prints additionalContext; on
+# PreToolUse for Edit, Write, MultiEdit, NotebookEdit or an in-place Bash edit
+# it denies the first edit of a session that has not written its ticket, once
+# per session (state in ~/.local/state/start-task, or $START_TASK_STATE).
+# The work folder comes from the home README rule line ("under `<path>` the
+# tracker is Linear"); START_TASK_HOME overrides ~/Projects/home, and
+# START_TASK_OFF=1 turns it off. Always exits 0. scripts/sync-skills.mjs
+# registers it in each ~/.claude*/settings.json; tests/start-task/run checks it.
+set -uo pipefail
+case ${1:-} in -h | --help) sed -n '2,12p' "$0" | cut -c3-; exit 0 ;; esac
+[[ ${START_TASK_OFF:-} == 1 ]] && exit 0
+command -v jq >/dev/null 2>&1 || PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
+hook=
+cwd=$PWD
+if [[ ! -t 0 ]]; then
+  # An agent shell can hold stdin open with nothing on it; give up after 1s. Hook input is one
+  # line of JSON: read that line, then anything after it, so input kept open after a full line
+  # still parses (bash 3.2 drops a partial read on timeout).
+  input=
+  IFS= read -r -t 1 input 2>/dev/null
+  rest=
+  [[ -n $input ]] && IFS= read -r -d '' -t 1 rest 2>/dev/null
+  [[ -n $rest ]] && input=$input$'\n'$rest
+  # Most Bash calls write nothing: let them through before spending any jq call.
+  [[ $input == *'"tool_name":"Bash"'* && $input != *sed* && $input != *perl* && $input != *cat* && $input != *tee* ]] && exit 0
+  if [[ -n $input ]] && command -v jq >/dev/null 2>&1 && jq -e 'type == "object"' >/dev/null 2>&1 <<<"$input"; then
+    hook=$(jq -r '.hook_event_name // "SessionStart"' <<<"$input")
+    c=$(jq -r '.cwd // ""' <<<"$input")
+    [[ -n $c ]] && cwd=$c
+  fi
+  # Hook input with no jq to read it: stay quiet on an edit, fall back to plain text otherwise.
+  [[ $input == *PreToolUse* ]] && ! command -v jq >/dev/null 2>&1 && exit 0
+fi
+
+if [[ $hook == PreToolUse ]]; then
+  case $(jq -r '.tool_name // ""' <<<"$input") in
+    Edit | Write | MultiEdit | NotebookEdit) ;;
+    # In-place edits through the shell (sed -i, perl -i, cat > file, tee file); writing a ticket
+    # body or anything under .verification/ is not a code edit.
+    Bash) jq -e '(.tool_input.command // "") as $c | ($c | test("(^|[;&|(]\\s*)(sed\\s+(-[A-Za-z]+\\s+)*-[A-Za-z]*i|perl\\s+(-[A-Za-z]+\\s+)*-[A-Za-z]*i|cat\\s*>[^>&]|tee\\s+[^-|\\s])")) and ($c | test("gh issue|\\.verification/") | not)' >/dev/null 2>&1 <<<"$input" || exit 0 ;;
+    *) exit 0 ;;
+  esac
+  session=$(jq -r '.session_id // "" | tostring | gsub("[^A-Za-z0-9_-]"; "_")' <<<"$input")
+  state=${START_TASK_STATE:-${XDG_STATE_HOME:-${HOME:-}/.local/state}/start-task}
+  [[ -n $session && ! -f $state/$session ]] || exit 0
+  transcript=$(jq -r '.transcript_path // ""' <<<"$input")
+  [[ $transcript == "~/"* ]] && transcript=${HOME:-}/${transcript#"~/"}
+  [[ -r $transcript ]] || exit 0
+  mkdir -p "$state" 2>/dev/null && find "$state" -type f -mtime +7 -delete 2>/dev/null
+  # The ticket is in place once this session wrote to the ledger (gh issue create, comment or
+  # edit; a Linear issue or comment tool), or a user message carries its link (a brief, a
+  # resumed ticket). A link that only came back in search results does not count.
+  linked=$(jq -Rn '
+    def text: if type == "string" then . elif type == "array" then map(select(.type? == "text") | .text) | join(" ") else "" end;
+    any(inputs | (try fromjson catch null) | select(type == "object");
+      (.type == "assistant" and any(.message.content[]? | select(.type? == "tool_use");
+        ((.name // "") | tostring | test("linear.*(save_issue|save_comment|create_issue|create_comment)"; "i"))
+        or ((.input.command? // "") | tostring | test("\\bgh issue (create|comment|edit)\\b")))) or
+      (.type == "user" and (.message.content | text | test("github\\.com/peterpme/home/issues/[0-9]|peterpme/home#[0-9]|linear\\.app/[^/\" ]+/issue/[A-Za-z]+-[0-9]"))))' "$transcript" 2>/dev/null)
+  if [[ $linked == true ]]; then
+    echo ticket >"$state/$session" 2>/dev/null
+    exit 0
+  fi
+  echo denied >"$state/$session" 2>/dev/null
+  jq -cn '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: "start-task: this session has not written its ticket yet. Before the first edit, search the tracker (run start-task for the commands), then create the ticket, or attach to the one you found by commenting on it with this thread and the tier (gh issue comment). A ticket link in your brief counts. Then retry the edit. This blocks once per session."}}'
+  exit 0
+fi
+
+ledger=${START_TASK_HOME:-${HOME:-}/Projects/home}
+work=
+if [[ -r $ledger/README.md ]]; then
+  work=$(grep -o 'under `[^`]*` the tracker is Linear' "$ledger/README.md" | head -n 1 | sed 's/^under `//; s/` the tracker is Linear$//')
+  [[ $work == "~/"* ]] && work=${HOME:-}/${work#"~/"}
+  work=${work%/}
+  [[ -d $work ]] && work=$(cd "$work" && pwd -P)
+fi
+# Compare physical paths, and count a git worktree as its main checkout's folder: a T3 or
+# agent worktree of a work repo lives outside the work folder.
+here=$cwd
+[[ -d $cwd ]] && here=$(cd "$cwd" && pwd -P)
+main=$(git -C "$here" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
+main=${main%/.git}
+[[ -n $main && -d $main ]] && main=$(cd "$main" && pwd -P)
+under() { [[ -n $work && -n $1 && ($1 == "$work" || $1 == "$work"/*) ]]; }
+
+script=$(realpath "$0" 2>/dev/null || readlink -f "$0" 2>/dev/null || echo "$0")
+agents=$(dirname "$script")/../global/AGENTS.md
+tiers=
+[[ -r $agents ]] && tiers=$(awk '/^## Tiers/ { on = 1; next } on && /^## / { exit } on && /^\|/' "$agents")
+
+block() {
+  echo "start-task: before any other action, find or create this task's ticket and state its tier."
+  if under "$here" || under "$main"; then
+    echo "Folder $cwd is under the work folder: the tracker is Linear."
+    echo "Search: Linear MCP list_issues with query \"<keywords>\". No Linear MCP: home issues labelled linear-mirror,"
+    echo "  gh issue list -R peterpme/home --label linear-mirror --state all --search \"<keywords>\""
+  else
+    echo "Folder $cwd is personal: the tracker is peterpme/home issues."
+    echo "Search: gh issue list -R peterpme/home --state all --search \"<keywords>\""
+    echo "Create: gh issue create -R peterpme/home --title \"...\" --body-file <file> (body ends with <!-- agent -->)"
+    [[ -z $work ]] && echo "Work folder unknown: no tracker rule in $ledger/README.md. Clone peterpme/home to ~/Projects/home."
+  fi
+  echo "Attach to a matching open issue; otherwise create one. Put its link and the tier in your first reply."
+  if [[ -n $tiers ]]; then
+    echo "Tiers (global/AGENTS.md):"
+    echo "$tiers"
+  fi
+}
+
+if [[ -n $hook ]]; then
+  command -v jq >/dev/null 2>&1 || exit 0
+  block | jq -Rsc --arg ev "$hook" '{hookSpecificOutput: {hookEventName: $ev, additionalContext: .}}'
+else
+  block
+fi
+exit 0
