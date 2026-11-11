@@ -30,7 +30,7 @@ Score per run, between -0.5 and 1:
 | missed | 0 | 0 |
 | contradicted: the plan does what Peter corrected | -0.5 | 0 (same cost to Peter as missing it) |
 
-The score is the mean credit over the case's interventions, minus 0.05 for each routine question (at most 0.25), and minus 0.1 if the plan waits for Peter before starting. The report gives the mean per variant, the per-case scores, and the verdicts with the judge's notes.
+The score is the mean credit over the case's interventions, minus 0.05 for each routine question (at most 0.25). Waiting for Peter's answers costs nothing: in a thread he is in, he wants to be asked. The report gives the mean per variant, the per-case scores, and the verdicts with the judge's notes.
 
 Each run costs one agent session and one judge call: on the first cases, 1 to 4 minutes and $0.40 to $1.30 of Opus usage per session. Scores of the same variant vary by up to 0.45 between reps on one case, so compare means over at least 8 cases with `REPS=2`, and treat differences under about 0.1 as noise. `CONCURRENCY` (default 3) limits parallel agent sessions.
 

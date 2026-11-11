@@ -32,7 +32,6 @@ USERDATA = pathlib.Path(os.environ.get("T3CODE_HOME", "~/.t3")).expanduser() / "
 
 # skill, threads it is measured on, extra thread filter
 SKILLS = [
-    ("finish-task", "editing threads", ""),
     ("orchestrate", "editing threads with 2+ PRs",
      "and json_array_length(coalesce(json_extract(t.payload_json, '$.pullRequests'), '[]')) >= 2"),
 ]
