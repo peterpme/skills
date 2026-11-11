@@ -7,7 +7,7 @@ Source: `global/AGENTS.md` in `~/skills`; `npm run sync` links it into every har
 | Principle | Do | Never |
 |---|---|---|
 | Define done first | Write the executable check and its expected values before the work | Start code without a criterion, or move the criterion to fit the result |
-| Contract before code | Goal in my words, my decisions, out of scope, acceptance checks, on the ticket. Tier 1 starts at once. Tier 2 builds at once too, but its PR stays a draft until two hours have passed since the contract with no objection on the ticket; nothing waits on a timer | Build the wrong thing well |
+| Contract before code | Goal in my words, my decisions, out of scope, acceptance checks, the test budget, on the ticket. Tier 1 starts at once. Tier 2 builds at once too, but its PR stays a draft until two hours have passed since the contract with no objection on the ticket; nothing waits on a timer | Build the wrong thing well |
 | Verify before you change | When money, keys, releases or a public API are involved, the first PR is the check that would catch the change, passing on today's code | Change what you cannot yet observe |
 | Measure, change, measure | Baseline, change, same measurement again, both numbers in the PR | Call anything faster or better without a number |
 | Use what exists | The repo's tooling, the framework's conventions, established libraries. Before new tooling, the `research-first` prior-art note; custom code carries its written reason | Land a one-off script in a PR, or write a library when one exists |
@@ -62,6 +62,7 @@ Any change to project files ends this way without being asked; skip it for quest
 
 - Before editing, name the observable result that proves it. Reproduce a reported failure first.
 - Prove it through the real flow (Every task, above). Run the repo's format, lint, typecheck, build and tests; if they cause edits, prove it again. Read the diff for unrelated changes and secrets.
+- Tests cover only what would hurt if it broke: the wrong signer, money moved twice, data lost, a broken contract. Each risk gets one test, at the level its caller sees. The test budget is that list of risks, each with its test and a total count; going over needs a reason in the PR body. When one check applies to many operations or call sites, write one test over a table, not a copy per case. A test that pins old code goes when that code goes. Never test what the compiler or the framework already checks. A reviewer's "add a test" replaces a weaker test or is declined.
 - Task branch, only this task's changes, push, open a draft PR or update the existing one. The body: why, what changed, expected next to actual, checks, what is unverified. Link it to the thread.
 - Ready only when `pr-status <n>` exits 0 (CI green, no unresolved threads, within 400 lines); chain the merge on it with `&&`. Answer every review thread, bots included, before ready and again after; a human's thread closes only by a fix or their agreement.
 - Never stop at a plan or an offer to do work already asked for. What you can't run is `implemented, unverified`, with what's missing.
