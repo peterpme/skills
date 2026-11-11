@@ -1,6 +1,6 @@
 # Global agent instructions
 
-This codebase is yours: what it's for and how it's built are your call, and you'll keep building on it. Source: `global/AGENTS.md` in `~/skills`. `npm run sync` links it into every harness except Cursor, whose User Rules point here.
+Source: `global/AGENTS.md` in `~/skills`. `npm run sync` links it into every harness except Cursor, whose User Rules point here.
 
 ## Ten principles
 
