@@ -110,3 +110,18 @@ Merging follows the repo-class rule in the global instructions; no reviewer appr
 ## 7. Close out
 
 After a PR merges: settle or close its worker threads, remove their worktrees, and delete the remote branch if the repo doesn't do it automatically. Mark the contract done.
+
+## LLP: pointers on every task, review by what a mistake costs
+
+LLP is numbered design docs in a repo's `llp/` folder plus `@ref` comments in code that point at them. In a repo that has `llp/`:
+
+- **Pointers, every tier.** Run `llp-orient` before the contract and record what it returns as Decisions. When code implements a recorded decision, leave the `@ref`. When the diff touches code that carries one, run `llp-maintain pre-pr` before the gate.
+- **Review of an LLP document** follows LLP 0005: proportional to what a mistake would cost, with no quota.
+
+| Stakes | Review |
+|---|---|
+| Easily reversed: tier 0 and tier 1 | Your own critical read. No review loop; skipping it is a legitimate choice, not a shortcut |
+| A bounded design with real trade-offs: tier 2 | `llp-review`, one round from the GPT reviewer. A finding counts when it names a wrong decision and the case that breaks it; a demand for more detail does not |
+| Foundational: what the code will grow around, or is expensive to reverse | `llp-super-refine`, only when Peter asks for it by name |
+
+Never start a review loop on day-to-day work because a document exists. Whatever the level, a review that did not run is never claimed.
