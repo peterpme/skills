@@ -59,8 +59,6 @@ A tree is removed once it has been idle long enough for its kind. Idle time coun
 | Xcode DerivedData | Removed when its project folder is gone (such as a removed worktree) or it has been idle 7 days |
 | trash-cli trash | Items deleted 3+ days ago |
 | Simulator runtimes | Removed when unused for 14 days and a newer runtime of the same family exists (a device-specific runtime such as `iOS-27-2-iPhone19-4` is its own family) |
-| Simulators | `xcrun simctl delete unavailable` |
-| pnpm | `pnpm store prune` |
 | uv | `uv cache prune`, waiting at most 60 s for uv's lock. A long-running `uvx` MCP server holds that lock; then archives older than 14 days are removed directly. |
 | Size caps | Emptied when over the cap and not in use: uv 10 GB, Gradle 10 GB (skipped while a Gradle daemon runs), Yarn global cache 5 GB, npm 5 GB |
 
