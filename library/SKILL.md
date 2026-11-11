@@ -1,6 +1,6 @@
 ---
 name: library
-description: Add a book, paper or post to Peter's reading library and keep it consistent - save the original, record its source, build the searchable copy, read it, write its brief, link it into the study guide. Use when Peter sends a PDF or link to add to the library or reading list, or asks where reading material goes. Not for reading a document once without keeping it.
+description: "Use when Peter sends a book, paper or PDF to keep in his reading library, asks to download papers into it, or asks where reading material goes. Saves, indexes, briefs and links it. Not for notes, a one-off read or a summary."
 ---
 
 The library has two parts. Written files live in `~/Projects/home/docs/library/` (read its `README.md` first; run `git -C ~/Projects/home pull --ff-only`). Originals and the generated `md/` copies live in `~/Documents/library/`, outside git.

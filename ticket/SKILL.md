@@ -1,6 +1,6 @@
 ---
 name: ticket
-description: Turn a one-line request from Peter into a ledger issue with the right home, labels, shape and done-criteria, or a decision issue when the request is a question only he can answer. Use when Peter says "ticket", "issue", "file this", "add to the backlog", "ask me later" or pastes a thought he wants kept. Cheap models handle it; the skill carries the judgment.
+description: "Use when Peter wants something kept for later instead of done now: \"ticket\", \"issue\", \"file this\", \"add to the backlog\", \"ask me later\", or a ticket per item in a list. Files it in GitHub or Linear. Not for existing issues."
 compatibility: gh authenticated as peterpme; the private home repo cloned at ~/Projects/home.
 ---
 

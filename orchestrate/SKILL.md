@@ -1,6 +1,6 @@
 ---
 name: orchestrate
-description: Ask once, get finished PRs. Turns a build request into a written contract (Peter's goal, his decisions, acceptance checks, slices, defaults for open questions), builds through workers, runs one findings-only review per diff, and hands over only PRs that pass a ready gate. Use for a feature, fix or refactor that needs a PR and more than one file, for multi-PR programs, and whenever you coordinate several workers. Not for a one-file fix (the Finish steps in global AGENTS.md) or one-off research or review (delegate).
+description: "Use when Peter asks you to build, fix, migrate or refactor something that ends in a PR and spans more than one file (\"build X and get me a pr\", a ticket with acceptance criteria, a migration, a new project), a multi-PR program, or when you coordinate several workers. Writes the contract first. Not for a one-file fix or a one-off investigation (delegate)."
 ---
 
 # Orchestrate

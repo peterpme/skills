@@ -1,6 +1,6 @@
 ---
 name: grilling
-description: Interview Peter about a new feature, design or multi-PR request before the contract is written - explore first, ask at most three questions per round with a default and the gain and cost of each, wait for his answers, and stop when no answer would change the build. Use at the start of any feature, design, new-system or "what if we..." request, from orchestrate's open-questions step, or when asked to grill. Not for a bug with a reproduction, a ticket with checkable acceptance criteria, or a hill climb with a harness.
+description: "Use at the start of a new feature, design, new system or \"what if we...\" request, or when Peter says grill me or ask me first: interview him, at most three questions a round, each with your pick, until no answer would change the build. Not for a bug with a repro, a ticket with acceptance criteria, or a hill climb with a harness."
 ---
 
 # Grilling

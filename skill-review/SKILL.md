@@ -1,6 +1,6 @@
 ---
 name: skill-review
-description: Weekly check that Peter's skills still earn their lines. Turns the scout's open finding issues into one scored change and merges it when the replays of real past tasks say it helps, adds new replay cases from the week's friction, and reports skill read rates and merged rules that still gain events. Use for the scheduled weekly Skill review, or when asked to evaluate or compare versions of the skills. Not for finding new patterns in threads (skill-scout) or for cutting text (skill-gardener).
+description: "Use for the weekly Skill review, or when Peter asks whether his skills are useful and used, or to evaluate, score or compare skill versions or add replay cases: turns the scout's finding issues into one change, merged only when replays of past tasks say it helps. Not for mining threads (skill-scout) or cutting text (skill-gardener)."
 compatibility: Runs on the machine that holds the private eval cases (~/.local/share/skill-evals/orchestrate). Needs the claude and codex CLIs, gh and node.
 ---
 

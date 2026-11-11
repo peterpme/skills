@@ -1,6 +1,6 @@
 ---
 name: delegate
-description: Route and brief subagents with Peter's model and effort table, self-contained tickets, a fixed review reply format, stall checks and retry rules. Use whenever you hand an investigation, implementation ticket or review to another agent. For a whole feature or multi-PR program, start with orchestrate, which uses this skill.
+description: "Use whenever work goes to another agent or model (\"spin up sonnet\", \"get codex to review\", \"hand this off\"): picks the model, writes the brief, watches for stalls. For a whole feature, use orchestrate."
 ---
 
 # Delegate

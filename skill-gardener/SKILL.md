@@ -1,6 +1,6 @@
 ---
 name: skill-gardener
-description: Every three days, cut cruft from Peter's global agent instructions and skills - duplicated rules, narration, stale dates, lines no check backs, rules that say the same thing - as one PR on the skills repo with a words-before-and-after table, merged when the replay eval holds and left a draft with the score otherwise. Use for the scheduled Skill gardener run, or when asked to trim, dedupe or shorten the skills. Not for adding rules, scoring findings or adding eval cases (skill-review).
+description: "Use for the scheduled Skill gardener run, or when Peter asks to trim, dedupe, shorten or prune his skills or AGENTS.md: cuts duplicated rules, narration and stale lines in one PR with a words-before-and-after table, merged when the replay eval holds. Not for adding rules or scoring changes (skill-review)."
 compatibility: Runs on the machine that holds the private eval cases (~/.local/share/skill-evals/orchestrate). Needs the claude and codex CLIs, gh and node.
 ---
 

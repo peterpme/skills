@@ -1,6 +1,6 @@
 ---
 name: harness-first
-description: Measure before any change meant to improve a number. Find or build a harness in the repo, land a baseline from unchanged code before the optimization PR, report every change as a delta against it in the same environment, and pair the number with one real end-to-end run per flow the change touches. Use for any request to make something faster, smaller, smoother, cheaper or less flaky (frame drops, jank, startup time, bundle size, memory, latency, test flakiness, eval scores) and for any hill climb. Not for a bug with a repro or a feature with no number to move.
+description: "Use when a change is meant to move a number: faster, smaller, smoother, cheaper or less flaky (startup, jank, frame drops, bundle size, memory, CI time, API cost, eval scores, any hill climb), or when Peter asks how you know it is faster. Measure a baseline first, then report the change against it. Not for a bug with a repro."
 ---
 
 # Harness first

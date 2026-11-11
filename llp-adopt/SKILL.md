@@ -1,6 +1,6 @@
 ---
 name: llp-adopt
-description: Bring LLP to a repository and keep its installed skills current — the single entry point for "set up LLP here" and "update the LLP skills". Scaffold mode (fresh structure), retrofit mode (survey the codebase, draft a provenance-tagged root LLP, propose an adoption plan), install step (copy skills from a tagged release with a receipt), and update mode (verified, diff-approved skill updates).
+description: "Use when setting LLP up in a repo (fresh scaffold or retrofit of an existing codebase) or installing or updating its LLP skills from a tagged release. Not for writing, reviewing or syncing single LLP documents."
 source: ccheever/llp@v0.5.2
 ---
 
