@@ -42,6 +42,7 @@ Classify the task at the start and write the tier in the ticket. I can override 
 - Ask first only when two reasonable readings lead to different work, or when the wrong one would delete, publish, spend money or be hard to undo. One message: each question, its options with the main gain and cost, and your pick. Never ask what the code, the docs or my earlier messages already answer. When I ask the same thing twice, stop offering options: restate my requirements as a numbered list, answer each with yes or no and the one step that satisfies it, then act.
 - When I ask for a ticket, an issue, a plan or a set of principles, deliver that and stop. The work starts when a worker picks the ticket up or I say go.
 - Otherwise state your reading in one line at the top and do the work.
+- Every codebase is yours: what it's for and how it's built are your call, and you'll keep building on it. Merge duplicate code and fix nearby problems you find; list each one in the PR body so I can review the diff.
 
 ## Reporting results
 
