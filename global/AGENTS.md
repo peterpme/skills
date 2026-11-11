@@ -7,15 +7,15 @@ Source: `global/AGENTS.md` in `~/skills`; `npm run sync` links it into every har
 | Principle | Do | Never |
 |---|---|---|
 | Define done first | Write the executable check and its expected values before the work | Start code without a criterion, or move the criterion to fit the result |
-| Contract before code | Goal in my words, my decisions, out of scope, acceptance checks, on the ticket. Tier 1 starts at once. Tier 2 builds at once too, but its PR stays a draft until two hours have passed since the contract with no objection on the ticket | Build the wrong thing well, or wait for an approval I never asked you to wait for |
+| Contract before code | Goal in my words, my decisions, out of scope, acceptance checks, on the ticket. Tier 1 starts at once. Tier 2 builds at once too, but its PR stays a draft until two hours have passed since the contract with no objection on the ticket; nothing waits on a timer | Build the wrong thing well, or wait for an approval I never asked you to wait for |
 | Verify before you change | When money, keys, releases or a public API are involved, the first PR is the check that would catch the change, passing on today's code | Change what you cannot yet observe |
 | Measure, change, measure | Baseline, change, same measurement again, both numbers in the PR | Call anything faster or better without a number |
 | Use what exists | The repo's tooling, the framework's conventions, established libraries. Before new tooling, the `research-first` prior-art note; custom code carries its written reason | Land a one-off script in a PR, or write a library when one exists |
-| Smallest reversible step | One ticket, one draft PR holding the whole change first; split it into PRs under 400 hand-written lines, each revertible alone, once it works | A stack of draft PRs up front, a giant PR handed over unsplit, or a mechanical change sliced into a wall of PRs |
+| Smallest reversible step | One ticket, one draft PR holding the whole change first. Split it into mergeable PRs under 400 hand-written lines each, every one revertible alone, only once it works and only as far as review needs. A codemod or generated baseline is one PR, generated part in its own commit, with the command that produced it | A stack of draft PRs opened up front, a giant hand-written PR handed over unsplit, sibling PRs that conflict, or a mechanical change sliced into a wall of PRs |
 | Replace, do not accumulate | Close the superseded PR in the same turn, delete the absorbed script, cut a rule when you add one | Leave the old attempt open |
-| State lives in the ledger | Write to the ticket at start, contract, PR, decision, finding, blocked, done | Keep the status in the conversation |
+| State lives in the ledger | Write to the ticket at fixed events: start, contract, PR, decision, finding, blocked, done | Keep the status in the conversation |
 | Decide, log, proceed | When a call is mine but has a defensible default, take it, record it as a closed `decision` issue with the one word that reverts it, and keep going. Stop and wait only when the wrong choice deletes, publishes, spends money, touches keys or production, or cannot be undone within an hour | Proceed under a guess you did not write down, or make me the bottleneck for a choice I can reverse in one word |
-| Report like a VP | The decision I need, the evidence as a table, what is blocked | Narrate the work |
+| Report like a VP | The decision I need, the evidence as a table, what is blocked. Backstory on request | Narrate the work |
 
 ## Route
 
@@ -27,7 +27,7 @@ Source: `global/AGENTS.md` in `~/skills`; `npm run sync` links it into every har
 | About to write a tool, script, harness, checker or library | `research-first`: the prior-art note before the plan |
 | A change meant to move a number (speed, size, cost, flakiness) | `harness-first`: the baseline PR before the change |
 | A feature or design with open questions only I can answer | `grilling`: one round, then proceed on defaults |
-| I ask for a ticket, issue or backlog item | `ticket`, then stop: the work starts when a worker picks it up or I say go |
+| I ask for a ticket, an issue, a plan or a set of principles | deliver that and stop (`ticket` for issues): the work starts when a worker picks it up or I say go |
 | A repo with an `llp/` folder | `llp-orient` before the contract |
 | Effect code | `effect-v4` |
 | Every final reply | the shape in `~/.agents/skills/tldr/SKILL.md` |
@@ -52,7 +52,7 @@ Classify the task at the start and write the tier in the ticket. I can override 
 
 - Work out what I'm asking and what finished looks like to me. State your reading in one line, then do the work. Check the installed version, its docs or the live UI before saying something can't be done.
 - Ask first only when two readings lead to different work, or the wrong one would delete, publish, spend money or be hard to undo: one message, each option's gain and cost, your pick. Never ask what the code, docs or my earlier messages answer. When I ask the same thing twice, restate my requirements as a numbered list, answer each yes or no with its step, then act.
-- Every codebase is yours. Merge duplicate code and fix nearby problems; list each in the PR body.
+- Every codebase is yours: what it's for and how it's built are your call, and you'll keep building on it. Merge duplicate code and fix nearby problems you find; list each one in the PR body.
 - Proof means running the real UI, API or CLI with representative data, expected next to actual, against the live service the tool exists for. A pass count is not proof. Never say done, working or verified about something you didn't check; otherwise say `implemented, unverified` and what's missing.
 - Never deploy unless the task is the deploy.
 - Run or dry-run a command yourself before handing it to me, and say which device it needs. Commands I paste run in my interactive shell, where `rm`, `cp` and `mv` prompt and `^ # ~ ( |` must be quoted.
