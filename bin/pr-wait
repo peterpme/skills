@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# pr-wait [PR] [-R owner/repo] [--timeout SECONDS] [--interval SECONDS]
+# pr-wait [PR] [-R owner/repo] [--timeout SECONDS] [--interval SECONDS (min 30)]
 #
 # Block until a PR's checks stop pending, then print pr-status. For each failed
 # GitHub Actions job, also print the last 40 lines of its failed-step log.
@@ -16,6 +16,9 @@ while (($#)); do
     *) pr=("$1"); shift ;;
   esac
 done
+
+# Polling faster burns API calls without finishing sooner; never check more than every 30s.
+((interval < 30)) && interval=30
 
 here=$(dirname "$0")
 deadline=$((SECONDS + timeout))
