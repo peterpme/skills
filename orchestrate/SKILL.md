@@ -86,7 +86,8 @@ Models and efforts come from `delegate`'s table. Give the reviewer the PR, the c
 - a decision ignored, scope crept, an acceptance check missing or faked, or a size cap exceeded;
 - a test rerun until green, or a retry added to a test or CI step, instead of a fix for the flake;
 - an assertion edited or deleted in a refactor or bug fix without a changed requirement the contract names;
-- a bug fix without a test that fails on the old code and passes on the new, both runs shown in the PR.
+- a bug fix without a test that fails on the old code and passes on the new, both runs shown in the PR;
+- a speed, latency, memory or size claim without a before and after number (`perf-claim <n>` exits 1).
 
 - Fix blockers and should-fix findings. Nits are optional, and declined ones go in the PR body as follow-ups.
 - Compare `git diff --shortstat` before and after review. If review made the diff bigger, cut back to what the contract needs before the next round.
@@ -97,7 +98,8 @@ Models and efforts come from `delegate`'s table. Give the reviewer the PR, the c
 
 A PR is ready only when all of these hold. Check them with the helpers, not from memory:
 
-- `pr-status <n>` exits 0: CI green, mergeable, no unresolved threads (`pr-threads <n>` is empty) after the review bots have commented on the head SHA.
+- `pr-status <n>` exits 0: CI green, mergeable, no unresolved threads (`pr-threads <n>` is empty) after the review bots have commented on the head SHA. Exit 9 means a tier 2 PR is inside its two hours after the contract: it stays a draft.
+- `perf-claim <n>` exits 0: no performance claim, or both numbers are in the body.
 - The proof table covers every operation in scope, and every acceptance check passes or is marked unverified with a reason.
 - The reviewer's findings are fixed or answered, and the reviewed SHA is the PR's head.
 - No contract violation from step 5 is open. A bug fix with no fail-before, pass-after test goes back to the worker.

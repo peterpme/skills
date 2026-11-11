@@ -7,10 +7,13 @@ the number of unresolved review threads, and the hand-written changed lines
 (additions plus deletions, minus lockfiles and generated paths). PR defaults to
 the current branch's. Exit 1 when a check failed, 8 while checks are pending,
 3 when the PR is over 400 hand-written lines and its body has no line starting
-"Unsplittable: <reason>", else 0.
+"Unsplittable: <reason>", 9 when a draft PR's ticket is tier 2 and its contract is
+under two hours old or missing (a tier 2 PR stays a draft until then, home#105),
+else 0.
 """
 import argparse
 import fnmatch
+import datetime
 import json
 import os
 import re
@@ -96,6 +99,41 @@ def unresolved_threads(repo, number):
     return sum(1 for n in nodes if not n["isResolved"])
 
 
+TIER2 = re.compile(r"(^[\s>*_#-]*tier\b[\s:*_-]*2\b)|(\btier\s*[:=]\s*2\b)", re.I | re.M)
+TICKET = re.compile(r"\b(?:closes|fixes|resolves|refs?|part of|ticket)\s*:?\s*(?:([\w.-]+/[\w.-]+)#|(home)#|#)(\d+)", re.I)
+HOLD_HOURS = 2
+
+
+def parse_time(text):
+    return datetime.datetime.fromisoformat(text.replace("Z", "+00:00"))
+
+
+def ready_hold(repo, body, now):
+    """Why a tier 2 draft may not leave draft yet, or None. The tier is a `Tier: 2` /
+    `Tier 2` line or `tier-2` label on the ticket the PR body names; the contract is the
+    first ticket comment that holds both a Verification and a Validation block."""
+    m = TICKET.search(body or "")
+    if not m:
+        return None
+    ticket_repo = m.group(1) or ("peterpme/home" if m.group(2) else repo)
+    out = subprocess.run(["gh", "issue", "view", m.group(3), "-R", ticket_repo, "--json", "body,labels,comments"], capture_output=True, text=True)
+    if out.returncode != 0:
+        return None
+    ticket = json.loads(out.stdout)
+    texts = [ticket.get("body") or ""] + [c.get("body") or "" for c in ticket.get("comments", [])]
+    labelled = any(re.fullmatch(r"tier[\s-]*2", l["name"], re.I) for l in ticket.get("labels", []))
+    if not labelled and not any(TIER2.search(t) for t in texts):
+        return None
+    name = f"{ticket_repo}#{m.group(3)}"
+    contract = next((c for c in ticket.get("comments", []) if re.search(r"verification", c.get("body") or "", re.I) and re.search(r"validation", c.get("body") or "", re.I)), None)
+    if not contract:
+        return f"{name} is tier 2 and has no contract comment (Verification and Validation blocks) yet"
+    ready_at = parse_time(contract["createdAt"]) + datetime.timedelta(hours=HOLD_HOURS)
+    if now < ready_at:
+        return f"{name} is tier 2: stays a draft until {ready_at:%Y-%m-%d %H:%M}Z, {HOLD_HOURS} hours after its contract"
+    return None
+
+
 def main():
     parser = argparse.ArgumentParser(usage=__doc__.splitlines()[0], description=__doc__.split("\n", 2)[2])
     parser.add_argument("pr", nargs="?")
@@ -125,9 +163,11 @@ def main():
     attrs = subprocess.run(["gh", "api", f"repos/{repo}/contents/.gitattributes?ref={pr['headRefOid']}",
                             "-H", "Accept: application/vnd.github.raw"], capture_output=True, text=True)
     lines, oversize, excused = size_verdict(files, body, generated_patterns(attrs.stdout if attrs.returncode == 0 else ""))
+    now = parse_time(os.environ["PR_STATUS_NOW"]) if os.environ.get("PR_STATUS_NOW") else datetime.datetime.now(datetime.timezone.utc)
+    hold = ready_hold(repo, body, now) if pr["isDraft"] else None
 
     if args.json:
-        print(json.dumps({**pr, "handWrittenLines": lines, "lineCap": LINE_CAP, "oversize": oversize, "checks": counts, "unresolvedThreads": threads,
+        print(json.dumps({**pr, "handWrittenLines": lines, "lineCap": LINE_CAP, "oversize": oversize, "checks": counts, "unresolvedThreads": threads, "readyHold": hold,
                           "notPassing": [{"state": s, "name": n, "url": u} for b, s, n, u in rows if b in ("fail", "pending")]}))
     else:
         draft = " draft" if pr["isDraft"] else ""
@@ -139,7 +179,9 @@ def main():
         print(f"  hand-written lines: {lines} (cap {LINE_CAP}){note}")
         for bucket, state, name, url in sorted(r for r in rows if r[0] in ("fail", "pending")):
             print(f"    {state:<10} {name}  {url}")
-    sys.exit(1 if counts["fail"] else 8 if counts["pending"] else 3 if oversize else 0)
+        if hold:
+            print(f"  ready: HOLD, {hold}")
+    sys.exit(1 if counts["fail"] else 8 if counts["pending"] else 3 if oversize else 9 if hold else 0)
 
 
 if __name__ == "__main__":

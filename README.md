@@ -83,4 +83,6 @@ CI fails a PR that adds more lines to `global/AGENTS.md` than it removes, unless
 
 `bin/tool-guard` is the fourth hook sync registers (home#105), a `PreToolUse` hook on Bash, Write, Edit and NotebookEdit: a Bash deploy command (`railway up`, `vercel --prod`, `wrangler deploy`, `fly deploy` and similar, at a command position, so a commit message that names one is quiet) gets a permission `ask`, never a deny, and a command or file path under `/tmp` gets a warning that never blocks. `bin/scheduled-allow` leaves a deploy prompt unanswered, so a scheduled run cannot deploy. `bin/model-guard` is a `PreToolUse` hook on the T3 tools: it denies a call whose model or provider field names Grok or `opencode`. `tests/tool-guard/run` runs in CI.
 
+`bin/perf-claim <pr>` fails a PR that claims a speed, latency, memory or size gain without a before and after number, and `bin/pr-status` exits 9 for a tier 2 draft whose contract comment is under two hours old (home#105). The `orchestrate` ready gate runs both. `tests/perf-claim/run` and `tests/pr-status-hold/run` run in CI.
+
 Machine settings, including the zsh setup agents rely on, live in [dotfiles](https://github.com/peterpme/dotfiles), cloned at `~/dotfiles`.
