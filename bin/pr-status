@@ -4,7 +4,8 @@
 One compact view of a pull request: state, draft, mergeability, review
 decision, head commit, CI counts with only the non-passing checks listed, and
 the number of unresolved review threads, and the hand-written changed lines
-(additions plus deletions, minus lockfiles and generated paths). PR defaults to
+(additions plus deletions, minus lockfiles, generated paths and whole deleted
+files, which are shown apart). PR defaults to
 the current branch's. Exit 1 when a check failed, 8 while checks are pending,
 3 when the PR is over 400 hand-written lines and its body has no line starting
 "Unsplittable: <reason>", 9 when a draft PR's ticket is tier 2 and its contract is
@@ -80,8 +81,14 @@ def is_generated(path, patterns):
 
 
 def hand_written_lines(files, patterns):
-    """files: [{filename, additions, deletions}] as the GitHub pulls/files API returns them."""
-    return sum(f["additions"] + f["deletions"] for f in files if not is_generated(f["filename"], patterns))
+    """files: [{filename, status, additions, deletions}] as the GitHub pulls/files API returns them.
+    A whole deleted file is reviewed by its name, not line by line, so it is counted apart (home#148)."""
+    return sum(f["additions"] + f["deletions"] for f in files
+               if not is_generated(f["filename"], patterns) and f.get("status") != "removed")
+
+
+def deleted_file_lines(files):
+    return sum(f["deletions"] for f in files if f.get("status") == "removed")
 
 
 def size_verdict(files, body, patterns):
@@ -167,7 +174,7 @@ def main():
     hold = ready_hold(repo, body, now) if pr["isDraft"] else None
 
     if args.json:
-        print(json.dumps({**pr, "handWrittenLines": lines, "lineCap": LINE_CAP, "oversize": oversize, "checks": counts, "unresolvedThreads": threads, "readyHold": hold,
+        print(json.dumps({**pr, "handWrittenLines": lines, "deletedFileLines": deleted_file_lines(files), "lineCap": LINE_CAP, "oversize": oversize, "checks": counts, "unresolvedThreads": threads, "readyHold": hold,
                           "notPassing": [{"state": s, "name": n, "url": u} for b, s, n, u in rows if b in ("fail", "pending")]}))
     else:
         draft = " draft" if pr["isDraft"] else ""
@@ -176,7 +183,8 @@ def main():
         print(f"  mergeable={pr['mergeable']} ({pr['mergeStateStatus']})  review={pr['reviewDecision'] or 'NONE'}  unresolved threads={threads}")
         print(f"  checks: {counts['pass']} pass, {counts['fail']} fail, {counts['pending']} pending, {counts['skipped']} skipped")
         note = f" over {LINE_CAP}, no Unsplittable: line in the PR body" if oversize else f" over {LINE_CAP}, excused by Unsplittable: line" if excused and lines > LINE_CAP else ""
-        print(f"  hand-written lines: {lines} (cap {LINE_CAP}){note}")
+        removed = deleted_file_lines(files)
+        print(f"  hand-written lines: {lines} (cap {LINE_CAP}){note}" + (f"; {removed} more in deleted files, not counted" if removed else ""))
         for bucket, state, name, url in sorted(r for r in rows if r[0] in ("fail", "pending")):
             print(f"    {state:<10} {name}  {url}")
         if hold:
