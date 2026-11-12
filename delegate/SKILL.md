@@ -9,7 +9,7 @@ On a program of several tickets, plan and write tickets; let subagents investiga
 
 ## Pick the model and effort
 
-Every model and effort comes from `~/skills/global/models.tsv`: one row per role (`build`, `investigate`, `review-claude-code`, `review-gpt-code`, `hardest`, `orchestrator`, `scheduled-worker`, `llp-*`, `fallback`), with the provider, model, effort and how to pick between rows. Use nothing else. The catalog does not report usage or quota; model availability alone does not mean an account has capacity.
+Every model and effort comes from `~/skills/global/models.tsv`: one row per role (`build`, `investigate`, `review-claude-code`, `review-gpt-code`, `hardest`, `orchestrator`, `scheduled-worker`, `llp-*`, `fallback`), with the provider, model, effort and how to pick between rows. Use nothing else, and that includes a built-in subagent (Claude `Agent`, Codex `spawn_agent`): name its model, or it silently runs on yours. Before 3 or more runs at once, or any run at xhigh, tell Peter the count, model and effort and wait for a yes, even when he asked for them. The catalog does not report usage or quota; model availability alone does not mean an account has capacity.
 
 Before launch, call `orchestrator_capabilities` and confirm the provider instance can run child tasks and supports the chosen model and option values. Track the last implementation provider in the parent thread to alternate accounts. If a requested target is unavailable, report the mismatch; do not silently substitute a provider, model, or effort.
 
@@ -62,7 +62,8 @@ R1 blocker|should|nit path:line — what goes wrong, with the input or state —
 ```
 
 - **blocker**: the case the task is for is wrong. **should**: a real bug callers will hit. **nit**: everything else, including rare paths, whatever label the reviewer chose.
-- Keep the ids (`R1`, `R2`, …) across rounds so each re-check answers the same list.
+- A review of tests asks one question: does each of our functions that uses the library still give the same output (the bytes it signs, the request it sends)? Never ask whether a change inside the library would be caught; that has no end.
+- One review, then one re-check of the same findings, then stop. Keep the ids (`R1`, `R2`, …) so the re-check answers the same list. A new finding goes to a ticket, unless money is at risk now. "Production changes" blocks a merge; "the tests could cover more" never does.
 - A finding without a command, output or exact input that shows the failure is a question, not a finding. Rerun the command yourself before passing a finding to the worker; drop what you can't reproduce.
 
 ## Verify the result
