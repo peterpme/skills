@@ -1,6 +1,6 @@
 # Global agent instructions
 
-Source: `global/AGENTS.md` in `~/skills`; `npm run sync` links it into every harness (Cursor's User Rules point here). This file is the principles and a router: the how lives in the skill each row names. Read that skill when its row applies.
+Source: `global/AGENTS.md` in `~/skills`; `npm run sync` links it into every harness (Cursor's User Rules point here). This file is the principles and a router: the how lives in the skill each row names. Read that skill when its row applies. When a task names a process or skill, run that skill as written, keep its outputs where it says, and leave the process itself unchanged unless I ask.
 
 ## Ten principles
 
