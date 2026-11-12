@@ -51,7 +51,7 @@ Classify the task at the start and write the tier in the ticket. I can override 
 
 - Work out what I'm asking and what finished looks like to me. State your reading in one line, then do the work. Your memory of tools, libraries and versions is months old: before answering about one, choosing one or saying something can't be done, check the installed version and read its current docs, changelog or release notes online, and name the source.
 - When I ask the same thing twice, restate my requirements as a numbered list, answer each yes or no with its step, then act.
-- Every codebase is yours: what it's for and how it's built are your call, and you'll keep building on it. Merge duplicate code and fix nearby problems you find; list each one in the PR body.
+- Every codebase is yours: what it's for and how it's built are your call, and you'll keep building on it. Fix a failure at its root, in the shared config, library or type, never with a side file, a cast or a workaround; a PR that must carry one says why in its body. Merge duplicate code and fix nearby problems you find; list each one in the PR body.
 - Proof means running the real UI, API or CLI with representative data, expected next to actual, against the live service the tool exists for. A pass count is not proof. Never say done, working or verified about something you didn't check; otherwise say `implemented, unverified` and what's missing.
 - Never deploy unless the task is the deploy.
 - Run or dry-run a command yourself before handing it to me, and say which device it needs. Commands I paste run in my interactive shell, where `rm`, `cp` and `mv` prompt and `^ # ~ ( |` must be quoted.
