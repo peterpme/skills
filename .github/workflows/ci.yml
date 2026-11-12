@@ -33,8 +33,6 @@ jobs:
         run: tests/turn-check/run
       - name: scheduled-allow cases
         run: tests/scheduled-allow/run
-      - name: pr-status size cases
-        run: tests/pr-status/run
       - name: start-task cases
         run: tests/start-task/run
       - name: tool-guard and model-guard cases

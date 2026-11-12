@@ -29,7 +29,7 @@ case_() { # name expect_exit expect_text draft body ticket_json
   jq -cn --argjson d "$draft" --arg b "$body" '{number: 5, title: "t", body: $b, url: "https://github.com/peterpme/skills/pull/5", state: "OPEN", isDraft: $d, mergeable: "MERGEABLE", mergeStateStatus: "CLEAN", reviewDecision: null, baseRefName: "main", headRefName: "b", headRefOid: "0123456789abcdef", statusCheckRollup: []}' >"$FIX/pr.json"
   echo '[]' >"$FIX/files.json"
   printf '%s' "$ticket" >"$FIX/ticket.json"
-  out=$(PATH="$work/bin:$PATH" PR_STATUS_NOW=$now PR_STATUS_FILES="$FIX/files.json" "$tool" 5 -R peterpme/skills 2>&1); code=$?
+  out=$(PATH="$work/bin:$PATH" PR_STATUS_NOW=$now "$tool" 5 -R peterpme/skills 2>&1); code=$?
   [[ $code == "$exp" ]] || ok=NO
   [[ -z $text ]] || grep -q -- "$text" <<<"$out" || ok=NO
   [[ $ok == yes ]] || fail=1
