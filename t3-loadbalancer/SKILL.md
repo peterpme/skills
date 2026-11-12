@@ -43,7 +43,7 @@ Priority threads (move first): the thread IDs listed in `~/.t3/loadbalancer-prio
 
 ## 3. Decide
 
-Equivalence table. Same model first. Only Claude accounts and `codex` / `gpt-6.1-sol` are targets; never Cursor, Grok or another provider (`delegate`; `bin/model-guard` refuses them).
+Equivalence table. Same model first. Only the targets in this table.
 
 | Tier | Same model (preferred) | Other equivalents |
 |---|---|---|

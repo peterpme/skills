@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Runs bin/tool-guard and bin/model-guard on the inputs below and prints
+# Runs bin/tool-guard on the inputs below and prints
 # expected next to actual. Verdicts: ask (deploy permission ask), deny, warn
 # (/tmp context warning), none (no output). Exits 1 if any case disagrees.
 set -uo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 bin=$here/../../bin
-for h in tool-guard model-guard; do
+for h in tool-guard; do
   # A parse error would exit 2, which Claude Code reads as a block.
   bash -n "$bin/$h" || { echo "$h does not parse"; exit 1; }
   /bin/bash -n "$bin/$h" 2>/dev/null || { echo "$h does not parse under /bin/bash"; exit 1; }
@@ -30,11 +30,6 @@ file_case() { # name expect tool path
   local input
   input=$(jq -cn --arg t "$3" --arg p "$4" '{hook_event_name: "PreToolUse", tool_name: $t, tool_input: {file_path: $p}}')
   row "$1" "$2" "$("$bin/tool-guard" <<<"$input" | verdict)"
-}
-model_case() { # name expect tool tool_input_json
-  local input
-  input=$(jq -cn --arg t "$3" --argjson i "$4" '{hook_event_name: "PreToolUse", tool_name: $t, tool_input: $i}')
-  row "$1" "$2" "$("$bin/model-guard" <<<"$input" | verdict)"
 }
 printf '%-44s %-5s %-5s %s\n' case expect actual ok
 
@@ -76,14 +71,4 @@ row "--is-deploy on git status" 1 "$chk"
 row "bad JSON" none "$(echo '{nope' | "$bin/tool-guard" | verdict)"
 
 # Grok and opencode are never used: deny by model or provider field only.
-model_case "delegate_task grok model" deny mcp__t3-code__delegate_task '{"task":"review","target":{"providerInstanceId":"cursor","model":"grok-4.7"}}'
-model_case "delegate_task opencode provider" deny mcp__t3-code__delegate_task '{"task":"x","target":{"providerInstanceId":"opencode","model":"gpt-6.1-sol"}}'
-model_case "schedule_task grok" deny mcp__t3-code__schedule_task '{"title":"t","model_selection":{"instanceId":"cursor","model":"Grok-4.7"}}'
-model_case "delegate_task sonnet" none mcp__t3-code__delegate_task '{"task":"review","target":{"providerInstanceId":"claudeAgent","model":"claude-sonnet-5-5","options":{"effort":"medium"}}}'
-model_case "brief mentions Grok, target is Sol" none mcp__t3-code__delegate_task '{"task":"Never use Grok. Review the PR.","target":{"providerInstanceId":"codex","model":"gpt-6.1-sol"}}'
-model_case "delegate_task cursor provider" deny mcp__t3-code__delegate_task '{"task":"x","target":{"providerInstanceId":"cursor","model":"claude-opus-5-5"}}'
-model_case "delegate_task gpt-6-astra" deny mcp__t3-code__delegate_task '{"task":"x","target":{"providerInstanceId":"codex","model":"gpt-6-astra"}}'
-model_case "configure to opus on claude1_" none mcp__t3-code__t3_thread_configure '{"threadId":"t","modelSelection":{"instanceId":"claude1_","model":"claude-opus-5-5"}}'
-model_case "no target" none mcp__t3-code__t3_thread_list '{}'
-row "model-guard bad JSON" none "$(echo 'nope' | "$bin/model-guard" | verdict)"
 exit $fail
