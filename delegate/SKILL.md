@@ -9,7 +9,7 @@ On a program of several tickets, plan and write tickets; let subagents investiga
 
 ## Pick the model and effort
 
-Every model and effort comes from `~/skills/global/models.tsv`: one row per role (`build`, `investigate`, `review-claude-code`, `review-gpt-code`, `hardest`, `orchestrator`, `scheduled-worker`, `llp-*`, `fallback`), with the provider, model, effort and how to pick between rows. Use nothing else. The catalog does not report usage or quota; model availability alone does not mean an account has capacity.
+Every model and effort comes from `~/skills/global/models.tsv`: one row per role (`build`, `investigate`, `review-claude-code`, `review-gpt-code`, `hardest`, `orchestrator`, `scheduled-worker`, `llp-*`, `fallback`), with the provider, model, effort and how to pick between rows. Use nothing else. When Peter names a provider loosely ("codex", "GPT", "codex 6.1", "claude"), that means the role's row for that provider in the file, so "codex" is `gpt-6.1-sol`, never another model the catalog lists. The catalog does not report usage or quota; model availability alone does not mean an account has capacity.
 
 Before launch, call `orchestrator_capabilities` and confirm the provider instance can run child tasks and supports the chosen model and option values. Track the last implementation provider in the parent thread to alternate accounts. If a requested target is unavailable, report the mismatch; do not silently substitute a provider, model, or effort.
 
