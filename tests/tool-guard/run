@@ -81,6 +81,9 @@ model_case "delegate_task opencode provider" deny mcp__t3-code__delegate_task '{
 model_case "schedule_task grok" deny mcp__t3-code__schedule_task '{"title":"t","model_selection":{"instanceId":"cursor","model":"Grok-4.7"}}'
 model_case "delegate_task sonnet" none mcp__t3-code__delegate_task '{"task":"review","target":{"providerInstanceId":"claudeAgent","model":"claude-sonnet-5-5","options":{"effort":"medium"}}}'
 model_case "brief mentions Grok, target is Sol" none mcp__t3-code__delegate_task '{"task":"Never use Grok. Review the PR.","target":{"providerInstanceId":"codex","model":"gpt-6.1-sol"}}'
+model_case "delegate_task cursor provider" deny mcp__t3-code__delegate_task '{"task":"x","target":{"providerInstanceId":"cursor","model":"claude-opus-5-5"}}'
+model_case "delegate_task gpt-6-astra" deny mcp__t3-code__delegate_task '{"task":"x","target":{"providerInstanceId":"codex","model":"gpt-6-astra"}}'
+model_case "configure to opus on claude1_" none mcp__t3-code__t3_thread_configure '{"threadId":"t","modelSelection":{"instanceId":"claude1_","model":"claude-opus-5-5"}}'
 model_case "no target" none mcp__t3-code__t3_thread_list '{}'
 row "model-guard bad JSON" none "$(echo 'nope' | "$bin/model-guard" | verdict)"
 exit $fail

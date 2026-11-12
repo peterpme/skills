@@ -9,7 +9,7 @@ On a program of several tickets, plan and write tickets; let subagents investiga
 
 ## Pick the model and effort
 
-Grok is never used, for anything, through any provider, until Peter says otherwise: not as a builder, reviewer, investigator or load-balancer target. A Grok review does not satisfy a tier 2 gate: the PR is re-reviewed by the GPT reviewer below. Never use the `opencode` provider or any `opencode/...` model, even through another provider instance. The `model-guard` hook denies a T3 call that names either, and `scheduled-models` flags a scheduled task on one. The catalog does not report usage or quota; model availability alone does not mean an account has capacity.
+Only two routes exist: Claude models on `claudeAgent` / `claude1_`, and `gpt-6.1-sol` on `codex`. Never Cursor, Grok, opencode or any other provider or model, for any role, until Peter says otherwise; `bin/model-guard` refuses them. A Grok review does not satisfy a tier 2 gate: the PR is re-reviewed by the GPT reviewer below. Never use the `opencode` provider or any `opencode/...` model, even through another provider instance. The `model-guard` hook denies a T3 call that names either, and `scheduled-models` flags a scheduled task on one. The catalog does not report usage or quota; model availability alone does not mean an account has capacity.
 
 | Work | Provider / model | Effort |
 | --- | --- | --- |

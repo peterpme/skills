@@ -1,6 +1,6 @@
 ---
 name: t3-loadbalancer
-description: "Use when acting as the Load Balancer thread, or when asked to move running T3 Code threads between Claude accounts (Tom, Jerry) and cursor because one is low on 5-hour usage or has recovered."
+description: "Use when acting as the Load Balancer thread, or when asked to move running T3 Code threads between Claude accounts (Tom, Jerry) and codex because one is low on 5-hour usage or has recovered."
 ---
 
 # T3 load balancer
@@ -20,7 +20,7 @@ It prints, per provider instance (`claude1_`, `claudeAgent`), the latest `five_h
 - Source is Claude `rate_limit_event` lines in `~/.t3/userdata/logs/provider/events.*.log`; utilization is a 0-1 fraction used. A window whose `resets_at_local` has passed is reported as 100% remaining.
 - An instance with no recent events (no thread running on it) has no entry: report `unknown (no recent events)` and do not treat it as low. Check `reading_age_min`; over ~30 minutes is stale, say so.
 - `is_using_overage: true` or `status: rejected` means the account is out: treat remaining as 0%.
-- Cursor, grok, codex and antigravity report nothing here. Report them `unknown`.
+- Codex reports nothing here. Report it `unknown`.
 - The numbers are an estimate from logs, not the UI panel. If Peter gives a different number, trust Peter.
 
 An account is **out** when five-hour OR weekly remaining is under 2%. It is **recovered** when five-hour remaining is over 50% (and weekly is over 2%).
@@ -43,22 +43,20 @@ Priority threads (move first): the thread IDs listed in `~/.t3/loadbalancer-prio
 
 ## 3. Decide
 
-Equivalence table. Same model first. Never move a thread onto Grok (`delegate`).
+Equivalence table. Same model first. Only Claude accounts and `codex` / `gpt-6.1-sol` are targets; never Cursor, Grok or another provider (`delegate`; `bin/model-guard` refuses them).
 
 | Tier | Same model (preferred) | Other equivalents |
 |---|---|---|
-| Claude Opus 5.5 | claude1_ / claude-opus-5-5 | claudeAgent / claude-opus-5-5; cursor / claude-opus-5-5 |
-| Claude Sonnet 5.5 | claude1_ / claude-sonnet-5-5 | claudeAgent / claude-sonnet-5-5; cursor / claude-sonnet-5-5 |
+| Claude Opus 5.5 | claude1_ / claude-opus-5-5 | claudeAgent / claude-opus-5-5; codex / gpt-6.1-sol |
+| Claude Sonnet 5.5 | claude1_ / claude-sonnet-5-5 | claudeAgent / claude-sonnet-5-5; codex / gpt-6.1-sol |
 | Claude Fable 5.2 | claude1_ / claude-fable-5-2 | claudeAgent / claude-fable-5-2 |
 | Claude Fable 5.1 | claude1_ / claude-fable-5-1 | claudeAgent / claude-fable-5-1 |
 | Claude Haiku 5.5 | claude1_ / claude-haiku-5-5 | claudeAgent / claude-haiku-5-5 |
-| GPT-6.1 Sol | codex / gpt-6.1-sol | cursor / gpt-5.6-sol |
-| Gemini 3.8 Flash | antigravity / gemini-3.8-flash-high | cursor / gemini-3.8-flash |
 
 Rules, in order:
 
-1. **Move off an out account.** For each thread on an out Claude account, pick the first target that is not out: the other Claude account, then cursor (Opus/Sonnet only). If both Claude accounts are out and the model has no cursor row (Fable, Haiku), leave it and report it.
-2. **Move back when recovered.** For each thread currently on cursor (or any fallback) that the ledger shows you moved, go back to its original Claude account once that account is recovered (over 50%). Peter's standing permission: always switch back to claude1_ / claudeAgent from cursor when they are back over 50%.
+1. **Move off an out account.** For each thread on an out Claude account, pick the first target that is not out: the other Claude account, then `codex` / `gpt-6.1-sol` at high (Opus and Sonnet only; a provider switch takes effect on the next turn and starts a fresh context, so say so). If both Claude accounts are out and the model is Fable or Haiku, leave it and report it.
+2. **Move back when recovered.** For each thread currently on codex (or any fallback) that the ledger shows you moved, go back to its original Claude account once that account is recovered (over 50%). Peter's standing permission: always switch back to claude1_ / claudeAgent from the fallback when they are back over 50%.
 3. **Never ping-pong.** Do not move a thread that is already on a non-out account just to balance. Do not move a thread onto an account that is under 50% unless it is the only non-out choice. Peter placed `top-13997` on claude1_; do not move it back to claudeAgent.
 4. **Priority threads and their subagents first**, then the rest.
 5. Moving a running thread: config may apply from its next turn. Say so in the report; do not interrupt it.
@@ -68,7 +66,7 @@ Rules, in order:
 `t3_thread_configure` with `threadId` and `modelSelection: {instanceId, model, options}`. Keep the thread's current effort. Option ids differ per provider, so check `orchestrator_capabilities` first:
 
 - claude1_ / claudeAgent: `[{"id":"effort","value":"<effort>"}]` (Opus also has `fastMode`; carry it over if set).
-- cursor `claude-opus-5-5`: `effort` (low/medium/high/xhigh/max). cursor `claude-sonnet-5-5`: `reasoning_effort`. Keep `contextWindow` at its default.
+- codex `gpt-6.1-sol`: `[{"id":"reasoningEffort","value":"high"}]` (never above high).
 
 Afterwards re-read with `t3_thread_configuration` and confirm `instanceId`/`model`/effort.
 
@@ -80,5 +78,5 @@ Keep it short. Lead with whether anything moved or stopped. When nothing changed
 
 - Usage table: Tom, Jerry: five-hour remaining %, weekly remaining %, reset time, reading age.
 - Moves this run (table: thread, from, to, effort, applied-now or next-turn) or "none".
-- Threads still on a low account, and threads parked on cursor waiting for recovery.
+- Threads still on a low account, and threads parked on codex waiting for recovery.
 - Anything unmeasurable or stale.

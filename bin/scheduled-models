@@ -24,7 +24,7 @@ result=$(jq '
   map(. as $t | ($t.sel | fromjson) as $s
     | ($s.model // "?") as $m | ($s.instanceId // "?") as $i | ($s | eff) as $e
     | {title: $t.title, on: ($t.enabled == 1), instance: $i, model: $m, effort: $e,
-       flag: (if ($m + " " + $i) | test("fable|grok|opencode"; "i") then "FORBIDDEN: the delegate table never runs Fable, Grok or opencode on a schedule"
+       flag: (if ($m + " " + $i) | test("fable|grok|opencode|cursor|antigravity|gemini"; "i") then "FORBIDDEN: scheduled tasks run Claude (not Fable) or gpt-6.1-sol on codex; never Fable, Grok, Cursor or opencode"
               elif ($t.title | test("^Worker")) and ($i != "claudeAgent" or $m != "claude-opus-5-5" or $e != "high") then "DRIFT: the table says Worker is claudeAgent / claude-opus-5-5 / high"
               else "" end)})' <<<"$rows") || { echo "scheduled-models: unexpected model data in $db"; exit 1; }
 jq -r '.[] | "\(if .on then "on " else "off" end)  \(.title)  [\(.instance) \(.model) \(.effort)]\(if .flag != "" then "  <- " + .flag else "" end)"' <<<"$result"
