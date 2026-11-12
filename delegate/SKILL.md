@@ -9,7 +9,7 @@ On a program of several tickets, plan and write tickets; let subagents investiga
 
 ## Pick the model and effort
 
-Grok is never used, for anything, through any provider. A Grok review does not satisfy a tier 2 gate: the PR is re-reviewed by the GPT reviewer below. Never use the `opencode` provider or any `opencode/...` model, even through another provider instance. The `model-guard` hook denies a T3 call that names either, and `scheduled-models` flags a scheduled task on one. The catalog does not report usage or quota; model availability alone does not mean an account has capacity.
+Grok is never used, for anything, through any provider, until Peter says otherwise: not as a builder, reviewer, investigator or load-balancer target. A Grok review does not satisfy a tier 2 gate: the PR is re-reviewed by the GPT reviewer below. Never use the `opencode` provider or any `opencode/...` model, even through another provider instance. The `model-guard` hook denies a T3 call that names either, and `scheduled-models` flags a scheduled task on one. The catalog does not report usage or quota; model availability alone does not mean an account has capacity.
 
 | Work | Provider / model | Effort |
 | --- | --- | --- |
@@ -17,7 +17,7 @@ Grok is never used, for anything, through any provider. A Grok review does not s
 | Read-only investigation: inventories, "find every place that…", log digging, spec or backend research | `claude-sonnet-5-5` (`claudeAgent` / `claude1_`) | medium |
 | The GPT reviewer: review of Claude-written code, a design or a contract | Sol (`gpt-6.1-sol`) on `codex` | high |
 | The Claude reviewer: when a task names a second model family, or the code under review was written by GPT | `claude-fable-5-2` on `claudeAgent` / `claude1_` | medium |
-| Hardest single task or review only | `claude-fable-5-2` on `claudeAgent` / `claude1_` | high |
+| Hardest single task or review only: alternate at random (`[ $(date +%S) -lt 30 ]` goes to Sol), and write which ran in the report | `claude-fable-5-2` on `claudeAgent` / `claude1_`, or `gpt-6.1-sol` on `codex` | Fable high, Sol xhigh |
 | Scheduled workers (the Worker task and any task that does ticket work); create the task from a thread set to this, since `schedule_task` copies the caller's model. No scheduled task runs Fable; Fable is for the chief of staff chat | `claude-opus-5-5` on `claudeAgent` | high |
 
 Before launch, call `orchestrator_capabilities` and confirm the provider instance can run child tasks and supports the chosen model and option values. Track the last implementation provider in the parent thread to alternate accounts. If a requested target is unavailable, report the mismatch; do not silently substitute a provider, model, or effort.
@@ -32,7 +32,7 @@ For these routes, use T3 `delegate_task` with `target.providerInstanceId`, `targ
 ]
 ```
 
-Never go above these caps (Peter): `gpt-6.1-sol` high, `claude-opus-5-5` high, `claude-fable-5-2` medium; the hardest-single-task row is the one named exception. Set effort explicitly on every child; a model other than the session's does not take the session's effort. Fable is the most expensive model per token, so it runs at medium unless the row says high. Options inherit only for the same provider instance and model; explicit entries override individual inherited values. Do not copy options to models that do not support them. Check the returned provider, model, and options against the requested target before trusting the task's work.
+Never go above these caps (Peter): `gpt-6.1-sol` high, `claude-opus-5-5` high, `claude-fable-5-2` medium; the hardest-single-task row is the one named exception (Fable high, Sol xhigh). Set effort explicitly on every child; a model other than the session's does not take the session's effort. Fable is the most expensive model per token, so it runs at medium unless the row says high. Options inherit only for the same provider instance and model; explicit entries override individual inherited values. Do not copy options to models that do not support them. Check the returned provider, model, and options against the requested target before trusting the task's work.
 
 Retain the returned `taskId` and `childThreadId`; manage the task by `taskId`. Use a distinct `clientRequestId` for each ticket or independent review round and reuse it only for retries of that launch. For another review round call `delegate_task` again with the original brief, prior findings, responses, and unresolved objections; do not start the round by messaging the old child thread. Never use `t3_thread_launch` or `create_threads` as substitutes for subagents.
 
