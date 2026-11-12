@@ -13,9 +13,9 @@ Grok is never used, for anything, through any provider. A Grok review does not s
 
 | Work | Provider / model | Effort |
 | --- | --- | --- |
-| Implementation ticket | `claude-sonnet-5-5`, alternating `claudeAgent` and `claude1_` | medium |
+| Implementation ticket: about one in three, chosen at random (`[ $(date +%S) -lt 20 ]`), goes to Sol; the rest to Sonnet | `gpt-6.1-sol` on `codex`, or `claude-sonnet-5-5` alternating `claudeAgent` and `claude1_` | high |
 | Read-only investigation: inventories, "find every place that…", log digging, spec or backend research | `claude-sonnet-5-5` (`claudeAgent` / `claude1_`) | medium |
-| The GPT reviewer: review of a PR, design or contract | Sol (`gpt-6.1-sol`) on `codex` | high |
+| The GPT reviewer: review of Claude-written code, a design or a contract | Sol (`gpt-6.1-sol`) on `codex` | high |
 | The Claude reviewer: when a task names a second model family, or the code under review was written by GPT | `claude-fable-5-2` on `claudeAgent` / `claude1_` | medium |
 | Hardest single task or review only | `claude-fable-5-2` on `claudeAgent` / `claude1_` | high |
 | Scheduled workers (the Worker task and any task that does ticket work); create the task from a thread set to this, since `schedule_task` copies the caller's model. No scheduled task runs Fable; Fable is for the chief of staff chat | `claude-opus-5-5` on `claudeAgent` | high |
@@ -26,13 +26,13 @@ For these routes, use T3 `delegate_task` with `target.providerInstanceId`, `targ
 
 ```json
 [
-  {"providerInstanceId":"claudeAgent","model":"claude-sonnet-5-5","options":{"effort":"medium"}},
-  {"providerInstanceId":"claude1_","model":"claude-sonnet-5-5","options":{"effort":"medium"}},
+  {"providerInstanceId":"claudeAgent","model":"claude-sonnet-5-5","options":{"effort":"high"}},
+  {"providerInstanceId":"claude1_","model":"claude-sonnet-5-5","options":{"effort":"high"}},
   {"providerInstanceId":"codex","model":"gpt-6.1-sol","options":{"reasoningEffort":"high"}}
 ]
 ```
 
-Never go above these caps (Peter): `gpt-6.1-sol` high, `claude-opus-5-5` high, `claude-fable-5-2` medium; the hardest-single-task row is the one named exception. Set effort explicitly on every child; a model other than the session's does not take the session's effort. Fable is the most expensive model per token, so it runs at medium unless the row says high; raise a Sonnet ticket to `high` only when its first attempt came back wrong. Options inherit only for the same provider instance and model; explicit entries override individual inherited values. Do not copy options to models that do not support them. Check the returned provider, model, and options against the requested target before trusting the task's work.
+Never go above these caps (Peter): `gpt-6.1-sol` high, `claude-opus-5-5` high, `claude-fable-5-2` medium; the hardest-single-task row is the one named exception. Set effort explicitly on every child; a model other than the session's does not take the session's effort. Fable is the most expensive model per token, so it runs at medium unless the row says high. Options inherit only for the same provider instance and model; explicit entries override individual inherited values. Do not copy options to models that do not support them. Check the returned provider, model, and options against the requested target before trusting the task's work.
 
 Retain the returned `taskId` and `childThreadId`; manage the task by `taskId`. Use a distinct `clientRequestId` for each ticket or independent review round and reuse it only for retries of that launch. For another review round call `delegate_task` again with the original brief, prior findings, responses, and unresolved objections; do not start the round by messaging the old child thread. Never use `t3_thread_launch` or `create_threads` as substitutes for subagents.
 
@@ -46,7 +46,7 @@ A subagent starts with no parent conversation and no global instructions, so the
 4. **Proof**: copy this sentence into the brief word for word: "Proof means running the real UI, API or CLI with representative data and showing expected next to actual. A pass count or a finished job is not proof." Require each test to name the user-visible rule or bug it protects in its title, and forbid citing test or path counts in the report. Then two blocks, with expected results taken from outside the change: Verification, numbered checks of input → expected value, and Validation, one real-flow scenario with real data. Exercise the actual affected flow and include cases that expose plausible wrong implementations. If planted-bug checks are appropriate and authorized, use an isolated local copy, restore every temporary change, and never touch live data. Do not require code mutation for read-only work. Save inspectable evidence in a git-ignored path or outside the repo; report what could not be verified.
 5. **Checks**: the repo's type-check, lint, format, tests, with exact commands and known traps (e.g. formatter with no file args rewrites unrelated files). Scale checks to the task; do not run paid or unrelated flows just to validate prose.
 6. **Git**: signed commits only when committing; never `--no-verify`, never edit git config. State whether to commit or leave changes uncommitted, and whether pushing is authorized. If signing is unavailable, preserve the work and report the blocker rather than creating an unsigned commit. Follow explicit user and repository instructions.
-7. **Report**: short enough to read in a minute, written for a reader who saw none of the work, and exactly what to include (SHAs, changed paths, expected versus actual proof, check results, anything skipped or blocked).
+7. **Report**: the PR body carries a line `Built by: <model> <effort>` (Peter is comparing Sol and Sonnet as builders). Short enough to read in a minute, written for a reader who saw none of the work, and exactly what to include (SHAs, changed paths, expected versus actual proof, check results, anything skipped or blocked).
 8. **Obstacles and scratch files**: errors, timeouts and failing tools are ordinary: diagnose and work through them. Retrying a read-only command needs no approval. Report as blocked only when access was withheld on purpose, the ticket's hard rules forbid the next step, or the same step failed twice for the same cause. Scratch files go in `.verification/<task>/`, never in a folder the task shares; delete only files you created, by name.
 9. **Stop condition**: the observable acceptance result and exact command when applicable (e.g. `yarn exchange-core:verify` → the independently established expected result). A blocker also requires a final report, not endless retries. Say: "end the turn immediately after the final report; do not call Get task output, continue polling, or start follow-up work".
 
