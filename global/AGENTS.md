@@ -22,7 +22,7 @@ Source: `global/AGENTS.md` in `~/skills`; `npm run sync` links it into every har
 | When | Read |
 |---|---|
 | Tier 1 or 2, a feature, or coordinating other agents | `orchestrate`, from the start: the contract comes before any code |
-| Handing anything to another agent | `delegate`: model table, brief, watching, review format |
+| Handing anything to another agent | `delegate`: brief, watching, review format; models from `global/models.tsv` |
 | A change meant to move a number (speed, size, cost, flakiness) | `harness-first`: the baseline PR before the change |
 | Any new task in a thread I'm in, unless I said figure it out yourself | `grilling`: align with me first |
 | I ask for a ticket, an issue, a plan or a set of principles | deliver that and stop (`ticket` for issues): the work starts when a worker picks it up or I say go |

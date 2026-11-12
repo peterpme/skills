@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # scheduled-models [--db FILE]
 # Lists the T3 scheduled tasks and flags each enabled one whose model breaks the
-# delegate table (home#105): any task on Fable, Grok or an opencode model
+# models.tsv scheduled-worker row (home#105): any task on Fable, Grok or an opencode model
 # ("No scheduled task runs Fable"), and the Worker task if it is not
 # claudeAgent / claude-opus-5-5 / effort high. Reads only the title, enabled
 # flag and model selection from T3's database (read-only; the task prompts and

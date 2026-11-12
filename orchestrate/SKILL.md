@@ -81,7 +81,7 @@ Review is not proof. One reviewer per slice, and only a finding that comes with 
 | Behavior changes | One: the GPT reviewer |
 | Security, keys, money or auth | One at its highest effort, plus a check that only the intended files changed |
 
-Models and efforts come from `delegate`'s table. Give the reviewer the PR, the contract, and the commit SHA, and ask for `delegate`'s review reply format, each finding with its failing command. Also ask for contract violations, each a blocker:
+Models and efforts come from `~/skills/global/models.tsv`. Give the reviewer the PR, the contract, and the commit SHA, and ask for `delegate`'s review reply format, each finding with its failing command. Also ask for contract violations, each a blocker:
 
 - a decision ignored, scope crept, an acceptance check missing or faked, or a size cap exceeded;
 - a test rerun until green, or a retry added to a test or CI step, instead of a fix for the flake;

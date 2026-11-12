@@ -55,7 +55,7 @@ Equivalence table. Same model first. Only the targets in this table.
 
 Rules, in order:
 
-1. **Move off an out account.** For each thread on an out Claude account, pick the first target that is not out: the other Claude account, then `codex` / `gpt-6.1-sol` at high (Opus and Sonnet only; a provider switch takes effect on the next turn and starts a fresh context, so say so). If both Claude accounts are out and the model is Fable or Haiku, leave it and report it.
+1. **Move off an out account.** For each thread on an out Claude account, pick the first target that is not out: the other Claude account, then the `fallback` row of `~/skills/global/models.tsv` (Opus and Sonnet only; a provider switch takes effect on the next turn and starts a fresh context, so say so). If both Claude accounts are out and the model is Fable or Haiku, leave it and report it.
 2. **Move back when recovered.** For each thread currently on codex (or any fallback) that the ledger shows you moved, go back to its original Claude account once that account is recovered (over 50%). Peter's standing permission: always switch back to claude1_ / claudeAgent from the fallback when they are back over 50%.
 3. **Never ping-pong.** Do not move a thread that is already on a non-out account just to balance. Do not move a thread onto an account that is under 50% unless it is the only non-out choice. Peter placed `top-13997` on claude1_; do not move it back to claudeAgent.
 4. **Priority threads and their subagents first**, then the rest.
@@ -66,7 +66,7 @@ Rules, in order:
 `t3_thread_configure` with `threadId` and `modelSelection: {instanceId, model, options}`. Keep the thread's current effort. Option ids differ per provider, so check `orchestrator_capabilities` first:
 
 - claude1_ / claudeAgent: `[{"id":"effort","value":"<effort>"}]` (Opus also has `fastMode`; carry it over if set).
-- codex `gpt-6.1-sol`: `[{"id":"reasoningEffort","value":"high"}]` (never above high).
+- codex: `[{"id":"reasoningEffort","value":"<effort from the fallback row>"}]`.
 
 Afterwards re-read with `t3_thread_configuration` and confirm `instanceId`/`model`/effort.
 

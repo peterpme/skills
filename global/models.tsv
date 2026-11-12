@@ -1,0 +1,14 @@
+role	when	provider	model	effort	pick
+build	Implementation ticket	codex	gpt-6.1-sol	high	about 1 in 3, at random: [ $(date +%S) -lt 20 ]
+build	Implementation ticket	claudeAgent|claude1_	claude-sonnet-5-5	high	the rest; alternate the two accounts
+investigate	Read-only investigation: inventories, log digging, spec or backend research	claudeAgent|claude1_	claude-sonnet-5-5	medium
+review-claude-code	Review of Claude-written code, a design or a contract	codex	gpt-6.1-sol	high
+review-gpt-code	Review of GPT-written code, or when a task names a second model family	claudeAgent|claude1_	claude-fable-5-2	medium
+hardest	Hardest single task or review only	claudeAgent|claude1_	claude-fable-5-2	high	alternate at random with the next row: [ $(date +%S) -lt 30 ] picks Sol; the report names which ran
+hardest	Hardest single task or review only	codex	gpt-6.1-sol	xhigh
+orchestrator	The thread that plans and decides (orchestrate, overnight)	claudeAgent|claude1_	claude-opus-5-5	high
+scheduled-worker	The Worker task and any scheduled task that does ticket work	claudeAgent	claude-opus-5-5	high	create the task from a thread on this model: schedule_task copies the caller's model; no scheduled task runs Fable
+llp-author	llp-super-refine author and reviser	claudeAgent|claude1_	claude-fable-5-2	medium
+llp-reviewer-gpt	llp-super-refine non-Claude reviewer	codex	gpt-6.1-sol	high	read-only sandbox
+llp-reviewer-claude	llp-super-refine fresh Claude reviewer that edited no revision	claudeAgent|claude1_	claude-fable-5-2	medium
+fallback	Load balancer, when both Claude accounts are out (Opus and Sonnet threads only)	codex	gpt-6.1-sol	high
