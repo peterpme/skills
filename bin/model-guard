@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # model-guard: Claude Code PreToolUse hook on the T3 tools that start another
 # agent (delegate_task, schedule_task, t3_thread_launch, create_threads,
-# t3_thread_configure, ...). The delegate table says "Grok is never used, for
-# anything, through any provider" and never the opencode provider; this denies
-# a call whose model or provider field names either, so the table is not just
+# t3_thread_configure, ...). Peter: "everything should be codex 6.1sol or claude".
+# This denies a call whose provider is not a Claude account or codex, or whose
+# model is not a Claude model or gpt-6.1-sol, so the table is not just
 # skill text (home#105, home#60). Only the model and provider fields are read,
 # never the task text, so a brief that mentions Grok does not trip it. Reads
 # the hook input on stdin; no output and exit 0 for anything else.
@@ -15,8 +15,11 @@ command -v jq >/dev/null 2>&1 || PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 command -v jq >/dev/null 2>&1 || exit 0
 input=$(cat 2>/dev/null) || exit 0
 jq -e 'type == "object"' >/dev/null 2>&1 <<<"$input" || exit 0
-hit=$(jq -r '[.tool_input | .. | objects | (.model?, .modelId?, .providerInstanceId?, .instanceId?, .provider?, .providerId?) | strings | select(test("grok|opencode"; "i"))] | first // empty' <<<"$input" 2>/dev/null)
+hit=$(jq -r '[.tool_input | .. | objects |
+  ((.providerInstanceId?, .instanceId?, .provider?, .providerId?) | strings | select(test("grok|opencode|cursor|antigravity|^pi$|^fx$|^kiro$|^muse$"; "i"))),
+  ((.model?, .modelId?) | strings | select(test("grok|opencode|gemini|composer|deepseek|glm|flint|beam|/"; "i") or (test("^gpt-"; "i") and (test("^gpt-6\\.1-sol$"; "i") | not))))
+  ] | first // empty' <<<"$input" 2>/dev/null)
 [[ -n $hit ]] || exit 0
 jq -cn --arg hit "$hit" '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny",
-  permissionDecisionReason: ("Refused: \($hit). The delegate table never uses Grok or the opencode provider, for anything. Pick the model from the table in the delegate skill.")}}'
+  permissionDecisionReason: ("Refused: \($hit). Only Claude models (claudeAgent, claude1_) and gpt-6.1-sol on codex are used; never Grok, Cursor, opencode or other providers. Pick the model from the table in the delegate skill.")}}'
 exit 0
