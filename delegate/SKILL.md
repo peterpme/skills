@@ -11,7 +11,7 @@ On a program of several tickets, plan and write tickets; let subagents investiga
 
 Every model and effort comes from `~/skills/global/models.tsv`: one row per role (`build`, `investigate`, `review-claude-code`, `review-gpt-code`, `hardest`, `orchestrator`, `scheduled-worker`, `llp-*`, `fallback`), with the provider, model, effort and how to pick between rows. Use nothing else, and that includes a built-in subagent (Claude `Agent`, Codex `spawn_agent`): name its model, or it silently runs on yours. Before 3 or more runs at once, or any run at xhigh, tell Peter the count, model and effort and wait for a yes, even when he asked for them. The catalog does not report usage or quota; model availability alone does not mean an account has capacity.
 
-Before launch, call `orchestrator_capabilities` and confirm the provider instance can run child tasks and supports the chosen model and option values. Track the last implementation provider in the parent thread to alternate accounts. If a requested target is unavailable, report the mismatch; do not silently substitute a provider, model, or effort.
+Before launch, call `orchestrator_capabilities` and confirm the provider instance can run child tasks and supports the chosen model and option values. Every Claude entry uses the same cliproxy hub accounts and the hub picks the account, so there is no account to alternate. If a requested target is unavailable, report the mismatch; do not silently substitute a provider, model, or effort.
 
 For these routes, use T3 `delegate_task` with `target.providerInstanceId`, `target.model`, and explicit `target.options`. An effort word in the brief does not configure the model. For example:
 

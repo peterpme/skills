@@ -19,7 +19,7 @@ if (!process.env.SKILLS_HOME && await realpath(root) !== await realpath(canonica
   console.log(`Skipped sync: ${root} is not ${canonical}. Run npm run sync there.`);
   process.exit(0);
 }
-// A second Claude account (~/.claude<n>, see t3-loadbalancer) reads only its own skills folder, so it
+// A second Claude config dir (~/.claude<n>) reads only its own skills folder, so it
 // needs the links too; without them its threads saw 7 of the 27 skills (home#156).
 const claudeAccounts = (await readdir(home, { withFileTypes: true }).catch(() => []))
   .filter((entry) => entry.isDirectory() && /^\.claude\d+$/.test(entry.name))
@@ -80,7 +80,7 @@ for (const entry of await readdir(join(root, "bin"), { withFileTypes: true })) {
 }
 
 // Claude Code hooks from bin/, registered in the settings.json of every Claude Code config dir on
-// the machine: ~/.claude, any ~/.claude<n> (a second account, see t3-loadbalancer) and
+// the machine: ~/.claude, any ~/.claude<n> (a second config dir) and
 // $CLAUDE_CONFIG_DIR. The command is the ~/.local/bin link, which survives the checkout or worktree
 // that ran sync; an entry pointing elsewhere is rewritten. Other keys are left as they are, the
 // write is atomic, and the file is never printed: it holds tokens.
