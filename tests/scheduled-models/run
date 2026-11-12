@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Builds a small T3-shaped database and runs bin/scheduled-models on it:
-# the delegate table's rules, expected next to actual. Exits 1 on any disagreement.
+# the models.tsv rules, expected next to actual. Exits 1 on any disagreement.
 set -uo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 tool=$here/../../bin/scheduled-models

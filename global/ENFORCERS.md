@@ -32,4 +32,4 @@ Kinds: **hook** (runs in the harness), **CI** (runs on the PR), **scheduled** (a
 | State lives in the ledger | `chief-of-staff` reads every epic daily | scheduled | A missing event shows as a stale epic |
 | Run or dry-run a command before handing it to Peter | none | prose | Judgment; Peter sees the failure at once |
 | Pull home before inspecting or changing it | none | prose | A stale clone fails at push |
-| No scheduled task runs Fable; the Worker task runs Opus at high effort (`delegate` table) | `bin/scheduled-models`, run by the `chief-of-staff` daily run, flags an enabled task on Fable, Grok or opencode, or a Worker off the table | scheduled | Caught at the next morning's run, not when the task is saved. Reads the laptop's T3 database only |
+| No scheduled task runs Fable; the Worker task runs the `scheduled-worker` row of `global/models.tsv` | `bin/scheduled-models`, run by the `chief-of-staff` daily run, flags an enabled task on Fable, Grok or opencode, or a Worker off the table | scheduled | Caught at the next morning's run, not when the task is saved. Reads the laptop's T3 database only |

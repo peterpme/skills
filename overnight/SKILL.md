@@ -9,13 +9,9 @@ Peter's words: "a skill called nightwatch or overnight and that will force the m
 
 ## Models
 
-| Work | Model | Effort |
-|---|---|---|
-| The plan and every decision (this thread) | `claude-opus-5-5` | high |
-| Implementation children | from `delegate`'s table | as there |
-| Review, one per PR | Sol, `gpt-6.1-sol` on `codex` | high |
+From `~/skills/global/models.tsv`: this thread is the `orchestrator` row, implementation children the `build` rows, and each PR's review the `review-*` row for the other family.
 
-If this thread is not Opus 5.5 at high, start one `delegate_task` child at that setting with this skill and the task, and relay its result.
+If this thread is not on the `orchestrator` row's model and effort, start one `delegate_task` child at that setting with this skill and the task, and relay its result.
 
 ## Start
 

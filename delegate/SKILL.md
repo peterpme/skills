@@ -9,30 +9,18 @@ On a program of several tickets, plan and write tickets; let subagents investiga
 
 ## Pick the model and effort
 
-Use only the models and efforts in this table. The catalog does not report usage or quota; model availability alone does not mean an account has capacity.
-
-| Work | Provider / model | Effort |
-| --- | --- | --- |
-| Implementation ticket: about one in three, chosen at random (`[ $(date +%S) -lt 20 ]`), goes to Sol; the rest to Sonnet | `gpt-6.1-sol` on `codex`, or `claude-sonnet-5-5` alternating `claudeAgent` and `claude1_` | high |
-| Read-only investigation: inventories, "find every place that…", log digging, spec or backend research | `claude-sonnet-5-5` (`claudeAgent` / `claude1_`) | medium |
-| The GPT reviewer: review of Claude-written code, a design or a contract | Sol (`gpt-6.1-sol`) on `codex` | high |
-| The Claude reviewer: when a task names a second model family, or the code under review was written by GPT | `claude-fable-5-2` on `claudeAgent` / `claude1_` | medium |
-| Hardest single task or review only: alternate at random (`[ $(date +%S) -lt 30 ]` goes to Sol), and write which ran in the report | `claude-fable-5-2` on `claudeAgent` / `claude1_`, or `gpt-6.1-sol` on `codex` | Fable high, Sol xhigh |
-| Scheduled workers (the Worker task and any task that does ticket work); create the task from a thread set to this, since `schedule_task` copies the caller's model. No scheduled task runs Fable; Fable is for the chief of staff chat | `claude-opus-5-5` on `claudeAgent` | high |
+Every model and effort comes from `~/skills/global/models.tsv`: one row per role (`build`, `investigate`, `review-claude-code`, `review-gpt-code`, `hardest`, `orchestrator`, `scheduled-worker`, `llp-*`, `fallback`), with the provider, model, effort and how to pick between rows. Use nothing else. The catalog does not report usage or quota; model availability alone does not mean an account has capacity.
 
 Before launch, call `orchestrator_capabilities` and confirm the provider instance can run child tasks and supports the chosen model and option values. Track the last implementation provider in the parent thread to alternate accounts. If a requested target is unavailable, report the mismatch; do not silently substitute a provider, model, or effort.
 
 For these routes, use T3 `delegate_task` with `target.providerInstanceId`, `target.model`, and explicit `target.options`. An effort word in the brief does not configure the model. For example:
 
 ```json
-[
-  {"providerInstanceId":"claudeAgent","model":"claude-sonnet-5-5","options":{"effort":"high"}},
-  {"providerInstanceId":"claude1_","model":"claude-sonnet-5-5","options":{"effort":"high"}},
-  {"providerInstanceId":"codex","model":"gpt-6.1-sol","options":{"reasoningEffort":"high"}}
-]
+{"providerInstanceId":"claudeAgent","model":"<model>","options":{"effort":"<effort>"}}
+{"providerInstanceId":"codex","model":"<model>","options":{"reasoningEffort":"<effort>"}}
 ```
 
-Set effort explicitly on every child; a model other than the session's does not take the session's effort. Fable is the most expensive model per token, so it runs at medium unless the row says high. Options inherit only for the same provider instance and model; explicit entries override individual inherited values. Do not copy options to models that do not support them. Check the returned provider, model, and options against the requested target before trusting the task's work.
+Set effort explicitly on every child; a model other than the session's does not take the session's effort. Options inherit only for the same provider instance and model; explicit entries override individual inherited values. Do not copy options to models that do not support them. Check the returned provider, model, and options against the requested target before trusting the task's work.
 
 Retain the returned `taskId` and `childThreadId`; manage the task by `taskId`. Use a distinct `clientRequestId` for each ticket or independent review round and reuse it only for retries of that launch. For another review round call `delegate_task` again with the original brief, prior findings, responses, and unresolved objections; do not start the round by messaging the old child thread. Never use `t3_thread_launch` or `create_threads` as substitutes for subagents.
 
