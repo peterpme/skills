@@ -43,7 +43,7 @@ Priority threads (move first): the thread IDs listed in `~/.t3/loadbalancer-prio
 
 ## 3. Decide
 
-Equivalence table. Same model first.
+Equivalence table. Same model first. Never move a thread onto Grok (`delegate`).
 
 | Tier | Same model (preferred) | Other equivalents |
 |---|---|---|
@@ -52,7 +52,6 @@ Equivalence table. Same model first.
 | Claude Fable 5.2 | claude1_ / claude-fable-5-2 | claudeAgent / claude-fable-5-2 |
 | Claude Fable 5.1 | claude1_ / claude-fable-5-1 | claudeAgent / claude-fable-5-1 |
 | Claude Haiku 5.5 | claude1_ / claude-haiku-5-5 | claudeAgent / claude-haiku-5-5 |
-| Grok 4.7 | grok / grok-4.7 | cursor / grok-4.7 |
 | GPT-6.1 Sol | codex / gpt-6.1-sol | cursor / gpt-5.6-sol |
 | Gemini 3.8 Flash | antigravity / gemini-3.8-flash-high | cursor / gemini-3.8-flash |
 
