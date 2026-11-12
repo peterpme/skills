@@ -15,7 +15,7 @@ Grok is never used, for anything, through any provider. A Grok review does not s
 | --- | --- | --- |
 | Implementation ticket | `claude-sonnet-5-5`, alternating `claudeAgent` and `claude1_` | medium |
 | Read-only investigation: inventories, "find every place that…", log digging, spec or backend research | `claude-sonnet-5-5` (`claudeAgent` / `claude1_`) | medium |
-| The GPT reviewer: review of a PR, design or contract | Sol (`gpt-6.1-sol`) on `codex` | xhigh |
+| The GPT reviewer: review of a PR, design or contract | Sol (`gpt-6.1-sol`) on `codex` | high |
 | The Claude reviewer: when a task names a second model family, or the code under review was written by GPT | `claude-fable-5-2` on `claudeAgent` / `claude1_` | medium |
 | Hardest single task or review only | `claude-fable-5-2` on `claudeAgent` / `claude1_` | high |
 | Scheduled workers (the Worker task and any task that does ticket work); create the task from a thread set to this, since `schedule_task` copies the caller's model. No scheduled task runs Fable; Fable is for the chief of staff chat | `claude-opus-5-5` on `claudeAgent` | high |
@@ -28,11 +28,11 @@ For these routes, use T3 `delegate_task` with `target.providerInstanceId`, `targ
 [
   {"providerInstanceId":"claudeAgent","model":"claude-sonnet-5-5","options":{"effort":"medium"}},
   {"providerInstanceId":"claude1_","model":"claude-sonnet-5-5","options":{"effort":"medium"}},
-  {"providerInstanceId":"codex","model":"gpt-6.1-sol","options":{"reasoningEffort":"xhigh"}}
+  {"providerInstanceId":"codex","model":"gpt-6.1-sol","options":{"reasoningEffort":"high"}}
 ]
 ```
 
-Set effort explicitly on every child; a model other than the session's does not take the session's effort. Fable is the most expensive model per token, so it runs at medium unless the row says high; raise a Sonnet ticket to `high` only when its first attempt came back wrong. Options inherit only for the same provider instance and model; explicit entries override individual inherited values. Do not copy options to models that do not support them. Check the returned provider, model, and options against the requested target before trusting the task's work.
+Never go above these caps (Peter): `gpt-6.1-sol` high, `claude-opus-5-5` high, `claude-fable-5-2` medium; the hardest-single-task row is the one named exception. Set effort explicitly on every child; a model other than the session's does not take the session's effort. Fable is the most expensive model per token, so it runs at medium unless the row says high; raise a Sonnet ticket to `high` only when its first attempt came back wrong. Options inherit only for the same provider instance and model; explicit entries override individual inherited values. Do not copy options to models that do not support them. Check the returned provider, model, and options against the requested target before trusting the task's work.
 
 Retain the returned `taskId` and `childThreadId`; manage the task by `taskId`. Use a distinct `clientRequestId` for each ticket or independent review round and reuse it only for retries of that launch. For another review round call `delegate_task` again with the original brief, prior findings, responses, and unresolved objections; do not start the round by messaging the old child thread. Never use `t3_thread_launch` or `create_threads` as substitutes for subagents.
 
