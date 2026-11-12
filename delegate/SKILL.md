@@ -9,7 +9,7 @@ On a program of several tickets, plan and write tickets; let subagents investiga
 
 ## Pick the model and effort
 
-Only two routes exist: Claude models on `claudeAgent` / `claude1_`, and `gpt-6.1-sol` on `codex`. Never Cursor, Grok, opencode or any other provider or model, for any role, until Peter says otherwise; `bin/model-guard` refuses them. A Grok review does not satisfy a tier 2 gate: the PR is re-reviewed by the GPT reviewer below. Never use the `opencode` provider or any `opencode/...` model, even through another provider instance. The `model-guard` hook denies a T3 call that names either, and `scheduled-models` flags a scheduled task on one. The catalog does not report usage or quota; model availability alone does not mean an account has capacity.
+Use only the models and efforts in this table. The catalog does not report usage or quota; model availability alone does not mean an account has capacity.
 
 | Work | Provider / model | Effort |
 | --- | --- | --- |
@@ -32,7 +32,7 @@ For these routes, use T3 `delegate_task` with `target.providerInstanceId`, `targ
 ]
 ```
 
-Never go above these caps (Peter): `gpt-6.1-sol` high, `claude-opus-5-5` high, `claude-fable-5-2` medium; the hardest-single-task row is the one named exception (Fable high, Sol xhigh). Set effort explicitly on every child; a model other than the session's does not take the session's effort. Fable is the most expensive model per token, so it runs at medium unless the row says high. Options inherit only for the same provider instance and model; explicit entries override individual inherited values. Do not copy options to models that do not support them. Check the returned provider, model, and options against the requested target before trusting the task's work.
+Set effort explicitly on every child; a model other than the session's does not take the session's effort. Fable is the most expensive model per token, so it runs at medium unless the row says high. Options inherit only for the same provider instance and model; explicit entries override individual inherited values. Do not copy options to models that do not support them. Check the returned provider, model, and options against the requested target before trusting the task's work.
 
 Retain the returned `taskId` and `childThreadId`; manage the task by `taskId`. Use a distinct `clientRequestId` for each ticket or independent review round and reuse it only for retries of that launch. For another review round call `delegate_task` again with the original brief, prior findings, responses, and unresolved objections; do not start the round by messaging the old child thread. Never use `t3_thread_launch` or `create_threads` as substitutes for subagents.
 
