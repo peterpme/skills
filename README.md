@@ -6,7 +6,8 @@ Personal agent skills. One folder per skill at the repository root.
 - [tldr](tldr/SKILL.md): Cut the last response down to a one-sentence summary, your decisions, and what is next.
 - [word-this](word-this/SKILL.md): Make a draft coherent while preserving your voice, casing, and prose. Invoke explicitly; automatic invocation is disabled.
 - [ticket](ticket/SKILL.md): One line from Peter becomes one well-formed ledger issue (home or Linear) or a decision issue, filed by a cheap model.
-- [chief-of-staff](chief-of-staff/SKILL.md): Daily run that keeps every stream moving: applies the merge and 14-day rules, closes or parks stale work and writes its learnings, posts one brief with only the decisions no rule covers.
+- [chief-of-staff](chief-of-staff/SKILL.md): Daily run that keeps every stream moving: applies the merge and 14-day rules, closes or parks stale work and writes its learnings, settles idle T3 threads and archives finished workers, posts one brief with only the decisions no rule covers.
+- [coordinator](coordinator/SKILL.md): The one long-running thread per folder Peter talks to: answers status itself, sends work to hidden worker threads via `delegate_task`, watches their PRs, archives them when done.
 - [delegate](delegate/SKILL.md): Delegate investigations, tickets and reviews with model and effort routing, self-contained briefs and stall checks.
 - [orchestrate](orchestrate/SKILL.md): Build without Peter steering: a contract (his decisions, acceptance checks, slices, defaulted questions) workers build, one reviewer reports findings that come with a failing command, and only PRs that pass the ready gate reach him. `evals/orchestrate/` replays real tasks to score it.
 - [overnight](overnight/SKILL.md): `/overnight <task>` before bed: Opus 5.5 high decides every open question itself, records each as a closed decision issue with a one-word undo, finishes the work, and leaves one summary on the Morning brief.

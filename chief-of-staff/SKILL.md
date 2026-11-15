@@ -1,6 +1,6 @@
 ---
 name: chief-of-staff
-description: "Use for the daily Chief of staff run, or when Peter asks where things stand, what needs him, what is worth merging, or to close out PRs or a stream he no longer cares about. Triages his open PRs and ledger epics across repos and posts one brief of the decisions only he can make. Not for one named PR."
+description: "Use for the daily Chief of staff run, or when Peter asks where things stand, what needs him, what is worth merging, or to close out PRs or a stream he no longer cares about. Triages his open PRs, ledger epics and stale T3 threads across machines and posts one brief of the decisions only he can make. Not for one named PR."
 compatibility: macOS or Linux with gh authenticated as Peter and the private home repo cloned at ~/Projects/home.
 ---
 
@@ -34,6 +34,18 @@ Closure is more than closing. When you close the last PR of a stream, or an epic
 For each open `blocked` home issue, take every open PR that references it (its timeline), and post one issue comment per failed check (name, head SHA, link if any) or review thread (link) that no earlier comment on the issue names; leave the status as it is (control panel, Status).
 
 Every issue you touch carries one area label (`backpack` or `personal`) and one project label; fix any that are missing. Run `~/Projects/home/sentinel/ledger-status-check.sh` and fix each issue it lists, so every open issue has one status. Run `pr-dupes`: close the old PR of each `SUPERSEDED` pair with one comment naming the new one (personal repos; in a work repo list it under Other), add it to the Backlog issue, and mention each `CHECK` line only when the two PRs are not a split the epic describes. Run `scheduled-models`: each flagged task goes under Other with its fix (`global/models.tsv`), since only Peter or a thread set to the table can change a scheduled task. Apply the control panel's Postmortems and Revert budget sections: file the postmortem a trigger calls for, and record an area that is over its budget on its epic. Never deploy. Never nudge a teammate; name who should be asked and why.
+
+## T3 threads
+
+On this machine and each linked one (`t3_environment_links`), `t3_thread_list` with `allProjects: true`, every page, once with `settled: false` and once with `settled: true`. Skip pinned threads, `Coordinator · ...` threads, and threads running now. Idle means `updatedAt` is older than the limit.
+
+- Top-level thread, idle 7 days, `openPullRequestCount` 0: settle it (`t3_thread_organize` `settle`), the same rule Claude Projects uses.
+- Worker (has `parentThreadId`), not running or waiting, and either `pullRequestCount` > 0 with `openPullRequestCount` 0, or no PR and idle 2 days: archive it. Its result already reached its parent.
+- Settled thread whose `settledAt` is 30 days old: archive it.
+- `waiting` (a question or approval) and idle 2 days: one Needs-you line with its `link`.
+- A `Coordinator: <folder>` home issue that lists a worker no longer running, or a running worker it does not list: fix the issue.
+
+Count what you settled and archived on one Done line.
 
 ## Retargeted stacks
 
