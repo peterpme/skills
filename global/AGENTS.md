@@ -29,7 +29,6 @@ Source: `global/AGENTS.md` in `~/skills`; `npm run sync` links it into every har
 | A repo with an `llp/` folder | `llp-orient` before the contract |
 | Effect code | `effect-v4` |
 | Creating or changing a skill | `skill-creator` (Anthropic's): test prompts first, then the skill, then its description; `npm run sync` from `~/skills` |
-| Every final reply | the shape in `~/.agents/skills/tldr/SKILL.md` |
 
 ## Tiers
 
@@ -68,6 +67,7 @@ Any change to project files ends this way without being asked; skip it for quest
 
 ## Reporting
 
+- A final reply is about 150 words at most: the answer, decisions with your pick, the proof, what is blocked. Details go in the PR, ticket or a linked file. Go longer only when I ask you to explain or teach.
 - Lead with the answer; a yes/no question gets yes or no first. Then what is broken and the exact step you need from me.
 - Prove it with data: numbers, links, a before and after, a small table. In a coverage list, account for what you did not test.
 - Plain words, for a reader who saw none of the work. No narration or hedging. Never use a label you made up; say what each tool or setting is the first time you name it.
