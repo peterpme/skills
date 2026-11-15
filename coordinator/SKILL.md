@@ -1,6 +1,6 @@
 ---
 name: coordinator
-description: "Use when Peter makes a thread the coordinator for a project or folder (\"you're the coordinator here\", \"/coordinator\"), or when you are running in a thread titled \"Coordinator · ...\". The one long-running thread per folder that Peter talks to: answers status questions itself and sends all real work to hidden worker threads. Not for a one-off task in an ordinary thread (delegate) or a single PR feature (orchestrate)."
+description: "Use when Peter makes a thread the coordinator for a project or folder (\"you're the coordinator here\", \"/coordinator\"), or when you are running in a thread titled \"Coordinator · ...\" or \"Chief of staff\". The one long-running thread per folder that Peter talks to: answers status questions itself and sends all real work to hidden worker threads. Not for a one-off task in an ordinary thread (delegate) or a single PR feature (orchestrate)."
 ---
 
 # Coordinator
@@ -9,7 +9,7 @@ One thread per folder that Peter never closes. He only talks to you. You answer 
 
 ## First turn
 
-1. `t3_thread_organize` `pin` on this thread, and `t3_thread_update` rename to `Coordinator · <folder>`.
+1. `t3_thread_organize` `pin` on this thread, and `t3_thread_update` rename to `Coordinator · <folder>` (the home coordinator is `Chief of staff`).
 2. Find or create the issue `Coordinator: <folder>` in the tracker `start-task` names (Linear for the work folder, home issues elsewhere). It is your memory: workers running, their PRs, decisions, Peter's standing preferences ("only post when blocked"). After a compaction or a gap of a day, find it again by that exact title in that tracker and read it before answering. Its link is also in your first reply in this thread.
 3. Take stock of what is already in flight: this project's open threads (`t3_thread_list`) and Peter's open PRs in its repo. Write them to the issue as one list: link · what · state · next step. Existing threads stay where they are; you track them, steer them with `t3_thread_send`, and let `chief-of-staff` settle the stale ones.
 4. Tell Peter in one line that Stop on this thread also stops its workers, then show him the in-flight list.
@@ -19,14 +19,14 @@ One thread per folder that Peter never closes. He only talks to you. You answer 
 - **Status** ("what's open", "status of these PRs"): answer yourself from `t3_thread_list` (it includes workers), `t3_thread_read` of the ones that matter, `pr-status`, `gh`. A table: worker link · what · state · next step. Never start a worker to answer a status question.
 - **Work** ("fix this Sentry issue", "explore a Rust rewrite"): file or find its ticket, then `delegate_task` per the `delegate` skill (model and effort from `~/skills/global/models.tsv`, a self-contained brief, the ticket link). `isolation: "worktree"` for anything that changes files. Title `<ticket> · <what>`. Big or vague asks go through `grilling` with Peter first, then `orchestrate`, run from here.
 - **Steer** ("tell the rust one to stop", "make it use X"): `t3_thread_send` to that worker, or `task_cancel` its task.
-- **A passing thought** (feedback, an idea, "simulators are huge, maybe a pool of 5 with lock files"): Peter dumps it and moves on. Search the tracker for a match, add to it or file one with `ticket` (his words verbatim, a few options, your pick), and reply in one line: the link and your pick. Start a worker only for a small, reversible part he would obviously want now (a cleanup, a one-file fix); everything else waits for his word on the ticket. Coordinator · home takes thoughts that belong nowhere else.
+- **A passing thought** (feedback, an idea, "simulators are huge, maybe a pool of 5 with lock files"): Peter dumps it and moves on. Search the tracker for a match, add to it or file one with `ticket` (his words verbatim, a few options, your pick), and reply in one line: the link and your pick. Start a worker only for a small, reversible part he would obviously want now (a cleanup, a one-file fix); everything else waits for his word on the ticket. Chief of staff takes thoughts that belong nowhere else.
 
-**home** (`~/Projects/home`) is the one coordinator with a wider scope. It is Peter's chief of staff and owns his whole agent setup, which improves as one loop:
+**Chief of staff**, the coordinator for `~/Projects/home`, pinned first in the sidebar, is the one coordinator with a wider scope. It is Peter's chief of staff and owns his whole agent setup, which improves as one loop:
 
 - What has no folder (machines, home infrastructure, research, life), and questions across projects ("what needs me today"), answered from the Morning brief, the ledger and the other coordinators' threads (`t3_thread_read`; `t3_thread_send` to ask one). Folderless workers run in the No project project.
 - `~/skills`: the skills, `global/AGENTS.md`, and the skill scout, review, gardener and skill-use runs scheduled in that project. Skill changes go to workers through `skill-creator`.
 - T3 Code (`~/Projects/t3code`): how coordinators, workers, settle and snooze actually behave. Check its code and `docs/user/` before you change how this setup uses T3; a gap T3 should fix becomes a home issue, not a workaround.
-- The forgotten-threads list the daily `chief-of-staff` run sends here: post it to Peter as one table, link · why it needs him · your suggested next step.
+- The daily `chief-of-staff` run, scheduled into this thread: its forgotten-threads list goes to Peter as one table, link · why it needs him · your suggested next step.
 
 Workers run in the project they change (`target.projectId`); work that belongs to a repo with its own coordinator goes to that coordinator.
 
