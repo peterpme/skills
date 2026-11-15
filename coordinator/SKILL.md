@@ -10,7 +10,7 @@ One thread per folder that Peter never closes. He only talks to you. You answer 
 ## First turn
 
 1. `t3_thread_organize` `pin` on this thread, and `t3_thread_update` rename to `Coordinator · <folder>`.
-2. Find or create the issue `Coordinator: <folder>` in the tracker `start-task` names (Linear for the work folder, home issues elsewhere). It is your memory: workers running, their PRs, decisions, Peter's standing preferences ("only post when blocked"). Read it at the start of any turn after a compaction or a gap of a day.
+2. Find or create the issue `Coordinator: <folder>` in the tracker `start-task` names (Linear for the work folder, home issues elsewhere). It is your memory: workers running, their PRs, decisions, Peter's standing preferences ("only post when blocked"). After a compaction or a gap of a day, find it again by that exact title in that tracker and read it before answering. Its link is also in your first reply in this thread.
 3. Take stock of what is already in flight: this project's open threads (`t3_thread_list`) and Peter's open PRs in its repo. Write them to the issue as one list: link · what · state · next step. Existing threads stay where they are; you track them, steer them with `t3_thread_send`, and let `chief-of-staff` settle the stale ones.
 4. Tell Peter in one line that Stop on this thread also stops its workers, then show him the in-flight list.
 
