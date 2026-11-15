@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# Runs bin/feedback against a scratch home repo (bare origin, branch main) with the real
+# gitleaks pre-commit hook: expected next to actual. Exits 1 on any disagreement.
+#   1. the key that gitleaks rejected as `key:` (entropy 3.58) now commits and pushes
+#   2. an entry written in the old `key:` form is still recognised, so a rerun adds nothing
+#   3. a commit a hook refuses exits 1 with nothing staged, and the next run still works
+set -uo pipefail
+here=$(cd "$(dirname "$0")" && pwd)
+tool=$here/../../bin/feedback
+command -v gitleaks >/dev/null || { echo "gitleaks missing: brew install gitleaks"; exit 1; }
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+fail=0
+g() { git -C "$work/home" -c user.email=t@t -c user.name=t "$@"; }
+git init -q --bare -b main "$work/origin.git"
+git clone -q "$work/origin.git" "$work/home" 2>/dev/null
+mkdir -p "$work/home/docs" "$work/home/.githooks"
+printf '<!-- entries, newest first -->\n' >"$work/home/docs/feedback.md"
+cat >"$work/home/.githooks/pre-commit" <<'HOOK'
+#!/usr/bin/env bash
+gitleaks git --pre-commit --staged --redact --no-banner --log-level error
+HOOK
+chmod +x "$work/home/.githooks/pre-commit"
+g add -A && g commit -q --no-verify -m base && g push -q origin HEAD:main
+g config core.hooksPath .githooks
+entry() { # key
+  printf '[{"quote":"q %s","agent_did":"did","key":"%s","time":"2026-11-15T11:25:30Z"}]' "$1" "$1" >"$work/e.json"
+}
+check() { # name expected actual
+  local ok=yes; [[ $2 == "$3" ]] || { ok=NO; fail=1; }
+  printf '%-52s expect %-10s actual %-10s %s\n' "$1" "$2" "$3" "$ok"
+}
+printf '%-52s\n' case
+
+entry 65b2a3f637846ce1
+"$tool" add "$work/e.json" --repo "$work/home" >/dev/null 2>&1
+check "high-entropy key commits" 0 $?
+check "  and is pushed to origin" 1 "$(git -C "$work/origin.git" log --oneline | rg -c 'feedback: 1 new entry')"
+check "  and is written as id:, not key:" 1 "$(rg -c '^<!-- id: 65b2a3f637846ce1 ' "$work/home/docs/feedback.md")"
+
+sed -i 's/^<!-- id: /<!-- key: /' "$work/home/docs/feedback.md"
+g commit -q --no-verify -am old-format && g push -q origin HEAD:main
+out=$("$tool" add "$work/e.json" --repo "$work/home" 2>&1); code=$?
+check "old key: entry is deduplicated (exit)" 0 $code
+check "  and nothing new is added" "0 added," "$(cut -d' ' -f1-2 <<<"$out")"
+
+printf '#!/usr/bin/env bash\necho "hook says no" >&2\nexit 1\n' >"$work/home/.githooks/pre-commit"
+entry aaaa1111bbbb2222
+"$tool" add "$work/e.json" --repo "$work/home" >/dev/null 2>&1
+check "hook-refused commit exits" 1 $?
+check "  and leaves nothing staged or modified" 0 "$(g status --porcelain -- docs/feedback.md | wc -l | tr -d ' ')"
+printf '#!/usr/bin/env bash\nexit 0\n' >"$work/home/.githooks/pre-commit"
+"$tool" add "$work/e.json" --repo "$work/home" >/dev/null 2>&1
+check "next run after the refusal commits" 0 $?
+exit $fail

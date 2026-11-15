@@ -40,7 +40,9 @@ Newest first. The skill scout and the weekly skill review read this file before 
 else; each entry outranks a pattern inferred from threads.
 
 """ + MARK + "\n"
-META = re.compile(r"<!-- key: (.*?) \| time: (\S+) -->")
+# Written as `id:`, read as `id:` or the older `key:`. A `key: <random hex>` line trips gitleaks'
+# generic-api-key rule (entropy over 3.5) in the home repo's pre-commit hook, about half the time.
+META = re.compile(r"<!-- (?:id|key): (.*?) \| time: (\S+) -->")
 OLDEST = dt.datetime.min.replace(tzinfo=dt.timezone.utc)
 
 
@@ -72,7 +74,7 @@ def render(e):
     quote = "\n".join("> " + line for line in e["quote"].strip().splitlines()) or ">"
     return (
         f"## {local(e['time'])}{where}\n"
-        f"<!-- key: {e['key']} | time: {iso(e['time'])} -->\n"
+        f"<!-- id: {e['key']} | time: {iso(e['time'])} -->\n"
         f"{quote}\n\n"
         f"**The agent had:** {e['agent_did'].strip()}  \n"
         f"**Changed:** {e.get('changed', 'pending').strip() or 'pending'}\n"
@@ -178,7 +180,13 @@ def main(argv):
                 return 0
             label = f"{len(added)} new {'entry' if len(added) == 1 else 'entries'}"
             git(repo, "add", "--", FILE)
-            git(repo, "commit", "-q", "--only", "-m", f"feedback: {label}", "--", FILE)
+            committed = git(repo, "commit", "-q", "--only", "-m", f"feedback: {label}", "--", FILE, check=False)
+            if committed.returncode:
+                # A hook (the home repo's gitleaks scan) refused it. Leave nothing staged, or the
+                # "uncommitted changes" guard above blocks every later writer.
+                git(repo, "reset", "-q", "HEAD", "--", FILE, check=False)
+                git(repo, "checkout", "-q", "--", FILE, check=False)
+                sys.exit(f"feedback: commit refused, nothing recorded:\n{(committed.stderr or committed.stdout).strip()}")
             pushed = git(repo, "push", "-q", check=False)
             if pushed.returncode == 0:
                 print(f"{len(added)} added, {len(entries) - len(added)} already recorded: " + ", ".join(added))
