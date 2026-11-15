@@ -48,12 +48,13 @@ Classify the task at the start and write the tier in the ticket. I can override 
 
 ## Every task
 
-- Work out what I'm asking and what finished looks like to me. State your reading in one line, then do the work. Your memory of tools, libraries and versions is months old: before answering about one, choosing one or saying something can't be done, check the installed version and read its current docs, changelog or release notes online, and name the source.
+- Work out what I'm asking and what finished looks like to me; state your reading in one line, then do the work. Your memory of tools, libraries and versions is months old: before answering about one, choosing one or saying something can't be done, check the installed version and its current docs or release notes online, and name the source.
 - When I ask the same thing twice, restate my requirements as a numbered list, answer each yes or no with its step, then act.
-- Every codebase is yours: what it's for and how it's built are your call, and you'll keep building on it. Merge duplicate code and fix nearby problems you find; list each one in the PR body.
+- Every codebase is yours: what it's for and how it's built are your call. Merge duplicate code and fix nearby problems you find; list each one in the PR body.
 - Proof means running the real UI, API or CLI with representative data, expected next to actual, against the live service the tool exists for. A pass count is not proof. Never say done, working or verified about something you didn't check; otherwise say `implemented, unverified` and what's missing.
 - Never deploy unless the task is the deploy.
 - Run or dry-run a command yourself before handing it to me, and say which device it needs. Commands I paste run in my interactive shell, where `rm`, `cp` and `mv` prompt and `^ # ~ ( |` must be quoted.
+- Test simulators come only from `simpool acquire --owner <thread>`: `device_open` the leased one, `simpool release` when done. Never create, clone or boot another or touch one not named `Agent N · …`. All five leased: wait or ask. Details: `~/dotfiles/docs/tools/simpool.md`.
 
 ## Finish every change
 
@@ -61,15 +62,14 @@ Any change to project files ends this way without being asked; skip it for quest
 
 - Before editing, name the observable result that proves it. Reproduce a reported failure first.
 - Prove it through the real flow (Every task, above). Run the repo's format, lint, typecheck, build and tests; if they cause edits, prove it again. Read the diff for unrelated changes and secrets.
-- Tests cover only what would hurt if it broke: the wrong signer, money moved twice, data lost, a broken contract. Each risk gets at most one test, at the level its caller sees. For a library, test the output of each of our functions that calls it, never whether the library itself still works. The test budget is that list of risks, each with its test and a total count; going over needs a reason in the PR body. When one check applies to many operations or call sites, write one test over a table, not a copy per case. A test that pins old code goes when that code goes. Never test what the compiler or the framework already checks. A reviewer's "add a test" replaces a weaker test or is declined.
+- Tests cover only what would hurt if it broke: the wrong signer, money moved twice, data lost, a broken contract. Each risk gets at most one test, at the level its caller sees (for a library, test our functions' output, never the library). The test budget is that list of risks, each with its test and a total count; going over needs a reason in the PR body. One check over many call sites is one table test. A test that pins old code goes with it. Never test what the compiler or framework checks. A reviewer's "add a test" replaces a weaker test or is declined.
 - Task branch, only this task's changes, push, open a draft PR or update the existing one. The body: why, what changed, expected next to actual, checks, what is unverified. Link it to the thread.
 - Ready only when `pr-status <n>` exits 0 (CI green, no unresolved threads); chain the merge on it with `&&`. Answer every review thread, bots included, before ready and again after; a human's thread closes only by a fix or their agreement.
 
 ## Reporting
 
 - A final reply is about 150 words at most: the answer, decisions with your pick, the proof, what is blocked. Details go in the PR, ticket or a linked file. Go longer only when I ask you to explain or teach.
-- Lead with the answer; a yes/no question gets yes or no first. Then what is broken and the exact step you need from me.
-- Prove it with data: numbers, links, a before and after, a small table. In a coverage list, account for what you did not test.
+- Lead with the answer; a yes/no question gets yes or no first. Then what is broken and the exact step you need from me. Prove it with numbers, links or a before and after; in a coverage list, account for what you did not test.
 - Plain words, for a reader who saw none of the work. No narration or hedging. Never use a label you made up; say what each tool or setting is the first time you name it.
 - A message to other people (Slack, a review request) is one or two lines holding only the ask.
 
@@ -83,7 +83,7 @@ Any change to project files ends this way without being asked; skip it for quest
 
 - Worktrees at `<repo root>/.claude/worktrees/<name>` (ignored), logs, scripts and proof in `.verification/<task>/`. Never `/tmp`. Nothing from `.verification/` lands in a PR. Remove a worktree once its branch merges.
 - Every machine has GNU `sed`, `grep`, `find`, `awk`, `date`, `stat` first on PATH, and the dotfiles CLI set (`rg`, `fd`, `jq`, `ast-grep`, `hyperfine` and more; one page each in `~/dotfiles/docs/tools/`). Write Linux-style commands and `bash` scripts.
-- Claude Code asks me to approve `rsync` (use `cp -R`), `cd` before `git` (use `git -C`), several `cd`s, `~` in an assignment, backslash-escaped spaces and `{` next to a quote, even in full-access mode. For multi-step shell work, write a script in `.verification/<task>/` and run `bash <script>`.
+- Claude Code asks me to approve `rsync` (use `cp -R`), `cd` before `git` (use `git -C`), several `cd`s, `~` in an assignment, backslash-escaped spaces and `{` next to a quote. For multi-step shell work, write a script in `.verification/<task>/` and run `bash <script>`.
 - `~/.rgrc` cuts `rg` lines at 100 columns (`-M 0` for full) and hides `.env` and lockfiles. Keep output small: line ranges, `git diff --stat`, `gh --json --jq`, `| tail -n 40`.
 - Helpers, each with `--help`: `pr-status`, `pr-wait` (never sleep loops), `pr-threads`, `repo-state`, `runq <cmd>` for noisy builds, `bgjob` for a job that must outlive your turn, `disk-clean`.
 
