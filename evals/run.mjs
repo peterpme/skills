@@ -19,6 +19,10 @@ rmSync(work, { recursive: true, force: true });
 mkdirSync(work, { recursive: true });
 // Ignore user settings, hooks, MCP servers, and tools so runs are cheap and comparable.
 const iso = ["--setting-sources", "project", "--strict-mcp-config", "--tools=", "--output-format", "json"];
+// The judge runs on the models.tsv investigate row, so a model change there reaches it.
+const [judgeModel, judgeEffort] = readFileSync(join(repo, "global/models.tsv"), "utf8")
+  .split("\n").map((l) => l.split("\t"))
+  .find((r) => r[0] === "investigate" && r[2] === "claudeAgent").slice(3, 5);
 const claude = (args, input) =>
   JSON.parse(execFileSync("claude", ["-p", ...iso, ...args], { input, cwd: work, encoding: "utf8" }));
 
@@ -96,7 +100,7 @@ for (const f of readdirSync(join(here, "fixtures")).filter((f) => f.endsWith(".m
       const { res, longLines, maxWords } = grade(fixture, text);
       let verdict = "skipped";
       if (judge) {
-        verdict = claude(["--model", "sonnet"], JUDGE_PROMPT(task, source, text)).result.trim();
+        verdict = claude(["--model", judgeModel, "--effort", judgeEffort], JUDGE_PROMPT(task, source, text)).result.trim();
         res.faithful = /^PASS/i.test(verdict);
       }
       const passed = Object.values(res).filter(Boolean).length;

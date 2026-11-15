@@ -51,7 +51,7 @@ To remove a skill, delete its folder and its links from the global skill folders
 
 ### Evals
 
-`evals/fixtures/*.md` each hold a `TASK:` line and a long agent response. `evals/checks.json` sets per-fixture limits and patterns. `evals/run.mjs` replays each response, runs `/tldr` from each version, checks the format, and has Sonnet judge whether the brief adds anything not in the response. Output goes to `evals/.work/`.
+`evals/fixtures/*.md` each hold a `TASK:` line and a long agent response. `evals/checks.json` sets per-fixture limits and patterns. `evals/run.mjs` replays each response, runs `/tldr` from each version, checks the format, and has the `investigate` model from `global/models.tsv` judge whether the brief adds anything not in the response. Output goes to `evals/.work/`.
 
 ## Skill format
 
