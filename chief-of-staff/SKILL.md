@@ -37,7 +37,7 @@ Every issue you touch carries one area label (`backpack` or `personal`) and one 
 
 ## T3 threads
 
-The sidebar holds only the pinned coordinators and what Peter is in today; everything else is parked, never deleted. On this machine and each linked one (`t3_environment_links`), `t3_thread_list` with `allProjects: true`, every page, with `settled: false` and `snoozed: false`, then again with `settled: true`. Skip pinned threads, `Coordinator · ...` threads, and threads running now. Idle means `updatedAt` is older than the limit.
+The sidebar holds only the pinned coordinators and what Peter is in today; everything else is parked, never deleted. On this machine and each linked one (`t3_environment_links`), `t3_thread_list` with `allProjects: true`, every page, with `settled: false` and `snoozed: false`, then again with `settled: true`. Skip pinned threads, `Coordinator · ...` and `Chief of staff` threads, and threads running now. Idle means `updatedAt` is older than the limit.
 
 - Top-level thread idle 24 hours, `openPullRequestCount` 0, not `waiting`: settle it (`t3_thread_organize` `settle`).
 - Top-level thread idle 24 hours with an open PR or `waiting`: snooze it 3 days (`snoozedUntil` 08:00 US Central). A new question, failed run or message wakes it early.
@@ -46,7 +46,7 @@ The sidebar holds only the pinned coordinators and what Peter is in today; every
 - Settled thread whose `settledAt` is 30 days old: archive it.
 - A `Coordinator: <folder>` home issue that lists a worker no longer running, or a running worker it does not list: fix the issue.
 
-Send the forgotten list to the thread titled `Coordinator · home` (`t3_thread_send`, `mode: "queue"`): one line per thread, its `link`, idle days, open PR links, and what it last asked or did, from `t3_thread_read` of its last message. Skip the send when the list is empty. Count what you settled, snoozed and archived on one Done line, and settle this run's own thread at the end.
+Post the forgotten list in the pinned `Chief of staff` thread (the daily run is scheduled there; from any other thread, `t3_thread_send` it with `mode: "queue"`): one line per thread, its `link`, idle days, open PR links, and what it last asked or did, from `t3_thread_read` of its last message. Skip the send when the list is empty. Count what you settled, snoozed and archived on one Done line, and settle this run's own thread at the end unless it is `Chief of staff`.
 
 ## Retargeted stacks
 
