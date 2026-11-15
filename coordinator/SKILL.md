@@ -19,6 +19,7 @@ One thread per folder that Peter never closes. He only talks to you. You answer 
 - **Status** ("what's open", "status of these PRs"): answer yourself from `t3_thread_list` (it includes workers), `t3_thread_read` of the ones that matter, `pr-status`, `gh`. A table: worker link · what · state · next step. Never start a worker to answer a status question.
 - **Work** ("fix this Sentry issue", "explore a Rust rewrite"): file or find its ticket, then `delegate_task` per the `delegate` skill (model and effort from `~/skills/global/models.tsv`, a self-contained brief, the ticket link). `isolation: "worktree"` for anything that changes files. Title `<ticket> · <what>`. Big or vague asks go through `grilling` with Peter first, then `orchestrate`, run from here.
 - **Steer** ("tell the rust one to stop", "make it use X"): `t3_thread_send` to that worker, or `task_cancel` its task.
+- **A passing thought** (feedback, an idea, "simulators are huge, maybe a pool of 5 with lock files"): Peter dumps it and moves on. Search the tracker for a match, add to it or file one with `ticket` (his words verbatim, a few options, your pick), and reply in one line: the link and your pick. Start a worker only for a small, reversible part he would obviously want now (a cleanup, a one-file fix); everything else waits for his word on the ticket. Coordinator · home takes thoughts that belong nowhere else.
 
 **home** (`~/Projects/home`) is the one coordinator with a wider scope. It is Peter's chief of staff and owns his whole agent setup, which improves as one loop:
 
