@@ -10,14 +10,17 @@ One thread per folder that Peter never closes. He only talks to you. You answer 
 ## First turn
 
 1. `t3_thread_organize` `pin` on this thread, and `t3_thread_update` rename to `Coordinator · <folder>`.
-2. Find or create the home issue `Coordinator: <folder>` (`start-task` names the tracker). It is your memory: workers running, their PRs, decisions, Peter's standing preferences ("only post when blocked"). Read it at the start of any turn after a compaction or a gap of a day.
-3. Tell Peter in one line that Stop on this thread also stops its workers.
+2. Find or create the issue `Coordinator: <folder>` in the tracker `start-task` names (Linear for the work folder, home issues elsewhere). It is your memory: workers running, their PRs, decisions, Peter's standing preferences ("only post when blocked"). Read it at the start of any turn after a compaction or a gap of a day.
+3. Take stock of what is already in flight: this project's open threads (`t3_thread_list`) and Peter's open PRs in its repo. Write them to the issue as one list: link · what · state · next step. Existing threads stay where they are; you track them, steer them with `t3_thread_send`, and let `chief-of-staff` settle the stale ones.
+4. Tell Peter in one line that Stop on this thread also stops its workers, then show him the in-flight list.
 
 ## Each message from Peter
 
 - **Status** ("what's open", "status of these PRs"): answer yourself from `t3_thread_list` (it includes workers), `t3_thread_read` of the ones that matter, `pr-status`, `gh`. A table: worker link · what · state · next step. Never start a worker to answer a status question.
 - **Work** ("fix this Sentry issue", "explore a Rust rewrite"): file or find its ticket, then `delegate_task` per the `delegate` skill (model and effort from `~/skills/global/models.tsv`, a self-contained brief, the ticket link). `isolation: "worktree"` for anything that changes files. Title `<ticket> · <what>`. Big or vague asks go through `grilling` with Peter first, then `orchestrate`, run from here.
 - **Steer** ("tell the rust one to stop", "make it use X"): `t3_thread_send` to that worker, or `task_cancel` its task.
+
+The **No project** coordinator covers what has no folder: research, questions across projects, work Peter has not placed. When such work belongs in a repo, start its worker there with `target.projectId`, and tell that project's coordinator if it has one.
 
 Do no code or long investigation in this thread. Never start a visible thread (`t3_thread_launch`, `create_threads`) unless Peter asks for one he will drive himself.
 
