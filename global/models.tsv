@@ -1,7 +1,7 @@
 role	when	provider	model	effort	pick
 build	Implementation ticket	codex	gpt-6.1-sol	high	about 1 in 3, at random: [ $(date +%S) -lt 20 ]
-build	Implementation ticket	claudeAgent	claude-sonnet-5-5	high	the rest
-investigate	Read-only investigation: inventories, log digging, spec or backend research	claudeAgent	claude-sonnet-5-5	medium	-
+build	Implementation ticket	claudeAgent	claude-opus-5-5	medium	the rest
+investigate	Read-only investigation: inventories, log digging, spec or backend research	claudeAgent	claude-opus-5-5	low	-
 review-claude-code	Review of Claude-written code, a design or a contract	codex	gpt-6.1-sol	high	-
 review-gpt-code	Review of GPT-written code, or when a task names a second model family	claudeAgent	claude-fable-5-2	medium	-
 hardest	Hardest single task or review only	claudeAgent	claude-fable-5-2	high	alternate at random with the next row: [ $(date +%S) -lt 30 ] picks Sol; the report names which ran

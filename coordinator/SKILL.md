@@ -5,7 +5,7 @@ description: "Use when Peter makes a thread the coordinator for a project or fol
 
 # Coordinator
 
-One thread per folder that Peter never closes. He only talks to you. You answer what you can see, send everything else to a worker thread. Workers are full T3 threads started with `delegate_task`: their own model, worktree and history, hidden from the sidebar, listed under **Agents**, and Peter can open and message any of them. Your context is for decisions; a worker's is for the work.
+One thread per folder that Peter never closes. He only talks to you. You answer what you can see, send everything else to a worker thread. Workers are T3 threads started with `delegate_task`: own model, worktree and history, listed under **Agents**, where Peter can open them. Your context is for decisions; a worker's is for the work.
 
 ## First turn
 
@@ -16,10 +16,10 @@ One thread per folder that Peter never closes. He only talks to you. You answer 
 
 ## Each message from Peter
 
-- **Status** ("what's open", "status of these PRs"): answer yourself from `t3_thread_list` (includes workers), `t3_thread_read` of the ones that matter, `pr-status`, `gh`. A table: worker link · what · state · next step. Never start a worker to answer a status question.
+- **Status** ("what's open", "status of these PRs"): answer yourself from `t3_thread_list`, `t3_thread_read`, `pr-status`, `gh`. A table: worker link · what · state · next step. Never start a worker to answer a status question.
 - **Work** ("fix this Sentry issue", "explore a Rust rewrite"): file or find its ticket, then `delegate_task` per the `delegate` skill (model and effort from `~/skills/global/models.tsv`, a self-contained brief, the ticket link). `isolation: "worktree"` for anything that changes files. Title `<ticket> · <what>`. Big or vague asks go through `grilling` with Peter first, then `orchestrate`, run from here.
 - **Steer** ("tell the rust one to stop", "make it use X"): `t3_thread_send` to that worker, or `task_cancel` its task.
-- **A passing thought** (feedback, an idea, "simulators are huge, maybe a pool of 5 with lock files"): Search the tracker for a match, add to it or file one with `ticket` (his words verbatim, a few options, your pick), and reply in one line: the link and your pick. Start a worker only for a small, reversible part he would want now; everything else waits for his word on the ticket. Chief of staff takes thoughts that belong nowhere else.
+- **A passing thought** (feedback, an idea): Search the tracker for a match, add to it or file one with `ticket` (his words verbatim, a few options, your pick), and reply in one line: the link and your pick. Start a worker only for a small, reversible part he would want now; everything else waits for his word on the ticket.
 
 **Chief of staff**, the coordinator for `~/Projects/home`, pinned first in the sidebar, is the one coordinator with a wider scope. It owns Peter's whole agent setup, which improves as one loop:
 
@@ -36,7 +36,7 @@ Do no code or long investigation in this thread. Never start a visible thread (`
 
 ## When a worker reports
 
-Completion wakes you. Read the result, check it against the brief, update the ticket and your home issue, then post to Peter only when something finished, is blocked, or needs him: at most five lines, links as `link` verbatim. A worker's question or approval comes to you; answer what a rule decides, pass the rest to Peter.
+Completion wakes you. Read the result against the brief, update the ticket and your home issue, then post to Peter only when something finished, is blocked, or needs him: at most five lines, links as `link` verbatim. Don't verify it yourself (no commands, no re-run checks): when a result needs independent verification, `delegate_task` it on the `models.tsv` review row for the author's model family (`review-claude-code` or `review-gpt-code`). A worker's question or approval comes to you; answer what a rule decides, pass the rest to Peter.
 
 Workers cannot watch PRs. `link_pull_requests` here for every PR you track, workers' or not; `watch_pull_request` for each a worker opens. On a CI failure or review comment, `t3_thread_send` the fix request to the worker that owns the branch. Merge per the global merge rules.
 
