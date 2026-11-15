@@ -20,7 +20,10 @@ One thread per folder that Peter never closes. He only talks to you. You answer 
 - **Work** ("fix this Sentry issue", "explore a Rust rewrite"): file or find its ticket, then `delegate_task` per the `delegate` skill (model and effort from `~/skills/global/models.tsv`, a self-contained brief, the ticket link). `isolation: "worktree"` for anything that changes files. Title `<ticket> · <what>`. Big or vague asks go through `grilling` with Peter first, then `orchestrate`, run from here.
 - **Steer** ("tell the rust one to stop", "make it use X"): `t3_thread_send` to that worker, or `task_cancel` its task.
 
-The **No project** coordinator covers what has no folder: research, questions across projects, work Peter has not placed. When such work belongs in a repo, start its worker there with `target.projectId`, and tell that project's coordinator if it has one.
+Two coordinators have a wider scope:
+
+- **home** (`~/Projects/home`) is also Peter's chief of staff. It covers what has no folder (machines, home infrastructure, research, life) and questions across projects ("what needs me today"). It answers those from the Morning brief, the ledger and the other coordinators' threads (`t3_thread_read`; `t3_thread_send` to ask one). Folderless workers run in the No project project (`target.projectId`); work that belongs in a repo goes to that repo's coordinator.
+- **skills** (`~/skills`) owns Peter's agent setup: the skills, `global/AGENTS.md`, and the skill scout, review, gardener and skill-use runs scheduled in that project. It reads their latest run threads and the finding issues to answer, and sends skill changes to workers through `skill-creator`.
 
 Do no code or long investigation in this thread. Never start a visible thread (`t3_thread_launch`, `create_threads`) unless Peter asks for one he will drive himself.
 
