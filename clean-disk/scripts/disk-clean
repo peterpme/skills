@@ -18,7 +18,9 @@ worktrees  Agent git worktrees (T3 Code, Claude, Codex, Cursor paths), by how
              dirty   14 days, after saving the changes to the backups folder.
            Never removed: locked trees and trees a process is running in.
            A kept tree idle past --days loses its .verification/ (ignored
-           proof scratch, often copies of Rust target/ folders).
+           proof scratch, often copies of Rust target/ folders). In any other
+           kept tree, Rust target/ copies inside .verification/ go once not
+           built for 1 day; the proof files stay.
            Branches are kept, and a detached commit no ref holds gets a
            rescued/<name>-<sha> branch.
 cargo      Rust target/ folders (CACHEDIR.TAG) not built in 7 days.
@@ -74,6 +76,7 @@ WORKERS = 12
 ESTIMATE_TIMEOUT = 30
 DIRTY_DAYS = 14
 CARGO_DAYS = 7
+PROOF_TARGET_DAYS = 1
 CACHE_DAYS = 7
 TRASH_DAYS = 3
 RUNTIME_DAYS = 14
@@ -434,6 +437,36 @@ def rescue_detached(row):
     return name
 
 
+def target_idle(t):
+    """Days since a Rust target/ folder was last built: its own, its children's and fingerprints' mtimes."""
+    stamps = [mtime(t)] + [mtime(p) for p in t.glob("*")] + [mtime(p) for p in t.glob("*/.fingerprint")]
+    return (NOW - max(stamps)) / DAY
+
+
+def proof_targets(tree, cwds):
+    """Rust target/ copies under .verification/ of a kept tree, not built for PROOF_TARGET_DAYS.
+
+    A tree in daily use never reaches the --days scratch rule, and its proof folders pin full target/
+    copies (17-33 GB each, 130 GB across 3 busy trees on Carrier, home#230). Any folder name counts:
+    agents write target-head/, baseline-target/, ws/bpx/target/. Proof files (logs, png, md) stay.
+    """
+    rows, ver = [], tree / VERIFICATION
+    if not ver.is_dir():
+        return rows
+    for dirpath, dirnames, _ in os.walk(ver):
+        d = Path(dirpath)
+        if (d / "CACHEDIR.TAG").exists() or (d / ".rustc_info.json").exists():
+            dirnames[:] = []
+            if any(c == str(d) or c.startswith(str(d) + "/") for c in cwds):
+                continue
+            if (idle := target_idle(d)) >= PROOF_TARGET_DAYS:
+                rows.append({"action": "scratch", "path": d, "size": 0,
+                             "why": f"Rust target/ copy in {VERIFICATION}/, not built for {idle:.1f}d (tree kept)"})
+            continue
+        dirnames[:] = [n for n in dirnames if n not in (".git", "node_modules")]
+    return rows
+
+
 def worktrees(roots, days, apply, verbose):
     with ThreadPoolExecutor(2) as pool:
         threads, cwds = pool.submit(t3_threads), pool.submit(process_cwds)
@@ -466,6 +499,8 @@ def worktrees(roots, days, apply, verbose):
         s = r.pop("scratch", None)
         if s and not any(b == str(s["path"]) or b.startswith(str(s["path"]) + "/") for b in busy):
             rows.append(s)
+        elif r["action"] in ("keep", "watch"):
+            rows += proof_targets(r["path"], cwds)
 
     sized = [r for r in rows if r["action"] in ("remove", "watch", "scratch")]
     with ThreadPoolExecutor(WORKERS) as pool:
@@ -503,7 +538,7 @@ def worktrees(roots, days, apply, verbose):
     removed = [r for r in rows if r["action"] == "remove"]
     scratch = [r for r in rows if r["action"] == "scratch"]
     print(f"worktrees: remove {len(removed)} ({gb(sum(r['size'] for r in removed))}), "
-          f"{VERIFICATION}/ in {len(scratch)} kept trees ({gb(sum(r['size'] for r in scratch))}), "
+          f"{VERIFICATION}/ scratch in kept trees: {len(scratch)} ({gb(sum(r['size'] for r in scratch))}), "
           f"keep {sum(r['action'] in ('keep', 'watch') for r in rows)}")
     order = {"FAILED": 0, "remove": 1, "scratch": 2, "watch": 3, "prune": 4, "keep": 5}
     for r in sorted(rows, key=lambda r: (order[r["action"]], -r["size"])):
@@ -527,8 +562,7 @@ def cargo_scan(roots):
             dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and d not in (".git", VERIFICATION)]
 
     def stat(t):
-        stamps = [mtime(t)] + [mtime(p) for p in t.glob("*")] + [mtime(p) for p in t.glob("*/.fingerprint")]
-        idle = (NOW - max(stamps)) / DAY
+        idle = target_idle(t)
         return t, idle, du(t) if idle >= CARGO_DAYS else du_wide(t)
     with ThreadPoolExecutor(WORKERS) as pool:
         return list(pool.map(stat, sorted(set(found))))
