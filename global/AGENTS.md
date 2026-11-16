@@ -85,7 +85,7 @@ Any change to project files ends this way without being asked; skip it for quest
 - Every machine has GNU `sed`, `grep`, `find`, `awk`, `date`, `stat` first on PATH, and the dotfiles CLI set (`rg`, `fd`, `jq`, `ast-grep`, `hyperfine` and more; one page each in `~/dotfiles/docs/tools/`). Write Linux-style commands and `bash` scripts.
 - Claude Code asks me to approve `rsync` (use `cp -R`), `cd` before `git` (use `git -C`), several `cd`s, `~` in an assignment, backslash-escaped spaces and `{` next to a quote. For multi-step shell work, write a script in `.verification/<task>/` and run `bash <script>`.
 - `~/.rgrc` cuts `rg` lines at 100 columns (`-M 0` for full) and hides `.env` and lockfiles. Keep output small: line ranges, `git diff --stat`, `gh --json --jq`, `| tail -n 40`.
-- Helpers, each with `--help`: `pr-status`, `pr-wait` (never sleep loops), `pr-threads`, `repo-state`, `runq <cmd>` for noisy builds, `bgjob` for a job that must outlive your turn, `disk-clean`.
+- Helpers, each with `--help`: `buildgate <cmd>` around cargo, xcodebuild, gradle, emulator boots, `pr-status`, `pr-wait` (never sleep loops), `pr-threads`, `repo-state`, `runq` quiets logs, `bgjob` outlives turns, `disk-clean`.
 
 ## Home infrastructure
 
