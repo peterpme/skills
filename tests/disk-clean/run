@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Runs bin/disk-clean --apply --only worktrees in a fake HOME with three agent worktrees that each
+# hold a .verification/ folder, and checks which folders survive (expected next to actual).
+# The risk: deleting proof scratch, or a whole tree, that an agent is using right now.
+set -uo pipefail
+here=$(cd "$(dirname "$0")" && pwd)
+tool=$here/../../bin/disk-clean
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+export HOME=$work/home DISK_CLEAN_STATE=$work/state GIT_CONFIG_GLOBAL=/dev/null
+old=$(date -d '-5 days' '+%Y-%m-%d %H:%M:%S' 2>/dev/null || date -v-5d '+%Y-%m-%d %H:%M:%S')
+export GIT_AUTHOR_DATE="$old" GIT_COMMITTER_DATE="$old" GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t \
+  GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t
+
+repo=$HOME/Projects/r
+trees=$HOME/.t3/worktrees/r
+mkdir -p "$repo" "$trees"
+git -C "$repo" init -q -b main
+echo .verification/ >"$repo/.gitignore"
+echo a >"$repo/a.txt"
+git -C "$repo" add . && git -C "$repo" commit -qm init
+
+# tree name, last use (old or now), tracked edit (yes or no)
+add() {
+  local t=$trees/$1
+  git -C "$repo" worktree add -q -b "$1" "$t"
+  git -C "$t" commit -q --allow-empty -m "work on $1"
+  [[ $3 == yes ]] && echo edit >>"$t/a.txt"
+  mkdir -p "$t/.verification/proof" && echo x >"$t/.verification/proof/out"
+  if [[ $2 == old ]]; then
+    find "$t" -path "$t/.git" -prune -o -exec touch -h -d "$old" {} +
+    touch -d "$old" "$(git -C "$t" rev-parse --absolute-git-dir)/HEAD"
+  fi
+}
+add idle-dirty old yes   # kept (dirty, under 14 days), its .verification/ goes
+add busy-dirty now yes   # used now: untouched
+add busy-clean now no    # used now: untouched, even though clean
+"$tool" --apply --only worktrees >"$work/out" 2>&1
+code=$?
+
+fail=0
+check() { # name path expect(present|gone)
+  local actual=gone ok=yes
+  [[ -e $2 ]] && actual=present
+  [[ $actual == "$3" ]] || { ok=NO; fail=1; }
+  printf '%-44s expect %-8s actual %-8s %s\n' "$1" "$3" "$actual" "$ok"
+}
+printf '%-44s\n' case
+check "idle dirty tree is kept" "$trees/idle-dirty/a.txt" present
+check "idle dirty tree loses .verification/" "$trees/idle-dirty/.verification" gone
+check "tree used now keeps .verification/" "$trees/busy-dirty/.verification/proof/out" present
+check "clean tree used now is kept" "$trees/busy-clean/a.txt" present
+check "clean tree used now keeps .verification/" "$trees/busy-clean/.verification/proof/out" present
+[[ $code == 0 ]] || { echo "disk-clean exited $code"; fail=1; }
+[[ $fail == 0 ]] || sed 's/^/    /' "$work/out"
+exit $fail

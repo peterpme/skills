@@ -48,7 +48,8 @@ A tree is removed once it has been idle long enough for its kind. Idle time coun
 | Clean | 3 idle days (`--days`) | No uncommitted or untracked files. Removing it loses nothing because the branch stays, so an open PR or open T3 thread doesn't keep it. |
 | Dirty | 14 idle days | Shown as `watch` from day 3. Changes are backed up before removal. |
 
-- **Never removed:** locked trees, and trees a process is running in.
+- **`.verification/`:** in a tree that stays but has been idle past `--days`, the folder is removed. It is gitignored proof scratch, often full copies of Rust `target/` folders (224 GB on one machine).
+- **Never removed:** locked trees, and trees a process is running in. Idle time counts `git status` changes and `.verification/` writes, so a tree in use in the last day is never touched.
 - **Backups:** before a tree with uncommitted changes is removed, the changes are saved to `~/.local/state/disk-clean/backups/<date>-<repo>-<tree>/` and kept 60 days. A detached commit that no branch holds is saved on a `rescued/<tree>-<sha>` branch.
 
 ## Cache rules
@@ -63,6 +64,8 @@ A tree is removed once it has been idle long enough for its kind. Idle time coun
 | pnpm | `pnpm store prune` |
 | uv | `uv cache prune`, waiting at most 60 s for uv's lock. A long-running `uvx` MCP server holds that lock; then archives older than 14 days are removed directly. |
 | Size caps | Emptied when over the cap and not in use: uv 10 GB, Gradle 10 GB (skipped while a Gradle daemon runs), Yarn global cache 5 GB, npm 5 GB |
+| npx installs (`~/.npm/_npx`) | Over the npm 5 GB cap, every install no running process uses is removed (npx fetches it again). `npm cache clean` does not touch them. |
+| exact build caches (`~/.cache/exact/<kind>/<key>`) | Entries idle 7 days. exact's AGENTS.md: deleting them only costs the next first build its time. |
 
 To restore one, follow `README.txt` in its backup folder: `git worktree add <dir> <branch>`, then `git -C <dir> apply --index changes.patch` and `tar -xzf untracked.tar.gz -C <dir>`. To keep a tree out of cleanup, `git worktree lock <path>`.
 
@@ -85,6 +88,8 @@ Backed up before removal: <tree → backup folder, or none>
 Watch: <trees with tracked edits that will be removed at 14 days, with idle days, or none>
 Needs your call: <FAILED items, or the biggest remaining items with commands when free space is low>
 ```
+
+`disk-clean` ends with a `Peter decides (never deleted):` list sizing `~/.mtplx` (local LLMs), simulators and `~/.t3/scratch`. Put those in `Needs your call:` when free space is low; never delete them.
 
 Write the `Needs your call:` line only when something there needs Peter; otherwise leave it out. When nothing was removed and free space is fine, report one line. Where the machine has a cleanup for scheduled-run threads, a run thread is deleted a few minutes after it finishes unless its report has a `Needs your call:` line. `history.log` keeps the record.
 

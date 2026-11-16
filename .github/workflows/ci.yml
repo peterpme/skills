@@ -45,3 +45,5 @@ jobs:
         run: tests/scheduled-models/run
       - name: pr-dupes cases
         run: tests/pr-dupes/run
+      - name: disk-clean cases
+        run: tests/disk-clean/run
