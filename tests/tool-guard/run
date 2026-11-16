@@ -51,6 +51,20 @@ bash_case "wrangler dev" none "wrangler dev"
 bash_case "railway logs" none "railway logs"
 bash_case "plain command" none "git status"
 
+# A dry run deploys nothing, but only the matched command's own flag counts
+# (wrangler --dry-run, vercel --dry: the flags those tools document; the others have none).
+bash_case "wrangler deploy --dry-run" none "pnpm exec wrangler deploy --dry-run --outdir .verification/x"
+bash_case "wrangler versions deploy --dry-run" none "wrangler versions deploy --dry-run"
+bash_case "vercel deploy --dry" none "vercel deploy --dry"
+bash_case "real wrangler deploy via pnpm" ask "pnpm exec wrangler deploy --outdir x"
+bash_case "dry run, then real deploy" ask "wrangler deploy --dry-run && wrangler deploy"
+bash_case "real deploy, then a dry run" ask "wrangler deploy && wrangler deploy --dry-run"
+bash_case "real deploy, flag in a later echo" ask "wrangler deploy; echo --dry-run"
+bash_case "flag only inside a quoted string" ask "wrangler deploy --message '--dry-run'"
+bash_case "--dry-run=false is a real deploy" ask "wrangler deploy --dry-run=false"
+bash_case "railway has no dry-run flag" ask "railway up --dry-run"
+bash_case "commit message names a dry run" none "git commit -m 'wrangler deploy --dry-run'"
+
 # Never /tmp: warn, never block.
 bash_case "redirect to /tmp" warn "npm test > /tmp/out.log 2>&1"
 bash_case "cp into /tmp" warn "cp a.txt /tmp/a.txt"
@@ -68,6 +82,10 @@ chk=$(jq -cn '{tool_name: "Bash", tool_input: {command: "railway up"}}' | "$bin/
 row "--is-deploy on railway up" 0 "$chk"
 chk=$(jq -cn '{tool_name: "Bash", tool_input: {command: "git status"}}' | "$bin/tool-guard" --is-deploy; echo $?)
 row "--is-deploy on git status" 1 "$chk"
+chk=$(jq -cn '{tool_name: "Bash", tool_input: {command: "wrangler deploy --dry-run"}}' | "$bin/tool-guard" --is-deploy; echo $?)
+row "--is-deploy on a dry run" 1 "$chk"
+chk=$(jq -cn '{tool_name: "Bash", tool_input: {command: "wrangler deploy --dry-run && wrangler deploy"}}' | "$bin/tool-guard" --is-deploy; echo $?)
+row "--is-deploy on dry run then real" 0 "$chk"
 row "bad JSON" none "$(echo '{nope' | "$bin/tool-guard" | verdict)"
 
 # Grok and opencode are never used: deny by model or provider field only.

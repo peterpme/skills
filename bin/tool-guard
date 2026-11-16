@@ -5,7 +5,8 @@
 #    railway up/deploy, vercel (deploy, --prod, promote, rollback), wrangler
 #    deploy, fly/flyctl, netlify, firebase deploy or eas submit gets a
 #    permission "ask", never a deny. Only a command position counts, so
-#    `git commit -m "railway up"` stays quiet.
+#    `git commit -m "railway up"` stays quiet. A deploy that carries its own
+#    tool's dry-run flag (wrangler --dry-run, vercel --dry) stays quiet too.
 #  - "Never /tmp": a command or file path under /tmp (or /private/tmp) adds a
 #    warning to the agent's context. It never blocks; /tmp/claude* is the
 #    harness's own scratch and is skipped.
@@ -14,7 +15,7 @@
 # Always exits 0 otherwise. scripts/sync-skills.mjs registers it in each
 # ~/.claude*/settings.json; tests/tool-guard/run checks it.
 set -uo pipefail
-case ${1:-} in -h | --help) sed -n '2,15p' "$0" | cut -c3-; exit 0 ;; esac
+case ${1:-} in -h | --help) sed -n '2,16p' "$0" | cut -c3-; exit 0 ;; esac
 command -v jq >/dev/null 2>&1 || PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 command -v jq >/dev/null 2>&1 && jq_ok=1 || jq_ok=
 mode=${1:-}
@@ -40,8 +41,28 @@ deploy_re+=")${end}"
 
 command=
 [[ $tool == Bash ]] && command=$(jq -r '.tool_input.command // ""' <<<"$input" 2>/dev/null)
+# A deploy that carries its tool's documented dry-run flag deploys nothing.
+# Only the matched command's own words count, so the command splits at ; & | ( )
+# and newlines, and quoted text is dropped before the flag is looked for.
+# Flags (from each tool's --help): wrangler --dry-run, vercel --dry. railway, fly,
+# eas submit and wrangler pages deploy have none; netlify and firebase are unchecked.
+is_dry_run() { # one command segment
+  local seg=$1 flag
+  if [[ $seg =~ ${pre}wrangler[[:space:]] ]]; then flag='--dry-run'
+  elif [[ $seg =~ ${pre}vercel${end} ]]; then flag='--dry'
+  else return 1; fi
+  seg=$(sed -E "s/\"[^\"]*\"//g; s/'[^']*'//g" <<<"$seg")
+  [[ $seg =~ (^|[[:space:]])${flag}([[:space:]]|=true|$) ]]
+}
+is_real_deploy() { # command string: any deploy segment without its dry-run flag
+  local seg
+  while IFS= read -r seg; do
+    [[ $seg =~ $deploy_re ]] && ! is_dry_run "$seg" && return 0
+  done < <(tr ';&|()' '\n' <<<"$1")
+  return 1
+}
 is_deploy=
-[[ -n $command && $command =~ $deploy_re ]] && is_deploy=1
+[[ -n $command ]] && is_real_deploy "$command" && is_deploy=1
 if [[ $mode == --is-deploy ]]; then [[ -n $is_deploy ]]; exit; fi
 
 if [[ -n $is_deploy ]]; then
