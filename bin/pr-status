@@ -4,7 +4,8 @@
 One compact view of a pull request: state, draft, mergeability, review
 decision, head commit, CI counts with only the non-passing checks listed, and
 and the number of unresolved review threads. PR defaults to the current
-branch's. Exit 1 when a check failed, 8 while checks are pending, 9 when a
+branch's. Exit 1 when a check failed, 10 on a merge conflict, 8 while checks
+are pending, 11 with unresolved review threads, 9 when a
 draft PR's ticket is tier 2 and its contract is
 under two hours old or missing (a tier 2 PR stays a draft until then, home#105),
 else 0.
@@ -123,6 +124,7 @@ def main():
     body = os.environ.get("PR_STATUS_BODY", fetched_body)
     now = parse_time(os.environ["PR_STATUS_NOW"]) if os.environ.get("PR_STATUS_NOW") else datetime.datetime.now(datetime.timezone.utc)
     hold = ready_hold(repo, body, now) if pr["isDraft"] else None
+    conflict = pr["mergeable"] == "CONFLICTING" or pr["mergeStateStatus"] == "DIRTY"
 
     if args.json:
         print(json.dumps({**pr, "checks": counts, "unresolvedThreads": threads, "readyHold": hold,
@@ -135,9 +137,13 @@ def main():
         print(f"  checks: {counts['pass']} pass, {counts['fail']} fail, {counts['pending']} pending, {counts['skipped']} skipped")
         for bucket, state, name, url in sorted(r for r in rows if r[0] in ("fail", "pending")):
             print(f"    {state:<10} {name}  {url}")
+        if conflict:
+            print("  not ready: merge conflict with the base branch")
+        if threads:
+            print(f"  not ready: {threads} unresolved review thread(s)")
         if hold:
             print(f"  ready: HOLD, {hold}")
-    sys.exit(1 if counts["fail"] else 8 if counts["pending"] else 9 if hold else 0)
+    sys.exit(1 if counts["fail"] else 10 if conflict else 8 if counts["pending"] else 11 if threads else 9 if hold else 0)
 
 
 if __name__ == "__main__":

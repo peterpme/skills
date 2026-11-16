@@ -64,7 +64,7 @@ Any change to project files ends this way without being asked; skip it for quest
 - Prove it through the real flow (Every task, above). Run the repo's format, lint, typecheck, build and tests; if they cause edits, prove it again. Read the diff for unrelated changes and secrets.
 - Tests cover only what would hurt if it broke: the wrong signer, money moved twice, data lost, a broken contract. Each risk gets at most one test, at the level its caller sees (for a library, test our functions' output, never the library). The test budget is that list of risks, each with its test and a total count; going over needs a reason in the PR body. One check over many call sites is one table test. A test that pins old code goes with it. Never test what the compiler or framework checks. A reviewer's "add a test" replaces a weaker test or is declined.
 - Task branch, only this task's changes, push, open a draft PR or update the existing one. The body: why, what changed, expected next to actual, checks, what is unverified. Link it to the thread.
-- Ready only when `pr-status <n>` exits 0 (CI green, no unresolved threads); chain the merge on it with `&&`. Answer every review thread, bots included, before ready and again after; a human's thread closes only by a fix or their agreement.
+- Ready only when `pr-status <n>` exits 0 (CI green, no conflicts, no unresolved threads); chain the merge on it with `&&`. Answer every review thread, bots included, before ready and again after; a human's thread closes only by a fix or their agreement.
 
 ## Reporting
 

@@ -13,7 +13,7 @@ cat >"$work/bin/gh" <<'EOF'
 # Fake gh. $FIX/pr.json, $FIX/ticket.json hold the canned answers.
 args="$*"
 case $args in
-  "api graphql"*) echo '{"data":{"repository":{"pullRequest":{"reviewThreads":{"nodes":[]}}}}}' ;;
+  "api graphql"*) echo "{\"data\":{\"repository\":{\"pullRequest\":{\"reviewThreads\":{\"nodes\":${THREADS:-[]}}}}}}" ;;
   "api"*) exit 1 ;;
   "pr view"*) cat "$FIX/pr.json" ;;
   "issue view"*) cat "$FIX/ticket.json" ;;
@@ -26,7 +26,7 @@ now=2026-11-10T12:00:00Z
 case_() { # name expect_exit expect_text draft body ticket_json
   local name=$1 exp=$2 text=$3 draft=$4 body=$5 ticket=$6 out code ok=yes
   export FIX=$work/$name; mkdir -p "$FIX"
-  jq -cn --argjson d "$draft" --arg b "$body" '{number: 5, title: "t", body: $b, url: "https://github.com/peterpme/skills/pull/5", state: "OPEN", isDraft: $d, mergeable: "MERGEABLE", mergeStateStatus: "CLEAN", reviewDecision: null, baseRefName: "main", headRefName: "b", headRefOid: "0123456789abcdef", statusCheckRollup: []}' >"$FIX/pr.json"
+  jq -cn --argjson d "$draft" --arg b "$body" --arg m "${MERGEABLE:-MERGEABLE}" --arg s "${MSTATE:-CLEAN}" '{number: 5, title: "t", body: $b, url: "https://github.com/peterpme/skills/pull/5", state: "OPEN", isDraft: $d, mergeable: $m, mergeStateStatus: $s, reviewDecision: null, baseRefName: "main", headRefName: "b", headRefOid: "0123456789abcdef", statusCheckRollup: []}' >"$FIX/pr.json"
   echo '[]' >"$FIX/files.json"
   printf '%s' "$ticket" >"$FIX/ticket.json"
   out=$(PATH="$work/bin:$PATH" PR_STATUS_NOW=$now "$tool" 5 -R peterpme/skills 2>&1); code=$?
@@ -47,4 +47,6 @@ case_ "tier-1 ticket, contract 1h old" 0 "" true "Part of peterpme/home#105" "{\
 case_ "ticket only discusses tier 2 in a table" 0 "" true "Part of peterpme/home#105" "{\"body\":\"| Tier 2 PR stays a draft | pr-status |\",\"labels\":[],\"comments\":[$contract]}"
 case_ "tier-2, contract 1h old, already ready" 0 "" false "Part of peterpme/home#105" "{\"body\":\"Tier: 2\",\"labels\":[],\"comments\":[$contract]}"
 case_ "PR body names no ticket" 0 "" true "Just a change" '{}'
+MERGEABLE=CONFLICTING MSTATE=DIRTY case_ "merge conflict, checks green" 10 "merge conflict" false "Just a change" "{}"
+THREADS='[{"isResolved":false,"isOutdated":false}]' case_ "one unresolved review thread" 11 "unresolved review thread" false "Just a change" "{}"
 exit $fail
