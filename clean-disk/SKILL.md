@@ -48,7 +48,7 @@ A tree is removed once it has been idle long enough for its kind. Idle time coun
 | Clean | 3 idle days (`--days`) | No uncommitted or untracked files. Removing it loses nothing because the branch stays, so an open PR or open T3 thread doesn't keep it. |
 | Dirty | 14 idle days | Shown as `watch` from day 3. Changes are backed up before removal. |
 
-- **`.verification/`:** in a tree that stays but has been idle past `--days`, the folder is removed. It is gitignored proof scratch, often full copies of Rust `target/` folders (224 GB on one machine). In a tree in daily use, only the Rust `target/` copies inside it go (any folder with `CACHEDIR.TAG`, such as `target-head/` or `ws/bpx/target/`), once not built for 1 day; logs, screenshots and notes stay.
+- **`.verification/`:** in a tree that stays but has been idle past `--days`, the folder is removed. It is gitignored proof scratch, often full copies of Rust `target/` folders (224 GB on one machine). In a tree in daily use, only the Rust `target/` copies inside it go (any folder with `CACHEDIR.TAG`, such as `target-head/` or `ws/bpx/target/`), once not built for 1 day; logs, screenshots and notes stay. The same rule covers `.verification/` in main checkouts such as `~/Projects/home` (82 GB there on 2026-11-16, home#247).
 - **Never removed:** locked trees, and trees a process is running in. Idle time counts `git status` changes and `.verification/` writes, so a tree in use in the last day is never touched.
 - **Backups:** before a tree with uncommitted changes is removed, the changes are saved to `~/.local/state/disk-clean/backups/<date>-<repo>-<tree>/` and kept 60 days. A detached commit that no branch holds is saved on a `rescued/<tree>-<sha>` branch.
 

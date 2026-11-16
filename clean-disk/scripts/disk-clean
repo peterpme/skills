@@ -501,6 +501,10 @@ def worktrees(roots, days, apply, verbose):
             rows.append(s)
         elif r["action"] in ("keep", "watch"):
             rows += proof_targets(r["path"], cwds)
+    # Main checkouts keep proof scratch too: 82 GB of target/ copies sat in ~/Projects/home (home#247).
+    for common in commons:
+        if common.name == ".git" and common.parent not in seen:
+            rows += proof_targets(common.parent, cwds)
 
     sized = [r for r in rows if r["action"] in ("remove", "watch", "scratch")]
     with ThreadPoolExecutor(WORKERS) as pool:

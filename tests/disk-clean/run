@@ -35,6 +35,10 @@ add() {
 add idle-dirty old yes   # kept (dirty, under 14 days), its .verification/ goes
 add busy-dirty now yes   # used now: untouched
 add busy-clean now no    # used now: untouched, even though clean
+# Main checkout proof scratch (home#247): an old target/ copy goes, the log beside it stays.
+mkdir -p "$repo/.verification/p/target/debug" && touch "$repo/.verification/p/target/CACHEDIR.TAG"
+echo log >"$repo/.verification/p/run.log"
+find "$repo/.verification" -exec touch -h -d "$old" {} +
 "$tool" --apply --only worktrees >"$work/out" 2>&1
 code=$?
 
@@ -51,6 +55,8 @@ check "idle dirty tree loses .verification/" "$trees/idle-dirty/.verification" g
 check "tree used now keeps .verification/" "$trees/busy-dirty/.verification/proof/out" present
 check "clean tree used now is kept" "$trees/busy-clean/a.txt" present
 check "clean tree used now keeps .verification/" "$trees/busy-clean/.verification/proof/out" present
+check "main checkout loses old target/ copy" "$repo/.verification/p/target" gone
+check "main checkout keeps proof log" "$repo/.verification/p/run.log" present
 [[ $code == 0 ]] || { echo "disk-clean exited $code"; fail=1; }
 [[ $fail == 0 ]] || sed 's/^/    /' "$work/out"
 exit $fail
