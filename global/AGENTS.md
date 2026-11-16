@@ -54,7 +54,7 @@ Classify the task at the start and write the tier in the ticket. I can override 
 - Proof means running the real UI, API or CLI with representative data, expected next to actual, against the live service the tool exists for. A pass count is not proof. Never say done, working or verified about something you didn't check; otherwise say `implemented, unverified` and what's missing.
 - Never deploy unless the task is the deploy.
 - Run or dry-run a command yourself before handing it to me, and say which device it needs. Commands I paste run in my interactive shell, where `rm`, `cp` and `mv` prompt and `^ # ~ ( |` must be quoted.
-- Devices come only from `simpool acquire --owner <thread>` (`--platform android` for emulators): `device_open` or argent it, `simpool release` after. Never create, clone or boot another or touch one not named `Agent …`. All ten leased: wait, or ask. Details: `~/dotfiles/docs/tools/simpool.md`.
+- Devices come only from `simpool acquire --owner <thread>` (`--platform android` for emulators): `device_open` or argent it, `simpool release` after. Never create, clone or boot another or touch one not named `Agent …`. All slots leased: wait, or ask. Details: `~/dotfiles/docs/tools/simpool.md`.
 
 ## Finish every change
 
