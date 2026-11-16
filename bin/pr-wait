@@ -25,7 +25,7 @@ deadline=$((SECONDS + timeout))
 while :; do
   "$here/pr-status" ${pr[@]+"${pr[@]}"} ${repo[@]+"${repo[@]}"} >/dev/null 2>&1
   code=$?
-  # 8 = pending; anything else (0 green, 1 failed, or a gh error) ends the wait.
+  # 8 = pending; anything else (0 green, 1 failed, 10 conflict, 11 threads, or a gh error) ends the wait.
   [[ $code -ne 8 ]] && break
   if ((SECONDS >= deadline)); then
     "$here/pr-status" ${pr[@]+"${pr[@]}"} ${repo[@]+"${repo[@]}"}
