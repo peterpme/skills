@@ -17,6 +17,8 @@ worktrees  Agent git worktrees (T3 Code, Claude, Codex, Cursor paths), by how
                      or an open T3 thread does not keep it: the branch stays.
              dirty   14 days, after saving the changes to the backups folder.
            Never removed: locked trees and trees a process is running in.
+           A kept tree idle past --days loses its .verification/ (ignored
+           proof scratch, often copies of Rust target/ folders).
            Branches are kept, and a detached commit no ref holds gets a
            rescued/<name>-<sha> branch.
 cargo      Rust target/ folders (CACHEDIR.TAG) not built in 7 days.
@@ -25,7 +27,9 @@ caches     `mo purge --yes` (Mole: build folders in projects idle 7 days),
            items deleted 3+ days ago, simulator runtimes unused for 14 days
            that a newer runtime replaces, unavailable simulators,
            `pnpm store prune`, `uv cache prune`. Caches over their size cap are
-           emptied: uv 10 GB, Gradle 10 GB, Yarn 5 GB, npm 5 GB.
+           emptied: uv 10 GB, Gradle 10 GB, Yarn 5 GB, npm 5 GB (npx installs
+           no process uses go too). exact build cache entries idle 7 days.
+           Listed, never deleted: ~/.mtplx, simulators, ~/.t3/scratch.
            `mo clean` is not used: it hangs at its developer-tools step.
 
 --skip-if-free-over SIZE  Print one line and exit 0 without scanning or removing anything when
@@ -50,6 +54,7 @@ import subprocess
 import sys
 import tarfile
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 HOME = Path.home()
@@ -62,6 +67,11 @@ AGENT_MARKERS = ("/.t3/worktrees/", "/.claude/worktrees/", "/.codex/worktrees/",
                  "/.cursor/worktrees/")
 SKIP_DIRS = {"node_modules", "target", ".git", "build", "dist", ".next", ".turbo", ".venv", "venv",
              "Pods", "vendor", "__pycache__", "coverage", ".cache", ".yarn", ".gradle", "DerivedData"}
+VERIFICATION = ".verification"
+WORKERS = 12
+# Sizes that only inform the report (kept targets, "Peter decides") give up after
+# this long, so the dry run finishes in under a minute on a busy disk.
+ESTIMATE_TIMEOUT = 30
 DIRTY_DAYS = 14
 CARGO_DAYS = 7
 CACHE_DAYS = 7
@@ -107,12 +117,30 @@ def gb(n):
     return f"{n / 1e9:.1f} GB" if n >= 1e9 else f"{n / 1e6:.0f} MB"
 
 
-def du(path):
-    code, out, _ = sh(["du", "-sk", str(path)], timeout=600)
+def du(path, timeout=600):
+    code, out, _ = sh(["du", "-sk", str(path)], timeout=timeout)
     try:
         return int(out.split()[0]) * 1024
     except (ValueError, IndexError):
         return 0
+
+
+def du_wide(path, timeout=ESTIMATE_TIMEOUT):
+    """du of each child side by side (one du on a 55 GB simulator folder took over 40 s; this, 15 s).
+    0 when any part runs past the timeout, so the report shows "?" rather than a low number."""
+    try:
+        kids = [k for k in Path(path).iterdir() if not k.is_symlink()]
+    except OSError:
+        return 0
+
+    def size(k):
+        if not k.is_dir():
+            return mtime_size(k)
+        code, out, _ = sh(["du", "-sk", str(k)], timeout=timeout)
+        return int(out.split()[0]) * 1024 if code != 99 and out else None
+    with ThreadPoolExecutor(WORKERS) as pool:
+        sizes = list(pool.map(size, kids))
+    return 0 if None in sizes else sum(sizes)
 
 
 def mtime(p):
@@ -206,9 +234,11 @@ def list_worktrees(common):
     return trees
 
 
-def pr_states(common, cache={}):
+def pr_states(common, cache={}, urls={}):
     """branch -> (state, number) from GitHub; {} when unknown."""
-    code, url, _ = sh(["git", "--git-dir", str(common), "remote", "get-url", "origin"])
+    if common not in urls:
+        urls[common] = sh(["git", "--git-dir", str(common), "remote", "get-url", "origin"])[1]
+    url = urls[common]
     m = re.search(r"github\.com[:/]([^/]+/[^/]+?)(?:\.git)?$", url)
     if not m:
         return {}
@@ -241,18 +271,20 @@ def reflog_time(gitdir):
         return 0.0
 
 
-def last_used(path, gitdir, thread_ts=0.0):
-    # Not the tree folder's own mtime: deleting a build folder in it (mo purge) bumps that every run.
+def last_used(path, gitdir, thread_ts, changed):
+    """Newest of HEAD, the reflog, T3 thread activity, the files `git status` lists as changed, and
+    the top two levels of .verification/ (agents write proof there).
+
+    Not the tree folder's own mtime: deleting a build folder in it (mo purge) bumps that every run.
+    Not a walk of every file: unchanged tracked files are no newer than the last checkout, and a
+    full walk of 70 large trees took over 280 s.
+    """
     newest = max(mtime(gitdir / "HEAD"), reflog_time(gitdir), thread_ts)
-    cutoff = NOW - DAY
-    if newest >= cutoff:
-        return newest
-    for dirpath, dirnames, files in os.walk(path):
-        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
-        for f in files:
-            t = mtime(Path(dirpath) / f)
-            if t > newest:
-                newest = t
+    for rel in changed:
+        newest = max(newest, mtime(path / rel))
+    ver = path / VERIFICATION
+    if ver.is_dir():
+        newest = max([newest, mtime(ver)] + [mtime(p) for p in ver.iterdir()])
     return newest
 
 
@@ -272,7 +304,12 @@ def shipped(path, ref):
     True when HEAD is in the default branch or a production/release/stable branch, or when every
     commit on HEAD since it left the default branch has an equivalent patch there (squash or rebase merge).
     """
-    code, out, _ = git(path, "for-each-ref", "--contains", "HEAD", "--format=%(refname:short)", "refs/remotes/origin")
+    # Only the branches that can count as shipped: wallet has 1,300+ remote branches, and asking
+    # --contains of all of them cost about 0.5 s a tree.
+    patterns = [f"refs/remotes/{ref}"] if ref else []
+    patterns += [f"refs/remotes/origin/{p}" for p in ("production", "stable", "release", "release*", "release/*",
+                                                       "*-production-*")]
+    code, out, _ = git(path, "for-each-ref", "--contains", "HEAD", "--format=%(refname:short)", *patterns)
     names = out.splitlines() if code == 0 else []
     if ref in names:
         return ref
@@ -310,6 +347,7 @@ def inspect_tree(wt, common, threads, cwds, days):
     entries = [e for e in status.split("\0") if e]
     tracked = [e for e in entries if not e.startswith("??")]
     untracked = [e[3:] for e in entries if e.startswith("??")]
+    changed = [e[3:] for e in entries if len(e) > 3]
     pr = pr_states(common).get(branch) if branch else None
     thread, thread_ts = threads.get(str(path), (None, 0.0))
 
@@ -323,11 +361,16 @@ def inspect_tree(wt, common, threads, cwds, days):
         dead = f"work is in {where}"
 
     gitdir = Path(git(path, "rev-parse", "--absolute-git-dir")[1] or common)
-    idle = max(0.0, NOW - last_used(path, gitdir, thread_ts)) / DAY
+    idle = max(0.0, NOW - last_used(path, gitdir, thread_ts, changed)) / DAY
     dirty = bool(tracked or untracked)
     # Clean trees lose nothing (the branch stays), so an open PR or open thread doesn't hold them.
     need = 1 if dead else DIRTY_DAYS if dirty else days
     row.update(idle=idle, tracked=len(tracked), untracked=untracked)
+    # A kept tree idle past --days still loses its .verification/: ignored proof scratch, often
+    # copies of Rust target/ folders (224 GB across ~/.t3/worktrees on 2026-11-15).
+    if (path / VERIFICATION).is_dir() and idle >= days:
+        row["scratch"] = {"action": "scratch", "path": path / VERIFICATION, "size": 0,
+                          "why": f"{VERIFICATION}/ in a tree idle {idle:.0f}d (tree kept)"}
     if idle < need:
         if dirty and not dead and idle >= days:
             return {**row, "action": "watch",
@@ -339,6 +382,7 @@ def inspect_tree(wt, common, threads, cwds, days):
         total = sum(mtime_size(path / u) for u in untracked)
         if total > BACKUP_CAP:
             return {**row, "action": "watch", "why": f"untracked files total {gb(total)}, too big to back up"}
+    row.pop("scratch", None)  # the whole tree goes
     why = f"{dead}, idle {idle:.1f}d" if dead else f"{'dirty' if dirty else 'clean'}, idle {idle:.0f}d"
     if pr and pr[0] == "OPEN":
         why += f", PR #{pr[1]} open (branch kept)"
@@ -391,10 +435,13 @@ def rescue_detached(row):
 
 
 def worktrees(roots, days, apply, verbose):
-    threads, cwds = t3_threads(), process_cwds()
+    with ThreadPoolExecutor(2) as pool:
+        threads, cwds = pool.submit(t3_threads), pool.submit(process_cwds)
+        commons = find_repos(roots)
+        threads, cwds = threads.result(), cwds.result()
     me = Path.cwd().resolve()
-    rows, seen = [], set()
-    for common in find_repos(roots):
+    rows, seen, todo = [], set(), []
+    for common in commons:
         for wt in list_worktrees(common):
             path = Path(wt["worktree"])
             linked = (path / ".git").is_file() or wt.get("prunable") or not path.exists()
@@ -407,14 +454,33 @@ def worktrees(roots, days, apply, verbose):
                 continue
             if me == path or me.is_relative_to(path):
                 continue
-            rows.append(inspect_tree(wt, common, threads, cwds, days))
+            todo.append((wt, common))
+    with ThreadPoolExecutor(WORKERS) as pool:  # one gh call per repo with agent trees, side by side
+        list(pool.map(pr_states, {c for _, c in todo}))
+    # Each tree is a handful of git calls and stats; run them side by side.
+    with ThreadPoolExecutor(WORKERS) as pool:
+        rows += pool.map(lambda a: inspect_tree(a[0], a[1], threads, cwds, days), todo)
+    # A proof folder can hold a checkout or worktree of its own: leave it while anything inside runs or stays.
+    busy = list(cwds) + [str(r["path"]) for r in rows if r["action"] in ("keep", "watch")]
+    for r in list(rows):
+        s = r.pop("scratch", None)
+        if s and not any(b == str(s["path"]) or b.startswith(str(s["path"]) + "/") for b in busy):
+            rows.append(s)
 
-    for r in rows:
-        if r["action"] in ("remove", "watch"):
-            r["size"] = du(r["path"])
+    sized = [r for r in rows if r["action"] in ("remove", "watch", "scratch")]
+    with ThreadPoolExecutor(WORKERS) as pool:
+        for r, size in zip(sized, pool.map(lambda r: du(r["path"]), sized)):
+            r["size"] = size
     failed = 0
     if apply:
         for r in rows:
+            if r["action"] == "scratch":
+                try:
+                    shutil.rmtree(r["path"])
+                except OSError as e:
+                    failed += 1
+                    r["action"], r["why"] = "FAILED", f"{r['why']}; {e}"
+                continue
             if r["action"] != "remove":
                 continue
             try:
@@ -435,38 +501,48 @@ def worktrees(roots, days, apply, verbose):
             sh(["git", "--git-dir", str(common), "worktree", "prune"])
 
     removed = [r for r in rows if r["action"] == "remove"]
+    scratch = [r for r in rows if r["action"] == "scratch"]
     print(f"worktrees: remove {len(removed)} ({gb(sum(r['size'] for r in removed))}), "
+          f"{VERIFICATION}/ in {len(scratch)} kept trees ({gb(sum(r['size'] for r in scratch))}), "
           f"keep {sum(r['action'] in ('keep', 'watch') for r in rows)}")
-    order = {"FAILED": 0, "remove": 1, "watch": 2, "prune": 3, "keep": 4}
+    order = {"FAILED": 0, "remove": 1, "scratch": 2, "watch": 3, "prune": 4, "keep": 5}
     for r in sorted(rows, key=lambda r: (order[r["action"]], -r["size"])):
         if r["action"] == "keep" and not verbose:
             continue
         size = gb(r["size"]) if r["size"] else ""
-        print(f"  {r['action']:<7} {size:>8}  {short(r['path'])}  {r['branch']}  ({r['why']})")
-    return sum(r["size"] for r in removed), failed, {str(r["path"]) for r in removed}
+        print(f"  {r['action']:<7} {size:>8}  {short(r['path'])}  {r.get('branch', '')}  ({r['why']})")
+    return sum(r["size"] for r in removed + scratch), failed, {str(r["path"]) for r in removed + scratch}
 
 
 # ---------- cargo ----------
 
-def cargo(roots, apply, skip_under):
+def cargo_scan(roots):
+    """(target, idle days, size) for every Rust target/ folder; runs alongside the worktree pass."""
     found = []
     for root in roots:
         for dirpath, dirnames, _ in os.walk(root):
             if "target" in dirnames and (Path(dirpath) / "target/CACHEDIR.TAG").exists():
                 found.append(Path(dirpath) / "target")
-            dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and d != ".git"]
-    rows, failed = [], 0
-    for t in sorted(set(found)):
-        if any(under(t, s) for s in skip_under):
-            continue
+            # .verification/ is the worktree pass's; walking its target/ copies doubled the scan.
+            dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and d not in (".git", VERIFICATION)]
+
+    def stat(t):
         stamps = [mtime(t)] + [mtime(p) for p in t.glob("*")] + [mtime(p) for p in t.glob("*/.fingerprint")]
         idle = (NOW - max(stamps)) / DAY
-        if idle < CARGO_DAYS:
-            size = du(t)
-            if size > 10e9:
-                rows.append(("keep", size, t, f"built {idle:.1f}d ago"))
+        return t, idle, du(t) if idle >= CARGO_DAYS else du_wide(t)
+    with ThreadPoolExecutor(WORKERS) as pool:
+        return list(pool.map(stat, sorted(set(found))))
+
+
+def cargo(scan, apply, skip_under):
+    rows, failed = [], 0
+    for t, idle, size in scan:
+        if any(under(t, s) for s in skip_under) or not t.exists():
             continue
-        rows.append(("remove", du(t), t, f"not built for {idle:.0f}d"))
+        if idle >= CARGO_DAYS:
+            rows.append(("remove", size, t, f"not built for {idle:.0f}d"))
+        elif size > 10e9:
+            rows.append(("keep", size, t, f"built {idle:.1f}d ago"))
     for i, (action, size, t, why) in enumerate(rows):
         if apply and action == "remove":
             try:
@@ -509,12 +585,12 @@ class Report:
     def __init__(self, apply):
         self.apply, self.lines, self.freed, self.failed = apply, [], 0, 0
 
-    def remove(self, label, paths):
+    def remove(self, label, paths, size=None):
         """Delete a list of paths as one line of the report."""
         paths = [p for p in paths if p.exists() or p.is_symlink()]
         if not paths:
             return
-        size = sum(du(p) for p in paths)
+        size = sum(du(p) for p in paths) if size is None else size
         errors = 0
         for p in paths if self.apply else []:
             try:
@@ -547,16 +623,14 @@ class Report:
 
 
 def mole_purge(r):
-    """Mole's project purge: build folders (build, dist, Pods, .venv, ...) in projects untouched 7 days."""
-    if not shutil.which("mo"):
-        return
-    if r.apply:
-        r.run("mo purge --yes (build folders in projects idle 7d)", ["mo", "purge", "--yes"], timeout=1800)
-        return
-    code, out, _ = sh(["mo", "purge", "--dry-run"], timeout=600)
-    m = re.search(r"Would free approximately:\s*([\d.]+)\s*([KMGT]?B)", re.sub(r"\x1b\[[0-9;]*[a-zA-Z]", "", out))
-    plan = f"{m.group(1)} {m.group(2)}" if m else "?"
-    r.lines.append(f"  run     {plan:>8}  mo purge --yes (build folders in projects idle 7d)")
+    """Mole's project purge: build folders (build, dist, Pods, .venv, ...) in projects untouched 7 days.
+
+    A dry run does not ask Mole for its estimate: `mo purge --dry-run` scans the whole disk and took
+    60-140 s, more than the rest of the dry run together, for about 0.1 GB.
+    """
+    if shutil.which("mo"):
+        r.run("mo purge --yes (build folders in projects idle 7d)", ["mo", "purge", "--yes"], timeout=1800,
+              plan="?")
 
 
 def derived_data(r, gone):
@@ -671,9 +745,63 @@ def caches(apply, gone=frozenset()):
     size_cap(r, "Yarn cache", HOME / ".yarn/berry/cache", 5e9, busy=("yarn",))
     if shutil.which("npm"):
         size_cap(r, "npm cache", HOME / ".npm/_cacache", 5e9, ["npm", "cache", "clean", "--force"])
+    npx_cache(r)
+    exact_cache(r)
     print(f"caches: remove about {gb(r.freed)}" + ("" if apply else " (command lines show their estimate)"))
     print("\n".join(r.lines))
     return r.freed, r.failed
+
+
+def npx_cache(r):
+    """npx installs (~/.npm/_npx/<hash>) are under the same 5 GB npm cap; `npm cache clean` leaves them.
+
+    Over the cap, every install no running process uses goes; npx fetches it again on next use.
+    """
+    root = HOME / ".npm/_npx"
+    entries = [p for p in root.iterdir() if p.is_dir()] if root.is_dir() else []
+    if not entries:
+        return
+    code, out, _ = sh(["ps", "-axo", "args="], timeout=10)
+    used = [p for p in entries if f"/_npx/{p.name}/" in out]
+    with ThreadPoolExecutor(WORKERS) as pool:
+        sizes = dict(zip(entries, pool.map(du, entries)))
+    if sum(sizes.values()) > 5e9:
+        free = [p for p in entries if p not in used]
+        r.remove(f"{len(free)} npx installs, npm 5 GB cap ({len(used)} in use kept)", free,
+                 size=sum(sizes[p] for p in free))
+
+
+def exact_cache(r):
+    """exact's build caches (~/.cache/exact/<kind>/<key>): its AGENTS.md says deleting them only costs
+    the next first build its time. Entries idle CACHE_DAYS go, like DerivedData."""
+    root = HOME / ".cache/exact"
+    kinds = [k for k in (root.iterdir() if root.is_dir() else []) if k.is_dir() and not k.name.endswith("locks")]
+    old = [e for kind in kinds for e in kind.iterdir()
+           if NOW - max([mtime(e)] + [mtime(c) for c in (e.iterdir() if e.is_dir() else [])]) > CACHE_DAYS * DAY]
+    r.remove(f"{len(old)} exact build cache entries idle {CACHE_DAYS}d+", old)
+
+
+# Big, but not regenerable or not ours to drop: sized for the report, never deleted.
+PETER_DECIDES = [
+    ("~/.mtplx", "local LLM models and session bank"),
+    ("~/Library/Developer/CoreSimulator/Devices", "iOS simulators (simpool leases them)"),
+    ("~/.t3/scratch", "T3 scratch-thread folders (thread output, clones)"),
+]
+
+
+def peter_decides_sizes():
+    paths = [(Path(p).expanduser(), p, what) for p, what in PETER_DECIDES]
+    paths = [x for x in paths if x[0].exists()]
+    with ThreadPoolExecutor(max(1, len(paths))) as pool:
+        return paths, list(pool.map(lambda x: du_wide(x[0]), paths))
+
+
+def peter_decides(paths, sizes):
+    if not paths:
+        return
+    print("Peter decides (never deleted):")
+    for (_, label, what), size in sorted(zip(paths, sizes), key=lambda x: -x[1]):
+        print(f"  {'list':<7} {gb(size) if size else '?':>8}  {label}  ({what})")
 
 
 def prune_backups():
@@ -718,15 +846,22 @@ def main(argv):
         return 0
     print(f"disk-clean {'APPLY' if apply else 'DRY RUN'}: {gb(start.free)} free of {gb(start.total)}")
     planned, failed, gone = 0, 0, set()
+    # The slow read-only scans run alongside the worktree pass, so a dry run stays under a minute.
+    # Removals still happen in order: worktrees, then cargo, then caches.
+    early = ThreadPoolExecutor(2)
+    scan = early.submit(cargo_scan, roots) if only in (None, "cargo") else None
+    sizes = early.submit(peter_decides_sizes) if only in (None, "caches") else None
     if only in (None, "worktrees"):
         n, f, gone = worktrees(roots, days, apply, verbose)
         planned, failed = planned + n, failed + f
-    if only in (None, "cargo"):
-        n, f = cargo(roots, apply, gone)
+    if scan:
+        n, f = cargo(scan.result(), apply, gone)
         planned, failed = planned + n, failed + f
-    if only in (None, "caches"):
+    if sizes:
         n, f = caches(apply, frozenset(gone))
         planned, failed = planned + n, failed + f
+        peter_decides(*sizes.result())
+    early.shutdown()
     end = shutil.disk_usage(HOME)
     if apply:
         prune_backups()
