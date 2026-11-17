@@ -1,6 +1,6 @@
 # Global agent instructions
 
-Source: `global/AGENTS.md` in `~/skills`; `npm run sync` links it into every harness (Cursor's User Rules point here). This file is the principles and a router: the how lives in the skill each row names. Read that skill when its row applies.
+Source: `global/AGENTS.md` in `~/skills`; `npm run sync` links it into every harness (Cursor's User Rules point here).
 
 ## Ten principles
 
@@ -58,7 +58,7 @@ Classify the task at the start and write the tier in the ticket. I can override 
 
 ## Finish every change
 
-Any change to project files ends this way without being asked; skip it for questions, reviews and plans. Never stop at a plan or an offer to do work already asked for.
+For project changes:
 
 - Before editing, name the observable result that proves it. Reproduce a reported failure first.
 - Prove it through the real flow (Every task, above). Run the repo's format, lint, typecheck, build and tests; if they cause edits, prove it again. Read the diff for unrelated changes and secrets.
@@ -85,7 +85,7 @@ Any change to project files ends this way without being asked; skip it for quest
 - Every machine has GNU `sed`, `grep`, `find`, `awk`, `date`, `stat` first on PATH, and the dotfiles CLI set (`rg`, `fd`, `jq`, `ast-grep`, `hyperfine` and more; one page each in `~/dotfiles/docs/tools/`). Write Linux-style commands and `bash` scripts.
 - Claude Code asks me to approve `rsync` (use `cp -R`), `cd` before `git` (use `git -C`), several `cd`s, `~` in an assignment, backslash-escaped spaces and `{` next to a quote. For multi-step shell work, write a script in `.verification/<task>/` and run `bash <script>`.
 - `~/.rgrc` cuts `rg` lines at 100 columns (`-M 0` for full) and hides `.env` and lockfiles. Keep output small: line ranges, `git diff --stat`, `gh --json --jq`, `| tail -n 40`.
-- Helpers, each with `--help`: `buildgate <cmd>` around cargo, xcodebuild, gradle, emulator boots, `pr-status`, `pr-wait` (never sleep loops), `pr-threads`, `repo-state`, `runq` quiets logs, `bgjob` outlives turns, `disk-clean`.
+- Helpers, each with `--help`: `buildgate <cmd>` around cargo, xcodebuild, gradle, emulator boots, `pr-status`, `pr-wait` (never sleep loops), `pr-threads`, `repo-state`, `runq` quiets logs, `bgjob` outlives turns, `disk-clean`. On low disk (under 50 GB free, "No space left on device" or ENOSPC), run `disk-clean --apply`, then send one line via `t3_thread_send` (`mode: "queue"`, `threadId: "mcp:launch:5e07fa5b4ba2dbb3d01a19297ecbb0404004dbb5a1c7d3a69e60e13d9f41a07e"`, Chief of staff): machine, free GB before → after, what filled it.
 
 ## Home infrastructure
 

@@ -8,6 +8,8 @@ compatibility: macOS or Linux with git, gh and python3. Uses Mole (`mo`) and Xco
 
 Goal: no machine runs out of disk because of agent leftovers, and Peter never has to ask. One run is `disk-clean --apply`, then a short report.
 
+On low disk (under 50 GB free, "No space left on device" or ENOSPC), run `disk-clean --apply`, then send one line via `t3_thread_send` (`mode: "queue"`, `threadId: "mcp:launch:5e07fa5b4ba2dbb3d01a19297ecbb0404004dbb5a1c7d3a69e60e13d9f41a07e"`, Chief of staff): machine, free GB before → after, what filled it.
+
 `disk-clean` (`scripts/disk-clean` in this skill, linked onto PATH as `disk-clean` by `npm run sync`) holds every deletion rule. Run `disk-clean --help` for them. Do not delete things by hand that the script would not delete. In particular:
 
 - Never remove a main checkout, delete a branch, or touch `~/Downloads`, `~/Documents`, Photos or the Finder trash (`~/.Trash`).
