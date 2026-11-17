@@ -18,7 +18,7 @@ const refs = process.argv.slice(2).length ? process.argv.slice(2) : ["main", "."
 const env = (k, d) => process.env[k] ?? d;
 const REPS = Number(env("REPS", 1));
 const MODEL = env("MODEL", "claude-opus-5-5");
-const JUDGE_MODEL = env("JUDGE_MODEL", "gpt-6.1-sol");
+const JUDGE_MODEL = env("JUDGE_MODEL", "gpt-6.2-sol");
 const CONCURRENCY = Number(env("CONCURRENCY", 3));
 const MAX_TURNS = env("MAX_TURNS", "80");
 const TIMEOUT_MS = Number(env("TIMEOUT_MIN", 25)) * 60_000;
