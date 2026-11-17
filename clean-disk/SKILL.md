@@ -1,6 +1,6 @@
 ---
 name: clean-disk
-description: "Use when a machine is low on disk space, when worktrees, Rust targets, build folders, Xcode DerivedData or caches should go (\"clean up disk\", \"close out their worktrees\"), for the scheduled Disk cleanup run, or to set daily cleanup up on a machine. Runs `disk-clean`. Not for app bundle size, CI runner disk or personal files."
+description: "Use when a machine is low on disk space, when worktrees, Rust targets, build folders, Xcode DerivedData or caches should go (\"clean up disk\", \"close out their worktrees\"), for a "Disk low" alert, or to set hourly cleanup up on a machine. Runs `disk-clean`. Not for app bundle size, CI runner disk or personal files."
 compatibility: macOS or Linux with git, gh and python3. Uses Mole (`mo`) and Xcode's `simctl` when installed. Reads T3 Code's local database when present.
 ---
 
@@ -20,7 +20,9 @@ On low disk (under 50 GB free, "No space left on device" or ENOSPC), run `disk-c
 
 ## Run
 
-A scheduled run uses `disk-clean --apply --skip-if-free-over 100G`. A machine with more than 100 GB free has nothing to gain, so the daily check ends in one line (`disk-clean SKIPPED: ...`, exit 0) without scanning or removing anything. A manual run, or any run Peter asks for, leaves the flag off. If the scheduled run prints `SKIPPED`, report that line and stop.
+The hourly job runs `disk-clean --apply --skip-if-free-over 100G` with no agent: above 100 GB free it ends in one line (`disk-clean SKIPPED: ...`, exit 0) without scanning. A manual run, or any run Peter asks for, leaves the flag off.
+
+One `--apply` runs at a time per machine. While one runs it prints `disk-clean BUSY: another run in progress`, and within 15 minutes after one it prints `disk-clean RECENT: ran <N> min ago, <X> free`; both exit 0 having done nothing. Report that line and stop: the other run already cleaned.
 
 1. Run `disk-clean --apply`. It prints each removal with its reason and size, then the free space before and after. When Peter asks interactively, apply right away too: everything it removes can be regenerated or is backed up.
 2. If anything is `FAILED`, read the reason. Fix it only if the fix is clearly safe, such as a stale `index.lock` with no git process running. Otherwise report it.
@@ -54,11 +56,13 @@ A tree is removed once it has been idle long enough for its kind. Idle time coun
 - **Never removed:** locked trees, and trees a process is running in. Idle time counts `git status` changes and `.verification/` writes, so a tree in use in the last day is never touched.
 - **Backups:** before a tree with uncommitted changes is removed, the changes are saved to `~/.local/state/disk-clean/backups/<date>-<repo>-<tree>/` and kept 60 days. A detached commit that no branch holds is saved on a `rescued/<tree>-<sha>` branch.
 
+Rust `target/` folders go after 7 days without a build. One over 40 GB goes after 1 hour without a build, unless a `cargo` or `rustc` process runs in its workspace or names it (one 106 GB experiment target filled the disk on 2026-11-17, home#253).
+
 ## Cache rules
 
 | Item | Rule |
 |---|---|
-| Project build folders | `mo purge --yes`: Mole's purge of `build`, `dist`, `Pods`, `.venv` and similar in projects with no file changed in 7 days |
+| Project build folders | `mo purge --yes`: Mole's purge of `build`, `dist`, `Pods`, `.venv` and similar in projects with no file changed in 7 days. It can hang, so it is stopped after 5 minutes and reported as `FAILED (timed out after 300 s, stopped)`. |
 | Xcode DerivedData | Removed when its project folder is gone (such as a removed worktree) or it has been idle 7 days |
 | trash-cli trash | Items deleted 3+ days ago |
 | Simulator runtimes | Removed when unused for 14 days and a newer runtime of the same family exists (a device-specific runtime such as `iOS-27-2-iPhone19-4` is its own family) |
@@ -97,18 +101,11 @@ Write the `Needs your call:` line only when something there needs Peter; otherwi
 
 ## Set up on a machine
 
-Every machine with T3 Code gets its own daily run, because the cleanup is local.
+Every machine gets its own hourly job, because the cleanup is local. No agent runs unless the disk stays low.
 
-1. Confirm `disk-clean --help` works. If it doesn't, run `git -C ~/skills pull --ff-only && npm --prefix ~/skills run sync`. If it still doesn't, this skill isn't merged to `main` yet: stop, because every scheduled run would fail.
-2. Run `disk-clean` (a dry run) and check that the removals make sense for this machine. Add `--root` dirs if repos live elsewhere.
-3. Call `schedule_task` with:
-   - `projectId`: the "No project" (scratch) project from `t3_project_list`;
-   - `bindToCurrentThread: false`;
-   - `title: "Disk cleanup"`;
-   - `schedule: {type: "fixed_time", timeOfDay: "07:00"}`;
-   - this prompt, with any `--root` arguments added:
-
-     > [t3-sentinel-run] Run the clean-disk skill: one scheduled `disk-clean --apply --skip-if-free-over 100G` run on this machine, then the report (one line if it prints SKIPPED). If `disk-clean` is not on PATH, reply in one line starting with "Needs your call:" that the skill isn't installed, and stop.
-
-4. If `~/.t3/sentinel/config.json` exists, add the returned `scheduledTaskId` to its `cleanup_task_ids` list, so finished run threads are deleted. The `[t3-sentinel-run]` tag keeps the watchdog from treating the run as agent work.
-5. Report the next run time.
+1. Confirm `disk-clean --help` works. If it doesn't, run `git -C ~/skills pull --ff-only && npm --prefix ~/skills run sync`.
+2. Run `disk-clean` (a dry run) and check that the removals make sense for this machine. Add `--root` dirs or `DISK_CLEAN_ROOTS` if repos live elsewhere.
+3. Install the job from dotfiles: `~/dotfiles/launchd/install.sh disk` (a LaunchAgent every 3600 s on macOS, a systemd user timer on Linux). It runs `~/dotfiles/launchd/disk-clean-hourly.sh`, which logs to `~/.local/state/dotfiles/disk.log`.
+4. For the alert, call `schedule_task` with the "No project" (scratch) project, `bindToCurrentThread: false`, `title: "Disk low alert"`, `schedule: {type: "webhook", maxDeliveryAgeMinutes: 120}`, and a prompt that sends one line with `t3_thread_send` mode `"queue"` to the Chief of staff thread: host, `free_gb`, the three `top_kept` folders and what needs Peter, never deleting anything. Put the hook path (`/api/hooks/<task id>/<token>`) in `~/.t3/sentinel/config.json` as `disk_hook`, next to `port`. The token stays in that file, never in a repo.
+5. When free space is still under 50 GB after a run, the job POSTs once; it sends again at most every 6 hours. Without `disk_hook` it only cleans and logs.
+6. Check it: `~/dotfiles/launchd/install.sh status`.
