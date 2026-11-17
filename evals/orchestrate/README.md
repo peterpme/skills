@@ -19,7 +19,7 @@ Per case and variant:
 
 1. A shallow clone of the case's repo at `base`, with no later history, so the agent can't read the merged answer. One clone per case, shared by all runs.
 2. The agent (`MODEL`, default `claude-opus-5-5`) gets Peter's original message plus a fixed note: start the task as you normally would, and stop at the point where you would first change a file, posting the message you would send Peter then. So whether the skill triggers is part of what gets measured. Its tools are read-only: `Read`, `Grep`, `Glob`, and read-only git and shell commands. It has no network, `gh` or T3 tools.
-3. A judge (`JUDGE_MODEL`, default Sol, `gpt-6.1-sol` via `codex exec`) gets the plan and the case's hidden interventions, without knowing the variant. For each intervention it rules `prevented`, `asked`, `missed` or `contradicted`, and it labels each question in the plan `needed` or `routine`.
+3. A judge (`JUDGE_MODEL`, default Sol, `gpt-6.2-sol` via `codex exec`) gets the plan and the case's hidden interventions, without knowing the variant. For each intervention it rules `prevented`, `asked`, `missed` or `contradicted`, and it labels each question in the plan `needed` or `routine`.
 
 Score per run, between -0.5 and 1:
 
