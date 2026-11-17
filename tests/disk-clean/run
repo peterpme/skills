@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Runs bin/disk-clean --apply --only worktrees in a fake HOME with three agent worktrees that each
 # hold a .verification/ folder, and checks which folders survive (expected next to actual).
-# The risk: deleting proof scratch, or a whole tree, that an agent is using right now.
+# The risk: deleting proof scratch, a whole tree, or a Rust target/ that an agent is using right now.
+# Then --only cargo with the big-target size lowered to 1 MB: a big target not built for 2 h goes,
+# the same one with cargo running in its workspace stays.
 set -uo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 tool=$here/../../bin/disk-clean
@@ -42,6 +44,19 @@ find "$repo/.verification" -exec touch -h -d "$old" {} +
 "$tool" --apply --only worktrees >"$work/out" 2>&1
 code=$?
 
+two_h=$(date -d '-2 hours' '+%Y-%m-%d %H:%M:%S' 2>/dev/null || date -v-2H '+%Y-%m-%d %H:%M:%S')
+for w in idle-big busy-big; do
+  t=$HOME/Projects/$w/target
+  mkdir -p "$t/debug/.fingerprint" && touch "$t/CACHEDIR.TAG" && head -c 2000000 /dev/zero >"$t/debug/blob"
+  find "$t" -exec touch -d "$two_h" {} +
+done
+(cd "$HOME/Projects/busy-big" && exec -a cargo sleep 120) &
+cargo_pid=$!
+sleep 1
+DISK_CLEAN_BIG_TARGET_GB=0.001 DISK_CLEAN_MIN_GAP_MIN=0 "$tool" --apply --only cargo >>"$work/out" 2>&1
+code=$((code | $?))
+kill "$cargo_pid" 2>/dev/null
+
 fail=0
 check() { # name path expect(present|gone)
   local actual=gone ok=yes
@@ -57,6 +72,8 @@ check "clean tree used now is kept" "$trees/busy-clean/a.txt" present
 check "clean tree used now keeps .verification/" "$trees/busy-clean/.verification/proof/out" present
 check "main checkout loses old target/ copy" "$repo/.verification/p/target" gone
 check "main checkout keeps proof log" "$repo/.verification/p/run.log" present
+check "big target idle 2 h is removed" "$HOME/Projects/idle-big/target" gone
+check "big target cargo is building is kept" "$HOME/Projects/busy-big/target" present
 [[ $code == 0 ]] || { echo "disk-clean exited $code"; fail=1; }
 [[ $fail == 0 ]] || sed 's/^/    /' "$work/out"
 exit $fail
