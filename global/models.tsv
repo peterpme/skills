@@ -7,7 +7,9 @@ review-gpt-code	Review of GPT-written code, or when a task names a second model 
 hardest	Hardest single task or review only	claudeAgent	claude-fable-5-2	high	alternate at random with the next row: [ $(date +%S) -lt 30 ] picks Sol; the report names which ran
 hardest	Hardest single task or review only	codex	gpt-6.1-sol	xhigh	-
 orchestrator	The thread that plans and decides (orchestrate, overnight)	claudeAgent	claude-opus-5-5	high	-
-scheduled-worker	The Worker task and any scheduled task that does ticket work	claudeAgent	claude-opus-5-5	high	create the task from a thread on this model: schedule_task copies the caller's model; no scheduled task runs Fable
+coordinator	Coordinator · … threads	claudeAgent	claude-fable-5-2	medium	trial from 2026-11-17 on bpx-backend, bpx-exact, wallet, wallet-api
+chief-of-staff	Chief of staff thread and daily run	claudeAgent	claude-opus-5-5	medium	-
+scheduled-worker	The Worker task and any scheduled task that does ticket work	claudeAgent	claude-opus-5-5	high	create scheduled tasks only from an Opus thread: schedule_task copies the caller's model; no scheduled task runs Fable
 llp-author	llp-super-refine author and reviser	claudeAgent	claude-fable-5-2	medium	-
 llp-reviewer-gpt	llp-super-refine non-Claude reviewer	codex	gpt-6.1-sol	high	read-only sandbox
 llp-reviewer-claude	llp-super-refine fresh Claude reviewer that edited no revision	claudeAgent	claude-fable-5-2	medium	-

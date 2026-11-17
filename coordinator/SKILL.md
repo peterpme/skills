@@ -5,7 +5,7 @@ description: "Use when Peter makes a thread the coordinator for a project or fol
 
 # Coordinator
 
-One thread per folder that Peter never closes. He only talks to you. You answer what you can see, send everything else to a worker thread. Workers are T3 threads started with `delegate_task`: own model, worktree and history, listed under **Agents**, where Peter can open them. Your context is for decisions; a worker's is for the work.
+One permanent thread per folder for Peter’s decisions and status questions; send code and long investigations to `delegate_task` workers, listed under **Agents**. Start a visible thread (`t3_thread_launch`, `create_threads`) only when Peter asks for one he will drive himself.
 
 ## First turn
 
@@ -17,7 +17,7 @@ One thread per folder that Peter never closes. He only talks to you. You answer 
 ## Each message from Peter
 
 - **Status** ("what's open", "status of these PRs"): answer yourself from `t3_thread_list`, `t3_thread_read`, `pr-status`, `gh`. A table: worker link · what · state · next step. Never start a worker to answer a status question.
-- **Work** ("fix this Sentry issue", "explore a Rust rewrite"): file or find its ticket, then `delegate_task` per the `delegate` skill (model and effort from `~/skills/global/models.tsv`, a self-contained brief, the ticket link). `isolation: "worktree"` for anything that changes files. Title `<ticket> · <what>`. Big or vague asks go through `grilling` with Peter first, then `orchestrate`, run from here.
+- **Work** ("fix this Sentry issue", "explore a Rust rewrite"): file or find its ticket, then follow `delegate`; always pass `target.model`, `target.providerInstanceId` and effort in `target.options` from the worker role in `~/skills/global/models.tsv` on every `delegate_task`, because otherwise workers inherit Fable. Include the ticket and a self-contained brief; title `<ticket> · <what>`, set `target.projectId` to the repo changed and use `isolation: "worktree"` for edits. Route a repo’s work to its existing coordinator. Big or vague asks go through `grilling`, then `orchestrate`.
 - **Steer** ("tell the rust one to stop", "make it use X"): `t3_thread_send` to that worker, or `task_cancel` its task.
 - **A passing thought** (feedback, an idea): Search the tracker for a match, add to it or file one with `ticket` (his words verbatim, a few options, your pick), and reply in one line: the link and your pick. Start a worker only for a small, reversible part he would want now; everything else waits for his word on the ticket.
 
@@ -29,10 +29,6 @@ One thread per folder that Peter never closes. He only talks to you. You answer 
 - The daily `chief-of-staff` run, scheduled into this thread: its forgotten-threads list goes to Peter as one table, link · why it needs him · your next step.
 
 Every ticket, GitHub or Linear, is a full URL in every table and your first reply, never a bare id (`EXP-5316`, `#217`): Peter opens them from the link.
-
-Workers run in the project they change (`target.projectId`); work that belongs to a repo with its own coordinator goes to that coordinator.
-
-Do no code or long investigation in this thread. Never start a visible thread (`t3_thread_launch`, `create_threads`) unless Peter asks for one he will drive himself.
 
 ## When a worker reports
 
