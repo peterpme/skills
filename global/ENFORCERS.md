@@ -8,7 +8,7 @@ Kinds: **hook** (runs in the harness), **CI** (runs on the PR), **scheduled** (a
 |---|---|---|---|
 | Cut a rule when you add one (`AGENTS.md` may not grow) | `scripts/agents-md-budget`, required by the `main` ruleset | CI, branch rule | |
 | Promise a later report only when something will wake you | `bin/turn-check` Stop hook, cases in `tests/turn-check/` | hook | |
-| Remove a worktree once its branch is merged or abandoned | `bin/disk-clean`, daily through `clean-disk` | scheduled | |
+| Remove a worktree once its branch is merged or abandoned; clean and report low disk to Chief of staff | `bin/disk-clean`, daily through `clean-disk`; `t3_thread_send` in queue mode | scheduled, helper, prose | Low-disk reporting is agent-driven (home#253) |
 | Close your own PR when superseded or idle for 14 days | `chief-of-staff` daily run; its `bin/pr-dupes` lists every open PR whose newer sibling says "supersedes #n" | scheduled, helper | "Same turn" is not held: a superseded PR is caught the next morning, not in the turn |
 | Feedback goes in with `feedback add` the same turn | `bin/feedback`; `skill-scout` daily adds what was missed | helper, scheduled | |
 | Every review thread is resolved before draft ends and before handover | `bin/pr-status`, `bin/pr-threads`, called by the `orchestrate` ready gate | helper | No branch rule requires resolved threads; the gate's checklist is the control |
