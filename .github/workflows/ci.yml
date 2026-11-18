@@ -39,7 +39,7 @@ jobs:
         run: tests/tool-guard/run
       - name: perf-claim cases
         run: tests/perf-claim/run
-      - name: pr-status tier 2 hold cases
+      - name: pr-status hold and review cases
         run: tests/pr-status-hold/run
       - name: scheduled-models cases
         run: tests/scheduled-models/run

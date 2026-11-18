@@ -5,7 +5,7 @@ description: "Use whenever work goes to another agent or model (\"spin up sonnet
 
 # Delegate
 
-On a program of several tickets, plan and write tickets; let subagents investigate, implement and verify. Keep your own context for decisions and review. Delegation does not expand the user's authorization to change files, push, merge, deploy, or answer approvals.
+On multi-ticket programs, delegate investigation, implementation and verification. Own the tickets, decisions and review. Delegation grants no further authorization.
 
 ## Pick the model and effort
 
@@ -30,15 +30,13 @@ A subagent starts with no parent conversation and no global instructions, so the
 
 1. **Goal**: one or two sentences, and the hard rules (e.g. "UI must not change", "never edit node_modules").
 2. **Read first**: the "Finish every change" section of `~/skills/global/AGENTS.md`, named by path, for any ticket that changes files; then exact paths, repository/worktree location, starting branch and revision, and relevant prior decisions or findings.
-3. **Do exactly these**: numbered changes with file paths; what is out of scope. For research or review, name the questions and permitted read-only actions instead of prescribing edits.
+3. **Do exactly these**: numbered changes, paths and exclusions. For encoding, signing, parsing, protocol clients or CI outputs, include a **Libraries** line naming established libraries and how the code gets them (workspace import or pinned `npm install --prefix … --no-save`). Write “None needed” if no library applies. For research or review, give questions and permitted reads.
 4. **Proof**: copy this sentence into the brief word for word: "Proof means running the real UI, API or CLI with representative data and showing expected next to actual. A pass count or a finished job is not proof." Require each test to name the user-visible rule or bug it protects in its title, and forbid citing test or path counts in the report. Then two blocks, with expected results taken from outside the change: Verification, numbered checks of input → expected value, and Validation, one real-flow scenario with real data. Exercise the actual affected flow and include cases that expose plausible wrong implementations. If planted-bug checks are appropriate and authorized, use an isolated local copy, restore every temporary change, and never touch live data. Do not require code mutation for read-only work. Save inspectable evidence in a git-ignored path or outside the repo; report what could not be verified.
 5. **Checks**: the repo's type-check, lint, format, tests, with exact commands and known traps (e.g. formatter with no file args rewrites unrelated files). Scale checks to the task; do not run paid or unrelated flows just to validate prose.
 6. **Git**: signed commits only when committing; never `--no-verify`, never edit git config. State whether to commit or leave changes uncommitted, and whether pushing is authorized. If signing is unavailable, preserve the work and report the blocker rather than creating an unsigned commit. Follow explicit user and repository instructions.
 7. **Report**: the PR body carries a line `Built by: <model> <effort>` (Peter is comparing Sol and Opus as builders). Short enough to read in a minute, written for a reader who saw none of the work, and exactly what to include (SHAs, changed paths, expected versus actual proof, check results, anything skipped or blocked).
 8. **Obstacles and scratch files**: errors, timeouts and failing tools are ordinary: diagnose and work through them. Retrying a read-only command needs no approval. Report as blocked only when access was withheld on purpose, the ticket's hard rules forbid the next step, or the same step failed twice for the same cause. Scratch files go in `.verification/<task>/`, never in a folder the task shares; delete only files you created, by name.
 9. **Stop condition**: the observable acceptance result and exact command when applicable (e.g. `yarn exchange-core:verify` → the independently established expected result). A blocker also requires a final report, not endless retries. Say: "end the turn immediately after the final report; do not call Get task output, continue polling, or start follow-up work".
-
-Keep implementation briefs tight: exact files to touch, nothing open-ended.
 
 Use `delegate_task` with `isolation: "worktree"` when tasks edit files in parallel or the main checkout is in use. It starts from the parent local commit and runs project setup; uncommitted edits are not copied. Commit required inputs before launch, or pass necessary context explicitly. Do not ask the child to create its own worktree. Read-only tasks may share the checkout; avoid concurrent commands that change it.
 

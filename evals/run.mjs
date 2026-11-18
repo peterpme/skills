@@ -1,47 +1,69 @@
 #!/usr/bin/env node
-// Compare tldr/SKILL.md across versions on fixed agent responses.
-// Usage: node evals/run.mjs [refs...]   e.g. node evals/run.mjs main .
+// Replay skill fixtures across versions.
+// Usage: node evals/run.mjs [--fixture <name>] [refs...]
 // Each ref is a git ref, or "." for the working tree. Default: main vs working tree.
 // Env: RUNS=5 runs per fixture (default 3), JUDGE=0 skips the faithfulness judge.
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, readdirSync, writeFileSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { homedir } from "node:os";
+import { parseArgs } from "node:util";
 
 const here = resolve(import.meta.dirname);
 const repo = resolve(here, "..");
-const refs = process.argv.length > 2 ? process.argv.slice(2) : ["main", "."];
+const { values, positionals } = parseArgs({ options: { fixture: { type: "string" } }, allowPositionals: true });
+const refs = positionals.length ? positionals : ["main", "."];
 const runs = Number(process.env.RUNS ?? 3);
 const judge = process.env.JUDGE !== "0";
 const checks = JSON.parse(readFileSync(join(here, "checks.json"), "utf8"));
+const fixtures = readdirSync(join(here, "fixtures"))
+  .filter((f) => f.endsWith(".md"))
+  .map((f) => f.slice(0, -3))
+  .filter((name) => !values.fixture || name === values.fixture)
+  .sort();
+if (!fixtures.length) throw new Error(`No fixture matched ${values.fixture}`);
+const skills = new Set(fixtures.map((name) => checks[name].skill ?? "tldr"));
 const work = join(here, ".work");
 rmSync(work, { recursive: true, force: true });
 mkdirSync(work, { recursive: true });
 // Ignore user settings, hooks, MCP servers, and tools so runs are cheap and comparable.
 const iso = ["--setting-sources", "project", "--strict-mcp-config", "--tools=", "--output-format", "json"];
-// The judge runs on the models.tsv investigate row, so a model change there reaches it.
-const [judgeModel, judgeEffort] = readFileSync(join(repo, "global/models.tsv"), "utf8")
-  .split("\n").map((l) => l.split("\t"))
-  .find((r) => r[0] === "investigate" && r[2] === "claudeAgent").slice(3, 5);
-const claude = (args, input) =>
-  JSON.parse(execFileSync("claude", ["-p", ...iso, ...args], { input, cwd: work, encoding: "utf8" }));
+const models = readFileSync(join(repo, "global/models.tsv"), "utf8").split("\n").map((l) => l.split("\t"));
+function modelArgs(role) {
+  const [, , , model, effort] = models.find((r) => r[0] === role && r[2] === "claudeAgent");
+  return ["--model", model, "--effort", effort];
+}
+function claude(args, input) {
+  const out = JSON.parse(execFileSync("claude", ["-p", ...iso, ...args], { input, cwd: work, encoding: "utf8" }));
+  if (out.is_error) throw new Error(out.result);
+  return out;
+}
 
-// Wrap each version as a throwaway plugin so it loads as /<name>:tldr next to any installed /tldr.
+// Load each version as a plugin alongside any installed skills.
 const variants = refs.map((ref) => {
   const name = ref === "." ? "working" : `ref-${ref.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`;
   const dir = join(work, "plugins", name);
   mkdirSync(join(dir, ".claude-plugin"), { recursive: true });
-  mkdirSync(join(dir, "skills/tldr"), { recursive: true });
   writeFileSync(join(dir, ".claude-plugin/plugin.json"), JSON.stringify({ name }));
-  const skill = ref === "."
-    ? readFileSync(join(repo, "tldr/SKILL.md"), "utf8")
-    : execFileSync("git", ["show", `${ref}:tldr/SKILL.md`], { cwd: repo, encoding: "utf8" });
-  writeFileSync(join(dir, "skills/tldr/SKILL.md"), skill);
+  for (const skill of skills) {
+    const path = `skills/${skill}/SKILL.md`;
+    const contents = ref === "."
+      ? readFileSync(join(repo, skill, "SKILL.md"), "utf8")
+      : execFileSync("git", ["show", `${ref}:${skill}/SKILL.md`], { cwd: repo, encoding: "utf8" });
+    mkdirSync(join(dir, "skills", skill), { recursive: true });
+    writeFileSync(join(dir, path), contents);
+  }
   return { ref, name, dir };
 });
 
-function grade(fixture, text) {
-  const c = checks[fixture];
+function gradePatterns(c, text) {
+  return {
+    mustMatch: c.mustMatch.every((p) => new RegExp(p, "i").test(text)),
+    mustNotMatch: c.mustNotMatch.every((p) => !new RegExp(p, "i").test(text)),
+  };
+}
+
+function gradeTldr(c, text) {
   const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
   const header = /^\*\*(Decide|Done|Next)\*\*$/;
   const sections = {};
@@ -62,8 +84,7 @@ function grade(fixture, text) {
     wordsMax30: longLines.length === 0,
     noExtraHeaders: !lines.some((l) => /^#|^\*\*[^*]+\*\*:?$/.test(l) && !header.test(l)),
     decisionsWithinSource: (sections.Decide ?? []).length <= c.maxDecisions,
-    mustMatch: c.mustMatch.every((p) => new RegExp(p, "i").test(text)),
-    mustNotMatch: c.mustNotMatch.every((p) => !new RegExp(p, "i").test(text)),
+    ...gradePatterns(c, text),
   };
   return { res, longLines, maxWords: Math.max(0, ...body.map(words)) };
 }
@@ -87,24 +108,29 @@ Reply PASS or FAIL on the first line, then list each violation with a quote.`;
 
 const rows = [];
 const totals = {};
-for (const f of readdirSync(join(here, "fixtures")).filter((f) => f.endsWith(".md")).sort()) {
-  const fixture = f.replace(/\.md$/, "");
-  const [, task, source] = readFileSync(join(here, "fixtures", f), "utf8").trim().match(/^TASK: (.*)\n+([\s\S]*)$/);
+for (const fixture of fixtures) {
+  const c = checks[fixture];
+  const skill = c.skill ?? "tldr";
+  const tldr = skill === "tldr";
+  const [, task, source] = readFileSync(join(here, "fixtures", `${fixture}.md`), "utf8").trim().match(/^TASK: (.*)\n+([\s\S]*)$/);
   for (let r = 0; r < runs; r++) {
     // Seed one session whose last assistant turn is the fixture, framed as a teammate's report so
     // the model doesn't flag its claims as unbacked by tool calls. Fork it per version.
-    const seed = claude([], `A teammate was asked: "${task}"\nTheir final report is between the markers. Reply with exactly that report and nothing else.\n<<<\n${source}\n>>>`);
+    const seed = tldr && claude([], `A teammate was asked: "${task}"\nTheir final report is between the markers. Reply with exactly that report and nothing else.\n<<<\n${source}\n>>>`);
     for (const v of variants) {
-      const out = claude(["--resume", seed.session_id, "--fork-session", "--plugin-dir", v.dir], `/${v.name}:tldr`);
+      const args = tldr ? ["--resume", seed.session_id, "--fork-session"] : modelArgs("coordinator");
+      const prompt = `/${v.name}:${skill}${tldr ? "" : ` ${task}\n\n${source}`}`;
+      const out = claude([...args, "--plugin-dir", v.dir], prompt);
       const text = out.result.trim();
-      const { res, longLines, maxWords } = grade(fixture, text);
+      const { res, longLines, maxWords } = tldr ? gradeTldr(c, text) : { res: gradePatterns(c, text) };
       let verdict = "skipped";
-      if (judge) {
-        verdict = claude(["--model", judgeModel, "--effort", judgeEffort], JUDGE_PROMPT(task, source, text)).result.trim();
+      if (tldr && judge) {
+        verdict = claude(modelArgs("investigate"), JUDGE_PROMPT(task, source, text)).result.trim();
         res.faithful = /^PASS/i.test(verdict);
       }
       const passed = Object.values(res).filter(Boolean).length;
       const total = Object.keys(res).length;
+      if (!tldr && passed !== total) process.exitCode = 1;
       totals[v.ref] ??= { passed: 0, total: 0 };
       totals[v.ref].passed += passed;
       totals[v.ref].total += total;

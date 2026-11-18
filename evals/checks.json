@@ -4,6 +4,15 @@
     "mustMatch": ["#42"],
     "mustNotMatch": ["(puts?|goes|go|going|makes?)\\b[^.\\n]{0,30}\\blive", "\\*\\*Done\\*\\*[^*]*live (in|on) production"]
   },
+  "ci-balance-delegate": {
+    "skill": "delegate",
+    "mustMatch": [
+      "@solana/(?:web3\\.js|kit)",
+      "@actions/core",
+      "(?:npm (?:install|i|ci)[^\\n]*\\.github/scripts|working-directory:[ `]*\\.github/scripts[\\s\\S]{0,300}npm (?:install|i|ci)\\b)"
+    ],
+    "mustNotMatch": []
+  },
   "long-report": {
     "maxDecisions": 4,
     "mustMatch": ["#311", "UTC|time ?zone|Toronto", "nightly|cron", "legacy"],
