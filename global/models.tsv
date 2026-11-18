@@ -1,5 +1,5 @@
 role	when	provider	model	effort	pick
-build	Implementation ticket	codex	gpt-6.2-sol	high	about 1 in 3, at random: [ $(date +%S) -lt 20 ]
+build	Implementation ticket	codex	gpt-6.2-sol	high	about 1 in 2, at random: [ $(date +%S) -lt 30 ]
 build	Implementation ticket	claudeAgent	claude-opus-5-5	medium	the rest
 investigate	Read-only investigation: inventories, log digging, spec or backend research	claudeAgent	claude-opus-5-5	low	-
 review-claude-code	Review of Claude-written code, a design or a contract	codex	gpt-6.2-sol	high	-
