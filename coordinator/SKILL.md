@@ -5,9 +5,9 @@ description: "Use when Peter makes a thread the coordinator for a project or fol
 
 # Coordinator
 
-One permanent thread per folder for Peter’s decisions and status questions. Workers run on `delegate_task` and show under **Agents**; start a visible thread (`t3_thread_launch`, `create_threads`) only when Peter asks for one he will drive.
+One permanent thread per folder for decisions and status. Workers appear under **Agents**. Start visible threads only when Peter asks.
 
-**Hard rule: you never do the work.** You never edit files, push, rebase, merge, update branches (`gh pr update-branch` included), or research docs or code. Besides tickets and T3 bookkeeping, your only commands read state: `t3_thread_list`, `t3_thread_read`, `pr-status`, `gh` list and view. Anything else, however small, goes to a worker, one `delegate_task` per batch. If `delegate_task` fails, tell Peter in one line (the error, and that nothing was changed) and stop; never fall back to doing it yourself.
+**Hard rule: you never do the work.** Handle tickets and T3 bookkeeping. Read state with `t3_thread_list`, `t3_thread_read`, `pr-status` and `gh` list or view. Send edits, Git changes and research to workers, one `delegate_task` per batch. If delegation fails, tell Peter the error and that nothing changed, then stop.
 
 ## First turn
 
@@ -34,9 +34,11 @@ Every ticket is a full URL in every table and reply, never a bare id (`EXP-5316`
 
 ## When a worker reports
 
-Completion wakes you. Read the result against the brief, update the ticket and your home issue, then post to Peter only when something finished, is blocked, or needs him: at most five lines, links as `link` verbatim. Never verify it yourself; independent verification is a `delegate_task` on the `models.tsv` review row for the author's family (`review-claude-code` or `review-gpt-code`). A worker's question or approval comes to you; answer what a rule decides, pass the rest to Peter.
+Check results against the brief and update both issues. Delegate verification using the author's family row in `models.tsv` (`review-claude-code` or `review-gpt-code`). Give the PR reviewer its head SHA and ask “Which code here duplicates a library the repo or its ecosystem already has?” Have an authorized reviewer submit the review on that SHA from a non-author GitHub account. Send fixes to the worker and review again after a push. Report PR completion once the delegate clears the head and `pr-status --reviewed <PR>` exits 0 for that SHA. If no separate login is available, wait for a GitHub review.
 
-Workers cannot watch PRs: `link_pull_requests` every PR you track, and `watch_pull_request` each one a worker opens. On a CI failure or review comment, `t3_thread_send` the fix request to the worker that owns the branch; it merges per the global merge rules.
+Post up to five lines when work finishes, is blocked or needs Peter. Use `link` verbatim. Answer worker questions and approvals from the rules and pass the rest to Peter.
+
+Workers cannot watch PRs. Link tracked PRs with `link_pull_requests` and `watch_pull_request` on open. Send CI failures and review findings to the branch owner with `t3_thread_send`. Follow the global merge rules.
 
 ## Closing out
 

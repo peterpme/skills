@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
-"""pr-status [PR] [-R owner/repo] [--json]
+"""pr-status [PR] [-R owner/repo] [--json] [--reviewed]
 
-One compact view of a pull request: state, draft, mergeability, review
-decision, head commit, CI counts with only the non-passing checks listed, and
-and the number of unresolved review threads. PR defaults to the current
-branch's. Exit 1 when a check failed, 10 on a merge conflict, 8 while checks
-are pending, 11 with unresolved review threads, 9 when a
-draft PR's ticket is tier 2 and its contract is
-under two hours old or missing (a tier 2 PR stays a draft until then, home#105),
-else 0.
+Shows PR state, head, CI, review and mergeability. Defaults to the current
+branch's PR. Exits 1 for failed CI, 8 for pending CI, 9 for a tier 2 hold,
+10 for conflicts, 11 for unresolved threads, or 0 when ready.
+With --reviewed, checks only whether a non-author reviewed the current head.
+Exits 0 for a review or inline review comment, 12 if neither qualifies.
 """
 import argparse
 import datetime
+from itertools import chain
 import json
 import os
 import re
@@ -66,6 +64,28 @@ def unresolved_threads(repo, number):
     return sum(1 for n in nodes if not n["isResolved"])
 
 
+def reviewed_head(repo, number, head, author):
+    if not author:
+        return False
+
+    def records(kind):
+        pages = gh("api", "--paginate", "--slurp", f"repos/{repo}/pulls/{number}/{kind}")
+        return chain.from_iterable(json.loads(pages))
+
+    def independent(entry):
+        login = (entry.get("user") or {}).get("login")
+        return login and login.casefold() != author.casefold()
+
+    reviews = list(records("reviews"))
+    if any(r["commit_id"] == head and r["state"] in {"APPROVED", "CHANGES_REQUESTED", "COMMENTED"}
+           and independent(r) for r in reviews):
+        return True
+    pending = {r["id"] for r in reviews if r["state"] == "PENDING"}
+    # GitHub can move an existing comment's line. Check the SHA it was written on.
+    return any(c["original_commit_id"] == head and c.get("pull_request_review_id") not in pending
+               and independent(c) for c in records("comments"))
+
+
 TIER2 = re.compile(r"(^[\s>*_#-]*tier\b[\s:*_-]*2\b)|(\btier\s*[:=]\s*2\b)", re.I | re.M)
 TICKET = re.compile(r"\b(?:closes|fixes|resolves|refs?|part of|ticket)\s*:?\s*(?:([\w.-]+/[\w.-]+)#|(home)#|#)(\d+)", re.I)
 HOLD_HOURS = 2
@@ -106,16 +126,27 @@ def main():
     parser.add_argument("pr", nargs="?")
     parser.add_argument("-R", "--repo")
     parser.add_argument("--json", action="store_true", help="print the collected data as JSON")
+    parser.add_argument("--reviewed", action="store_true", help="require a non-author review of the current head")
     args = parser.parse_args()
 
-    view = ["pr", "view", *([args.pr] if args.pr else []), "--json", FIELDS]
+    fields = "number,url,headRefOid,author" if args.reviewed else FIELDS
+    view = ["pr", "view", *([args.pr] if args.pr else []), "--json", fields]
     if args.repo:
         view += ["-R", args.repo]
     pr = json.loads(gh(*view))
+    repo = args.repo or pr["url"].split("github.com/", 1)[1].rsplit("/pull/", 1)[0]
+    if args.reviewed:
+        number, head = pr["number"], pr["headRefOid"]
+        reviewed = reviewed_head(repo, number, head, (pr["author"] or {}).get("login"))
+        if args.json:
+            print(json.dumps({"number": number, "headRefOid": head, "reviewed": reviewed}))
+        else:
+            status = "reviewed" if reviewed else "no non-author review"
+            print(f"#{number} {head}: {status}")
+        sys.exit(0 if reviewed else 12)
     if pr["mergeable"] == "UNKNOWN":  # GitHub computes this lazily; the first read often says UNKNOWN
         time.sleep(3)
         pr = json.loads(gh(*view))
-    repo = args.repo or pr["url"].split("github.com/", 1)[1].rsplit("/pull/", 1)[0]
     rows = check_rows(pr.pop("statusCheckRollup"))
     counts = {b: sum(1 for r in rows if r[0] == b) for b in ("pass", "skipped", "fail", "pending")}
     threads = unresolved_threads(repo, pr["number"])

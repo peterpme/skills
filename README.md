@@ -51,7 +51,7 @@ To remove a skill, delete its folder and its links from the global skill folders
 
 ### Evals
 
-`evals/fixtures/*.md` each hold a `TASK:` line and a long agent response. `evals/checks.json` sets per-fixture limits and patterns. `evals/run.mjs` replays each response, runs `/tldr` from each version, checks the format, and has the `investigate` model from `global/models.tsv` judge whether the brief adds anything not in the response. Output goes to `evals/.work/`.
+`npm run eval -- --fixture <name> [refs...]` selects one replay. `evals/checks.json` sets the skill and patterns. `tldr` cases rewrite a report and use the `investigate` judge. Delegate cases replay the request and fail on a missing dependency route. Outputs go to `evals/.work/`.
 
 ## Skill format
 
