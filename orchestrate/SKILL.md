@@ -39,7 +39,7 @@ On a program with several workers, keep your context for decisions: have a read-
    - **Validation**, did we build the right thing: one scenario through the real flow with real data, as Peter would use it. When parallel PRs touch one feature, run it on the combined branch, not on each PR alone.
 
    Someone other than the authoring agent runs both blocks against the pushed branch: you, a reviewer or CI. The author's report is never the evidence.
-4. **Approach and slices.** The design in a few lines, the files or modules it touches, and how the working change splits into PRs for review, in merge order. The split is a plan, not the starting shape: the build starts as one draft PR (section 3).
+4. **Approach and slices.** Try a fail-safe default with existing opt-outs before adding classification or state. Pick the simplest design that meets the contract and justify each added piece. List affected files and review slices in merge order. Start with one draft PR (section 3).
    - **For a change meant to move a number** (speed, size, jank, flakiness, cost): follow `harness-first`. The harness or committed baseline is its own PR, opened before the optimization work, and the one exception to starting as one draft PR.
    - **For a bug:** find out why the step that already runs fails, and fix that step. Treat what Peter states as fact ("X always runs first") as a premise to explain, not something to work around. Don't add a new trigger, hook, wrapper or startup layer around a broken step.
    - **For a change to shared code:** list its blast radius: who imports it, which flows run through it, and which of those flows have no automated check today. Each unchecked flow gets a Verification check or an unverified proof row.
@@ -81,7 +81,7 @@ Review is not proof. One reviewer per slice, and only a finding that comes with 
 | Behavior changes | One: the GPT reviewer |
 | Security, keys, money or auth | One at its highest effort, plus a check that only the intended files changed |
 
-Models and efforts come from `~/skills/global/models.tsv`. Give the reviewer the PR, the contract, and the commit SHA, and ask for `delegate`'s review reply format, each finding with its failing command. Also ask for contract violations, each a blocker:
+Use `~/skills/global/models.tsv`. Give the reviewer the PR, contract and commit SHA. Ask first whether a simpler design meets the contract, then request `delegate`'s reply format with failing commands and these contract violations, each a blocker:
 
 - a decision ignored, scope crept, an acceptance check missing or faked, or a size cap exceeded;
 - a test rerun until green, or a retry added to a test or CI step, instead of a fix for the flake;
