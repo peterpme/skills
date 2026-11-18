@@ -6,7 +6,7 @@ compatibility: T3 Code (reads its local database), gh and python3.
 
 # Skill scout
 
-Goal: Peter says a thing once, and from then on every agent does it by default, and no agent keeps paying for the same expensive command. One run a day: digest the new turns, record his corrections verbatim, find frustration and preference signals, update the ledger, file recurring patterns as finding issues, note what changed for the day's summary, commit the cursor. The daily run also ranks command costs, measures skill read rates and posts one summary comment, even on a day with nothing new.
+Goal: Peter says a thing once, and from then on every agent does it by default, and no agent keeps paying for the same expensive command.
 
 - Read threads only. Never message, interrupt, configure, settle or archive another thread.
 - Never change the skills repo; the weekly skill review does that with evidence. Write only to the feedback file, the ledger and finding issues.
@@ -72,7 +72,7 @@ Every frustration event in which Peter corrected an agent, set a standing rule o
 feedback add <file>.json
 ```
 
-Fields: `thread` (the id), `time` (the message's ISO time), `title`, `quote` (his words, whole and unedited, up to the full message when it is all feedback), `agent_did` (one line, from the agent message before it), `changed` (the finding issue or skills PR that already covers it, else `pending`). The helper keys each entry on `thread@time`, skips keys already in the file, inserts the rest newest first and commits straight to `main`, so a rerun over the same turns adds nothing and the file is current within the hour. `--help` has the shape. Times are the machine's local time.
+Fields: `thread` (the id), `time` (the message's ISO time), `title`, `quote` (his words, whole and unedited, up to the full message when it is all feedback), `agent_did` (one line, from the agent message before it), `changed` (the finding issue or skills PR that already covers it, else `pending`). The helper keys each entry on `thread@time`, skips keys already in the file, inserts the rest newest first and commits straight to `main`, so a rerun over the same turns adds nothing. `--help` has the shape. Times are the machine's local time.
 
 ## 4. Decide where each pattern goes
 
