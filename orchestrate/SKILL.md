@@ -106,7 +106,7 @@ A PR is ready only when all of these hold. Check them with the helpers, not from
 - Its base is `master` (or the repo's default branch). A stacked PR stays a draft while it targets a sibling branch, even after its veto window; run the gate once its parent merges and GitHub retargets it. A mechanical refactor across many operations is one PR per operation only when each is reviewable alone and the stack stays under about five deep; otherwise fold.
 - The PR body states why it exists, what changed, the proof table, the reviewer with model and reviewed SHA, and any codemod used.
 
-Merging follows the repo-class rule in the global instructions; no reviewer approval stands in for Peter's merge on a work repo. Then hand over in one message: one line per PR in merge order (`#n title: what it does, proof in one phrase`), followed by "Needs your call" with only what truly needs him, and what is unverified.
+Merging follows the repo-class rule in the global instructions. Then hand over in one message: one line per PR in merge order (`#n title: what it does, proof in one phrase`), followed by "Needs your call" with only what truly needs him, and what is unverified.
 
 ## 7. Close out
 
