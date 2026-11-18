@@ -8,8 +8,6 @@ compatibility: macOS or Linux with git, gh and python3. Uses Mole (`mo`) and Xco
 
 Goal: no machine runs out of disk because of agent leftovers, and Peter never has to ask. One run is `disk-clean --apply`, then a short report.
 
-On low disk (under 50 GB free, "No space left on device" or ENOSPC), run `disk-clean --apply`, then send one line via `t3_thread_send` (`mode: "queue"`, `threadId: "mcp:launch:5e07fa5b4ba2dbb3d01a19297ecbb0404004dbb5a1c7d3a69e60e13d9f41a07e"`, Chief of staff): machine, free GB before → after, what filled it.
-
 `disk-clean` (`scripts/disk-clean` in this skill, linked onto PATH as `disk-clean` by `npm run sync`) holds every deletion rule. Run `disk-clean --help` for them. Do not delete things by hand that the script would not delete. In particular:
 
 - Never remove a main checkout, delete a branch, or touch `~/Downloads`, `~/Documents`, Photos or the Finder trash (`~/.Trash`).
@@ -52,11 +50,11 @@ A tree is removed once it has been idle long enough for its kind. Idle time coun
 | Clean | 3 idle days (`--days`) | No uncommitted or untracked files. Removing it loses nothing because the branch stays, so an open PR or open T3 thread doesn't keep it. |
 | Dirty | 14 idle days | Shown as `watch` from day 3. Changes are backed up before removal. |
 
-- **`.verification/`:** in a tree that stays but has been idle past `--days`, the folder is removed. It is gitignored proof scratch, often full copies of Rust `target/` folders (224 GB on one machine). In a tree in daily use, only the Rust `target/` copies inside it go (any folder with `CACHEDIR.TAG`, such as `target-head/` or `ws/bpx/target/`), once not built for 1 day; logs, screenshots and notes stay. The same rule covers `.verification/` in main checkouts such as `~/Projects/home` (82 GB there on 2026-11-16, home#247).
+- **`.verification/`:** in a tree that stays but has been idle past `--days`, the folder is removed. It is gitignored proof scratch, often full copies of Rust `target/` folders. In a tree in daily use, only the Rust `target/` copies inside it go (any folder with `CACHEDIR.TAG`, such as `target-head/` or `ws/bpx/target/`), once not built for 1 day; logs, screenshots and notes stay. The same rule covers `.verification/` in main checkouts such as `~/Projects/home`.
 - **Never removed:** locked trees, and trees a process is running in. Idle time counts `git status` changes and `.verification/` writes, so a tree in use in the last day is never touched.
 - **Backups:** before a tree with uncommitted changes is removed, the changes are saved to `~/.local/state/disk-clean/backups/<date>-<repo>-<tree>/` and kept 60 days. A detached commit that no branch holds is saved on a `rescued/<tree>-<sha>` branch.
 
-Rust `target/` folders go after 7 days without a build. One over 40 GB goes after 1 hour without a build, unless a `cargo` or `rustc` process runs in its workspace or names it (one 106 GB experiment target filled the disk on 2026-11-17, home#253).
+Rust `target/` folders go after 7 days without a build. One over 40 GB goes after 1 hour without a build, unless a `cargo` or `rustc` process runs in its workspace or names it (one experiment target can fill the disk).
 
 ## Cache rules
 
