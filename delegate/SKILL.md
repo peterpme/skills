@@ -68,6 +68,6 @@ R1 blocker|should|nit path:line — what goes wrong, with the input or state —
 
 ## Verify the result
 
-Do not review the code yourself when orchestrating; the reviewer does that (see `orchestrate` step 5). Read the proof and gate evidence yourself. Compare the claimed result with the independent expected result and re-run the affected flow and required checks on the final combined artifact. Passing checks or a subagent's report alone do not prove the behavior. Mark blocked claims `implemented, unverified` with the missing prerequisite.
+Read the proof and gate evidence yourself. Compare the claimed result with the independent expected result and re-run the affected flow and required checks on the final combined artifact. Passing checks or a subagent's report alone do not prove the behavior. Mark blocked claims `implemented, unverified` with the missing prerequisite.
 
-Integrate the child's commits locally only within the authorized task. If local integration changes the target branch or its dependencies, repeat the affected verification there before handoff. Never report a subagent's claim as verified until you have inspected the evidence.
+Integrate the child's commits locally only within the authorized task. If local integration changes the target branch or its dependencies, repeat the affected verification there before handoff.
