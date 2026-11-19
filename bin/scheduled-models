@@ -2,15 +2,18 @@
 # scheduled-models [--db FILE]
 # Lists the T3 scheduled tasks and flags each enabled one whose model breaks the
 # models.tsv scheduled-worker row (home#105): any task on Fable, Grok or an opencode model
-# ("No scheduled task runs Fable"), and the Worker task if it is not
-# claudeAgent / claude-opus-5-5 / effort high. Reads only the title, enabled
+# ("No scheduled task runs Fable"), any task on a model missing from the
+# models.tsv model column (an old model such as gpt-6.1-sol), and the Worker task
+# if it is not claudeAgent / claude-opus-5-5 / effort high. Reads only the title, enabled
 # flag and model selection from T3's database (read-only; the task prompts and
 # webhook secrets in that table are never selected). Exit 1 if any enabled task
 # is flagged, 0 otherwise, including on a machine with no T3 database.
 # The chief-of-staff skill runs it daily. Database: $T3_STATE_DB, else
-# ~/.t3/userdata/statev2.sqlite.
+# ~/.t3/userdata/statev2.sqlite. Table: $MODELS_TSV, else ../global/models.tsv.
 set -uo pipefail
-case ${1:-} in -h | --help) sed -n '2,11p' "$0" | cut -c3-; exit 0 ;; esac
+case ${1:-} in -h | --help) sed -n '2,12p' "$0" | cut -c3-; exit 0 ;; esac
+table=${MODELS_TSV:-$(dirname "$(readlink -f "$0")")/../global/models.tsv}
+[[ -r $table ]] || { echo "scheduled-models: no models table at $table"; exit 1; }
 db=${T3_STATE_DB:-$HOME/.t3/userdata/statev2.sqlite}
 [[ ${1:-} == --db ]] && db=${2:?--db needs a file}
 command -v sqlite3 >/dev/null 2>&1 || { echo "scheduled-models: sqlite3 not installed"; exit 0; }
@@ -19,12 +22,14 @@ command -v jq >/dev/null 2>&1 || { echo "scheduled-models: jq not installed"; ex
 [[ -r $db ]] || { echo "scheduled-models: no T3 database at $db, nothing to check"; exit 0; }
 rows=$(sqlite3 -readonly -json "$db" "select title, enabled, model_selection_json as sel from scheduled_tasks order by enabled desc, title" 2>&1) || { echo "scheduled-models: cannot read $db: $rows"; exit 1; }
 [[ -n $rows ]] || rows='[]'
-result=$(jq '
+models=$(awk -F'\t' 'NR > 1 && $4 != "" { print $4 }' "$table" | sort -u | jq -R . | jq -sc .)
+result=$(jq --argjson models "$models" '
   def eff: ((.options // []) | if type == "array" then (map(select(.id == "effort") | .value) | first) else (.effort // null) end) // "-";
   map(. as $t | ($t.sel | fromjson) as $s
     | ($s.model // "?") as $m | ($s.instanceId // "?") as $i | ($s | eff) as $e
     | {title: $t.title, on: ($t.enabled == 1), instance: $i, model: $m, effort: $e,
        flag: (if ($m + " " + $i) | test("fable|grok|opencode|cursor|antigravity|gemini"; "i") then "FORBIDDEN: scheduled tasks run Claude (not Fable) or gpt-6.2-sol on codex; never Fable, Grok, Cursor or opencode"
+              elif ($models | index($m)) == null then "UNLISTED: \($m) is not in models.tsv; move the task to a model the table names"
               elif ($t.title | test("^Worker")) and ($i != "claudeAgent" or $m != "claude-opus-5-5" or $e != "high") then "DRIFT: the table says Worker is claudeAgent / claude-opus-5-5 / high"
               else "" end)})' <<<"$rows") || { echo "scheduled-models: unexpected model data in $db"; exit 1; }
 jq -r '.[] | "\(if .on then "on " else "off" end)  \(.title)  [\(.instance) \(.model) \(.effort)]\(if .flag != "" then "  <- " + .flag else "" end)"' <<<"$result"

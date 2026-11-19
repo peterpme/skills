@@ -28,12 +28,13 @@ check() { # name expect_exit expect_text db
   [[ $ok == yes ]] || echo "$out" | sed 's/^/    /'
 }
 opus='{"instanceId":"claudeAgent","model":"claude-opus-5-5","options":[{"id":"effort","value":"high"}]}'
-sonnet='{"instanceId":"claudeAgent","model":"claude-sonnet-5-5","options":[{"id":"effort","value":"high"}]}'
+opusmed='{"instanceId":"claudeAgent","model":"claude-opus-5-5","options":[{"id":"effort","value":"medium"}]}'
+oldsol='{"instanceId":"codex","model":"gpt-6.1-sol"}'
 fable='{"instanceId":"claudeAgent","model":"claude-fable-5-1","options":[{"id":"effort","value":"high"}]}'
 grok='{"instanceId":"cursor","model":"grok-4.7"}'
 printf '%-40s %s\n' case result
 
-make_db "$work/clean.db" "Worker (sentinel webhook)|1|$opus" "Chief of staff|1|$sonnet"
+make_db "$work/clean.db" "Worker (sentinel webhook)|1|$opus" "Chief of staff|1|$opusmed"
 check "table-conforming tasks" 0 "0 enabled and flagged" "$work/clean.db"
 
 make_db "$work/fable.db" "Worker (sentinel webhook)|1|$opus" "Skill scout|1|$fable"
@@ -42,8 +43,11 @@ check "enabled task on Fable" 1 "FORBIDDEN" "$work/fable.db"
 make_db "$work/grok.db" "Disk cleanup|1|$grok"
 check "enabled task on Grok" 1 "FORBIDDEN" "$work/grok.db"
 
-make_db "$work/drift.db" "Worker (sentinel webhook)|1|$sonnet"
+make_db "$work/drift.db" "Worker (sentinel webhook)|1|$opusmed"
 check "Worker not on Opus high" 1 "DRIFT" "$work/drift.db"
+
+make_db "$work/old.db" "Bp Exact live integration|1|$oldsol"
+check "enabled task on a model not in the table" 1 "UNLISTED" "$work/old.db"
 
 make_db "$work/off.db" "Skill scout|0|$fable"
 check "disabled Fable task is listed, not failed" 0 "1 tasks, 0 enabled and flagged" "$work/off.db"
