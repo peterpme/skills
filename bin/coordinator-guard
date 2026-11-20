@@ -1,0 +1,190 @@
+#!/usr/bin/env python3
+"""Claude Code and Codex PreToolUse guard for T3 coordinator threads."""
+import json
+import os
+from pathlib import Path
+import re
+import shlex
+import sqlite3
+import subprocess
+import sys
+
+
+def coordinator(hook):
+    thread_id = os.environ.get("T3CODE_THREAD_ID")
+    session_id = hook.get("session_id")
+    if not (thread_id or session_id):
+        return False
+
+    root = Path(os.environ.get("T3CODE_HOME", Path.home() / ".t3")).expanduser()
+    database = root / "userdata" / "statev2.sqlite"
+    try:
+        with sqlite3.connect(database.as_uri() + "?mode=ro", uri=True, timeout=0.25) as db:
+            if thread_id:
+                row = db.execute(
+                    "SELECT title FROM orchestration_v2_projection_threads WHERE thread_id = ?",
+                    (thread_id,),
+                ).fetchone()
+                if row:
+                    return coordinator_title(row[0])
+
+            # Codex shares one app-server. Its hook receives the native session ID,
+            # while the per-thread T3 environment variable may only reach tool shells.
+            if session_id:
+                row = db.execute(
+                    """SELECT t.title FROM orchestration_v2_projection_threads t
+                       JOIN orchestration_v2_projection_provider_threads p ON p.thread_id = t.thread_id
+                       WHERE (t.title GLOB 'Coordinator · *' OR t.title = 'Chief of staff')
+                         AND t.deleted_at IS NULL AND p.provider = 'codex'
+                         AND json_extract(p.payload_json, '$.nativeThreadRef.nativeId') = ?
+                       LIMIT 1""",
+                    (session_id,),
+                ).fetchone()
+                return row is not None
+    except sqlite3.Error:
+        # Standalone harnesses and machines without a local T3 store are unaffected.
+        pass
+    return False
+
+
+def coordinator_title(title):
+    return title.startswith("Coordinator · ") or title == "Chief of staff"
+
+
+def tracked(cwd, path):
+    if not path or path == "-":
+        return False
+    candidate = cwd / Path(path).expanduser()
+    # Inspect both the original path (possibly a tracked symlink) and its target.
+    paths = {candidate.absolute(), candidate.resolve()}
+    for target in paths:
+        parent = next((p for p in target.parents if p.is_dir()), None)
+        if parent is None:
+            continue
+        result = subprocess.run(
+            ["git", "-C", str(parent), "--literal-pathspecs", "ls-files",
+             "--error-unmatch", "--", str(target)],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+        )
+        if result.returncode == 0:
+            return True
+    return False
+
+
+def shell_segments(command):
+    lexer = shlex.shlex(command.replace("\\\n", ""), posix=True, punctuation_chars=";&|<>()")
+    lexer.whitespace = " \t\r"
+    segment = []
+    try:
+        for word in lexer:
+            if word == "\n" or word in {";", "&&", "||", "|", "|&", "&", "(", ")", ");"}:
+                if segment:
+                    yield segment
+                segment = []
+            else:
+                segment.append(word)
+    except ValueError:
+        return
+    if segment:
+        yield segment
+
+
+def git_mutation(args):
+    # Peel off git's global options, including repeated -C and -c flags.
+    while args and args[0].startswith("-"):
+        flag = args.pop(0)
+        if flag in {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env"}:
+            args = args[1:]
+    if not args:
+        return False
+    subcommand, *options = args
+    if subcommand in {"commit", "push"}:
+        return "--dry-run" not in options
+    if subcommand in {"rebase", "am"}:
+        return not any(flag.startswith("--show-current-patch") for flag in options)
+    if subcommand == "stash":
+        return not options or options[0] in {"push", "save", "pop", "apply", "branch"}
+    if subcommand in {"cherry-pick", "revert", "merge"}:
+        return True
+    return (
+        subcommand == "reset" and "--hard" in options
+        or subcommand == "restore" and not (
+            ("--staged" in options or "-S" in options) and "--worktree" not in options and "-W" not in options
+        )
+        or subcommand == "checkout" and "--" in options
+    )
+
+
+def shell_mutation(cwd, command):
+    for words in shell_segments(command):
+        if any(word in {">", ">>", ">|", "&>", "&>>", "<>"} and tracked(cwd, words[i + 1])
+               for i, word in enumerate(words[:-1])):
+            return True
+
+        while words and (words[0] in {"command", "env", "exec", "sudo", "time"}
+                         or re.match(r"^[A-Za-z_]\w*=", words[0])):
+            words = words[1:]
+        if not words:
+            continue
+        name, *args = words
+        name = Path(name).name
+        if name == "cd" and len(args) == 1:
+            cwd = cwd / Path(args[0]).expanduser()
+        elif name == "git" and git_mutation(args):
+            return True
+        elif name in {"bash", "sh", "zsh"} and args and re.fullmatch(r"-[a-z]*c", args[0]):
+            if len(args) > 1 and shell_mutation(cwd, args[1]):
+                return True
+        elif name in {"tee", "rm", "touch", "mv", "cp", "install", "ln", "sed", "perl"}:
+            if name in {"sed", "perl"} and not any(
+                arg.startswith("--in-place") or re.match(r"^-[a-zA-Z]*i", arg)
+                for arg in args
+            ):
+                continue
+            paths = [arg for arg in args if not arg.startswith("-")]
+            if name in {"mv", "cp", "install", "ln"} and len(paths) >= 2:
+                sources, destination = paths[:-1], paths[-1]
+                paths = [destination]
+                if name == "mv":
+                    paths += sources
+                if (cwd / destination).is_dir():
+                    paths = [p for p in paths if p != destination]
+                    paths += [str(Path(destination) / Path(source).name) for source in sources]
+            if any(tracked(cwd, path) for path in paths):
+                return True
+    return False
+
+
+def mutation(hook):
+    cwd = Path(hook.get("cwd") or Path.cwd())
+    tool = hook.get("tool_name")
+    args = hook.get("tool_input") or {}
+    if tool in {"Write", "Edit", "MultiEdit", "NotebookEdit"}:
+        return tracked(cwd, args.get("file_path") or args.get("notebook_path"))
+    if tool == "apply_patch":
+        paths = re.findall(
+            r"^\*\*\* (?:Add File|Update File|Delete File|Move to): (.+)$",
+            args.get("command", ""),
+            re.MULTILINE,
+        )
+        return any(tracked(cwd, path) for path in paths)
+    if tool == "Bash":
+        return shell_mutation(cwd, args.get("command", ""))
+    return False
+
+
+if __name__ == "__main__":
+    hook = json.load(sys.stdin)
+    if sys.argv[1:] == ["--is-coordinator"]:
+        sys.exit(0 if coordinator(hook) else 1)
+    if mutation(hook) and coordinator(hook):
+        print(json.dumps({
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "deny",
+                "permissionDecisionReason": (
+                    "Coordinator threads cannot edit tracked files, commit or push. "
+                    "Launch a visible worker in the repo's project."
+                ),
+            }
+        }))

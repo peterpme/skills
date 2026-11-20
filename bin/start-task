@@ -45,6 +45,8 @@ if [[ $hook == PreToolUse ]]; then
     Bash) jq -e '(.tool_input.command // "") as $c | ($c | test("(^|[;&|(]\\s*)(sed\\s+(-[A-Za-z]+\\s+)*-[A-Za-z]*i|perl\\s+(-[A-Za-z]+\\s+)*-[A-Za-z]*i|cat\\s*>[^>&]|tee\\s+[^-|\\s])")) and ($c | test("gh issue|\\.verification/") | not)' >/dev/null 2>&1 <<<"$input" || exit 0 ;;
     *) exit 0 ;;
   esac
+  guard=$(dirname "$0")/coordinator-guard
+  if [[ -x $guard ]] && "$guard" --is-coordinator <<<"$input"; then exit 0; fi
   session=$(jq -r '.session_id // "" | tostring | gsub("[^A-Za-z0-9_-]"; "_")' <<<"$input")
   state=${START_TASK_STATE:-${XDG_STATE_HOME:-${HOME:-}/.local/state}/start-task}
   [[ -n $session && ! -f $state/$session ]] || exit 0
@@ -94,7 +96,7 @@ tiers=
 [[ -r $agents ]] && tiers=$(awk '/^## Tiers/ { on = 1; next } on && /^## / { exit } on && /^\|/' "$agents")
 
 block() {
-  echo "start-task: before any other action, find or create this task's ticket and state its tier."
+  echo "start-task: before ticketed work, find or create the ticket and state its tier."
   if under "$here" || under "$main"; then
     echo "Folder $cwd is under the work folder: the tracker is Linear."
     echo "Search: Linear MCP list_issues with query \"<keywords>\". No Linear MCP: home issues labelled linear-mirror,"
@@ -105,6 +107,7 @@ block() {
     echo "Create: gh issue create -R peterpme/home --title \"...\" --body-file <file> (body ends with <!-- agent -->)"
     [[ -z $work ]] && echo "Work folder unknown: no tracker rule in $ledger/README.md. Clone peterpme/home to ~/Projects/home."
   fi
+  echo "For small coordinator work, follow the coordinator skill’s ticket exception."
   echo "Attach to a matching open issue; otherwise create one. Put its link and the tier in your first reply."
   if [[ -n $tiers ]]; then
     echo "Tiers (global/AGENTS.md):"

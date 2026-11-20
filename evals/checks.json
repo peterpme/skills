@@ -13,6 +13,38 @@
     ],
     "mustNotMatch": []
   },
+  "coordinator-cross-project": {
+    "skill": "coordinator",
+    "mustMatch": [
+      "\\bt3_thread_launch\\b",
+      "API-27\\s*·",
+      "project-api",
+      "\\bworkspaceStrategy\\b[\\s\\S]{0,120}\\bworktree\\b"
+    ],
+    "mustNotMatch": []
+  },
+  "coordinator-release": {
+    "skill": "coordinator",
+    "mustMatch": [
+      "\\bt3_thread_launch\\b",
+      "MOB-42\\s*·",
+      "project-mobile",
+      "\\bworkspaceStrategy\\b[\\s\\S]{0,120}\\bworktree\\b"
+    ],
+    "mustNotMatch": []
+  },
+  "coordinator-small-comment": {
+    "skill": "coordinator",
+    "mustMatch": [
+      "gh issue comment|save_comment|add_comment|comment on (?:the|this) (?:existing )?issue|post .*\\bcomment\\b",
+      "no new (?:tickets?|issue)|none|no ticket|tickets?:\\s*0\\b",
+      "no (?:new )?(?:worker |visible )?threads?|none|threads?:\\s*0\\b"
+    ],
+    "mustNotMatch": [
+      "\\bt3_thread_launch\\b",
+      "\\bdelegate_task\\b"
+    ]
+  },
   "long-report": {
     "maxDecisions": 4,
     "mustMatch": ["#311", "UTC|time ?zone|Toronto", "nightly|cron", "legacy"],

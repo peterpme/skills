@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+"""Exercise both harness payloads against actual Git index entries."""
+import json
+import os
+from pathlib import Path
+import sqlite3
+import subprocess
+import tempfile
+
+root = Path(__file__).resolve().parents[2]
+guard = root / "bin" / "coordinator-guard"
+scratch = root / ".verification" / "coordinator-guard"
+scratch.mkdir(parents=True, exist_ok=True)
+with tempfile.TemporaryDirectory(dir=scratch) as temp:
+    repo = Path(temp)
+    subprocess.run(["git", "init", "--quiet", repo], check=True)
+    (repo / "tracked.md").write_text("original\n")
+    (repo / "untracked.md").touch()
+    subprocess.run(["git", "-C", repo, "add", "tracked.md"], check=True)
+    db = repo / "userdata" / "statev2.sqlite"
+    db.parent.mkdir()
+    with sqlite3.connect(db) as conn:
+        conn.executescript("""
+            CREATE TABLE orchestration_v2_projection_threads (thread_id, title, deleted_at);
+            INSERT INTO orchestration_v2_projection_threads VALUES
+                ('claude-coord', 'Coordinator · demo', NULL),
+                ('chief', 'Chief of staff', NULL),
+                ('worker', 'TASK-1 · Worker', NULL),
+                ('codex-coord', 'Coordinator · Codex demo', NULL);
+            CREATE TABLE orchestration_v2_projection_provider_threads (thread_id, provider, payload_json);
+            INSERT INTO orchestration_v2_projection_provider_threads VALUES
+                ('codex-coord', 'codex', '{"nativeThreadRef":{"nativeId":"codex-native"}}');
+        """)
+
+    cases = [
+        ("Claude tracked Write", "claude-coord", "Write", {"file_path": "tracked.md"}, True),
+        ("Chief of staff commit", "chief", "Bash", {"command": "git -C . commit -am change"}, True),
+        ("Codex tracked patch", "", "apply_patch", {
+            "command": "*** Begin Patch\n*** Update File: tracked.md\n@@\n-original\n+changed\n*** End Patch",
+        }, True),
+        ("Codex push", "", "Bash", {"command": "git -c push.default=current push origin"}, True),
+        ("Tracked shell redirect", "claude-coord", "Bash", {
+            "command": "git status && printf x > tracked.md",
+        }, True),
+        ("Allowed issue comment", "claude-coord", "Bash", {
+            "command": "gh issue comment 42 --body 'Example: git push' || gh issue edit 42 --add-label reviewed",
+        }, False),
+        ("Allowed Git read", "claude-coord", "Bash", {"command": "git status; git stash list"}, False),
+        ("Allowed scratch file", "claude-coord", "Write", {"file_path": "untracked.md"}, False),
+        ("Worker edit", "worker", "Write", {"file_path": "tracked.md"}, False),
+    ]
+    for title, thread, tool, args, expected in cases:
+        hook = {"hook_event_name": "PreToolUse", "cwd": str(repo), "session_id": "codex-native",
+                "tool_name": tool, "tool_input": args}
+        result = subprocess.run(
+            [guard], input=json.dumps(hook), text=True, capture_output=True, check=True,
+            env={**os.environ, "T3CODE_HOME": str(repo), "T3CODE_THREAD_ID": thread},
+        )
+        actual = bool(result.stdout) and json.loads(result.stdout)["hookSpecificOutput"]["permissionDecision"] == "deny"
+        assert actual == expected, (title, expected, result.stdout)
+        print(f"{title}: {'denied' if actual else 'allowed'}")
