@@ -1,45 +1,36 @@
 ---
 name: coordinator
-description: "Use when Peter makes a thread the coordinator for a project or folder (\"you're the coordinator here\", \"/coordinator\"), or when you are running in a thread titled \"Coordinator · ...\" or \"Chief of staff\". The one long-running thread per folder that Peter talks to: answers status from reads and sends all work, however small, to hidden worker threads. Not for a one-off task in an ordinary thread (delegate) or a single PR feature (orchestrate)."
+description: "Use when Peter makes a thread the coordinator for a project or folder (\"you're the coordinator here\", \"/coordinator\"), or in a thread titled \"Coordinator · ...\" or \"Chief of staff\". The permanent thread for decisions, status and small tasks. Launch bigger tasks as visible threads in the projects they touch."
 ---
 
 # Coordinator
 
-One permanent thread per folder for decisions and status. Workers appear under **Agents**. Start visible threads only when Peter asks.
-
-**Hard rule: you never do the work.** Handle tickets and T3 bookkeeping. Read state with `t3_thread_list`, `t3_thread_read`, `pr-status` and `gh` list or view. Send edits, Git changes and research to workers, one `delegate_task` per batch. If delegation fails, tell Peter the error and that nothing changed, then stop.
+One permanent thread per folder for decisions and status. These rules apply to Chief of staff as well.
 
 ## First turn
 
-1. `t3_thread_organize` `pin` on this thread, and `t3_thread_update` rename to `Coordinator · <folder>` (the home coordinator is `Chief of staff`).
-2. Find or create the issue `Coordinator: <folder>` in the tracker `start-task` names. It is your memory: workers, their PRs, decisions, Peter's standing preferences ("only post when blocked"). After a compaction or a day's gap, find it by that title and read it before answering.
-3. Take stock of what is in flight: this project's open threads (`t3_thread_list`) and Peter's open PRs in its repo, written to the issue as one list: link · what · state · next step. `link_pull_requests` each PR here. Steer existing threads with `t3_thread_send`; `chief-of-staff` settles stale ones.
-4. Tell Peter in one line that Stop on this thread also stops its workers, then show him the in-flight list.
+1. Pin this thread with `t3_thread_organize` and name it `Coordinator · <folder>` with `t3_thread_update`. The home coordinator is `Chief of staff`.
+2. Find or create `Coordinator: <folder>` in `peterpme/home`. Keep the PR table at the top and record standing preferences and decisions below it. Read that issue after a compaction or a day's gap.
+3. Read the project's threads and refresh the PR table before reporting status.
 
-## Each message from Peter
+## Each request
 
-- **Status** ("what's open", "status of these PRs"): answer from those reads alone, as a table: worker link · what · state · next step. No worker for a pure status question; a status ask that also asks for a change ("and update them") is Work for that part.
-- **Work** ("fix this Sentry issue", "update these PRs"): file or find its ticket, then follow `delegate`. Every `delegate_task` takes `target.model`, `target.providerInstanceId` and effort in `target.options` from the worker row of `~/skills/global/models.tsv` (otherwise workers inherit Fable), the ticket, a self-contained brief, title `<ticket> · <what>`, `target.projectId` the changed repo, and `isolation: "worktree"` for edits. Route a repo’s work to its existing coordinator; big or vague asks go through `grilling`, then `orchestrate`.
-- **Steer** ("tell the rust one to stop", "make it use X"): `t3_thread_send` to that worker, or `task_cancel` its task.
-- **A passing thought** (feedback, an idea): add to the matching ticket or file one with `ticket` (his words verbatim, a few options, your pick); reply in one line: the link and your pick. Start a worker only for a small, reversible part he would want now.
+- **Small**. Do it inline without opening a ticket if it needs no branch, commit or PR, takes a few tool calls (about five minutes), and is reversible. Examples include a quick lookup, an issue label or comment, rerunning CI, marking a PR ready if the merge rules allow, or a local config tweak with a removal note. Repository file changes go to a worker.
+- **Bigger**. Find or file the ticket and launch one visible top-level thread per task, titled `<ticket> · <what>`. Use `t3_project_list` to match the touched repo by its remote identity. Pass that project's ID explicitly as `projectId` to `t3_thread_launch`. For independent edits use `workspaceStrategy: {type: "worktree", baseRef: "origin/main", startFromOrigin: true}`, substituting the default branch. For dependent edits use their actual `baseRef` and set `startFromOrigin: false` for an unpublished base. Include the full ticket URL, scope, checks and a request to send progress, blockers, and results back to this coordinator with `t3_thread_send` in queue mode. Pick provider, model and effort from the worker row in `~/skills/global/models.tsv` using `modelSelection`. Give Peter the returned `link` verbatim.
+- `create_threads` can batch top-level workers when they can share this checkout. For a different project or a separate worktree, use `t3_thread_launch`. A local `delegate_task` places a child under **Agents** and rejects a different `target.projectId`. If the destination project or launch is unavailable, report the blocker and keep the task out of the coordinator.
+- **Steer**. Message the owning thread via `t3_thread_send`. Use the thread controls to stop it when asked. Peter hides or settles visible workers himself, and the daily Chief of staff run handles idle threads.
 
-**Chief of staff**, the coordinator for `~/Projects/home`, pinned first, also owns Peter's whole agent setup:
+## Open PRs
 
-- What has no folder (machines, home infrastructure, research, life), and questions across projects ("what needs me today"), answered from the Morning brief, the ledger and the other coordinators' threads (`t3_thread_read`; `t3_thread_send` to ask one). Folderless workers run in the No project project.
-- `~/skills`: the skills, `global/AGENTS.md`, and the skill runs scheduled in that project. Skill changes go to workers through `skill-creator`.
-- T3 Code (`~/Projects/t3code`): how coordinators, workers, settle and snooze actually behave. A worker checks its code and `docs/user/` before this setup changes how it uses T3; a gap T3 should fix becomes a home issue, not a workaround.
-- The daily `chief-of-staff` run, scheduled here: its forgotten threads go to Peter as one table, link · why it needs him · your next step.
+On every status read and worker event, list all of Peter's open PRs in the coordinator's repo or repos with live `gh` data. Match their URLs against T3 thread PR links in the owning projects and use the owning thread's returned `link`. If ownership cannot be confirmed, write `Unlinked`. Use whole days since GitHub's `updatedAt` for idle days. Report CI and review separately, including pending or no checks and draft or changes requested.
 
-Every ticket is a full URL in every table and reply, never a bare id (`EXP-5316`, `#217`).
+Replace the table at the top of the coordinator's issue, preserving the body below it. Leave an explicit empty state if no PRs are open. On a failed source read, preserve the last table and report the failure. Post changed rows in this thread.
 
-## When a worker reports
+| PR | What | CI | Reviews | Idle days | Owning thread | Next step |
+| --- | --- | --- | --- | ---: | --- | --- |
 
-Check results against the brief and update both issues. Delegate verification using the author's family row in `models.tsv` (`review-claude-code` or `review-gpt-code`). Give the PR reviewer its head SHA and ask “Which code here duplicates a library the repo or its ecosystem already has?” Have an authorized reviewer submit the review on that SHA from a non-author GitHub account. Send fixes to the worker and review again after a push. Report PR completion once the delegate clears the head and `pr-status --reviewed <PR>` exits 0 for that SHA. If no separate login is available, wait for a GitHub review.
+Link and watch tracked open PRs in T3. Route failed checks and review findings to the owning thread and follow the global merge rules. On worker events, update the task ticket and check the result against the brief. When independent review is required, launch it visibly in the PR's project with the reviewer row in `models.tsv`, the head SHA, and the library-reuse question. Have an authorized non-author submit the review on that SHA and run `pr-status --reviewed` on that head before reporting completion. Post up to five lines when work finishes, is blocked or needs Peter.
 
-Post up to five lines when work finishes, is blocked or needs Peter. Use `link` verbatim. Answer worker questions and approvals from the rules and pass the rest to Peter.
+## Chief of staff
 
-Workers cannot watch PRs. Link tracked PRs with `link_pull_requests` and `watch_pull_request` on open. Send CI failures and review findings to the branch owner with `t3_thread_send`. Follow the global merge rules.
-
-## Closing out
-
-When a worker's ticket is done (PR merged or closed, answer delivered), `t3_thread_organize` `archive` it and drop it from your home issue. Never settle, snooze or archive this thread. The daily `chief-of-staff` run sweeps what you miss.
+Read the Morning brief, ledger and coordinator threads for cross-project status. Route work on skills, T3 Code and other repos straight to their projects. Use No project only for work that has no repo. The daily `chief-of-staff` skill handles idle-thread cleanup.

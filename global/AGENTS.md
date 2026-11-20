@@ -42,7 +42,7 @@ Classify the task at the start and write the tier in the ticket. I can override 
 
 ## Where state lives
 
-- Under my work folder (the home repo README names it): Linear. Elsewhere: issues in the private `home` repo at `~/Projects/home`. Before any other action, run `start-task` (Claude Code runs it at session start) and find or create the ticket. Create, update and close tickets yourself. Comment on a `home` issue with `ledger-comment N FILE`, which adds the `<!-- agent -->` marker that tells my answers from yours.
+- Under my work folder (the home repo README names it): Linear. Elsewhere: issues in the private `home` repo at `~/Projects/home`. Run `start-task` and find or create the ticket. Small coordinator work follows the `coordinator` skill's ticket exception. Create, update and close tickets yourself. Comment on a `home` issue with `ledger-comment N FILE`, which adds the `<!-- agent -->` marker that tells my answers from yours.
 - When I correct you or tell you how I want work done, run `feedback add` the same turn (my words verbatim, what you had done, what changed where), then apply it. Without the helper, put the entry in your report.
 - Knowledge about one codebase goes in that repo's agents file; about a domain, in its skill. A finding that lands in neither is a defect.
 

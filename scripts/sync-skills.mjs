@@ -100,6 +100,7 @@ const claudeHooks = [
   { event: "SessionStart", name: "start-task" },
   { event: "PreToolUse", name: "start-task", matcher: "Edit|Write|MultiEdit|NotebookEdit|Bash" },
   { event: "PreToolUse", name: "tool-guard", matcher: "Bash|Write|Edit|NotebookEdit" },
+  { event: "PreToolUse", name: "coordinator-guard", matcher: "Bash|Write|Edit|MultiEdit|NotebookEdit" },
 ];
 async function registerClaudeHooks() {
   const dirs = new Set([join(home, ".claude")]);
@@ -111,15 +112,14 @@ async function registerClaudeHooks() {
   for (const dir of dirs) {
     if (!(await stat(dir))?.isDirectory()) continue;
     try {
-      await registerClaudeHooksIn(dir);
+      await registerHooks(join(dir, "settings.json"), claudeHooks, "Claude Code");
     } catch (error) {
       console.log(`Skipped ${join(dir, "settings.json")}: ${error.message}. Add ${claudeHooks.map(({ event, name }) => `a ${event} hook running ${join(home, ".local/bin", name)}`).join(" and ")} by hand.`);
     }
   }
 }
-async function registerClaudeHooksIn(dir) {
+async function registerHooks(link, hooks, harness) {
   // Follow a symlink (a dotfiles-tracked file) so the rename below replaces the target, not the link.
-  const link = join(dir, "settings.json");
   const file = (await stat(link)) ? await realpath(link) : link;
   let settings = {};
   const existing = await stat(file);
@@ -133,14 +133,14 @@ async function registerClaudeHooksIn(dir) {
   if (typeof settings !== "object" || settings === null || Array.isArray(settings)) throw new Error(`${file} is not a JSON object`);
   if (typeof settings.hooks !== "object" || settings.hooks === null || Array.isArray(settings.hooks)) settings.hooks = {};
   const changes = [];
-  for (const { event, name, matcher = "" } of claudeHooks) {
+  for (const { event, name, matcher = "" } of hooks) {
     const command = join(home, ".local/bin", name);
     if (!Array.isArray(settings.hooks[event])) settings.hooks[event] = [];
     const ours = settings.hooks[event].flatMap((entry) => (Array.isArray(entry?.hooks) ? entry.hooks : [])).filter((hook) => typeof hook?.command === "string" && hook.command.endsWith(`/bin/${name}`));
     if (ours.length && ours.every((hook) => hook.command === command)) continue;
     if (ours.length) for (const hook of ours) hook.command = command;
     else settings.hooks[event].push({ matcher, hooks: [{ type: "command", command, timeout: 10 }] });
-    changes.push(`${ours.length ? "Updated" : "Registered"} Claude Code ${event} hook ${command}`);
+    changes.push(`${ours.length ? "Updated" : "Registered"} ${harness} ${event} hook ${command}`);
   }
   if (!changes.length) return;
   const mode = existing ? (await fsStat(file)).mode & 0o777 : 0o600;
@@ -150,3 +150,17 @@ async function registerClaudeHooksIn(dir) {
   for (const change of changes) console.log(`${change} in ${file}`);
 }
 await registerClaudeHooks();
+
+// Codex reads user hooks from hooks.json and keeps its own trust record.
+// Sync registers the definition but leaves trust to Codex's /hooks review.
+const codexDir = process.env.CODEX_HOME && !process.env.SKILLS_HOME
+  ? resolve(process.env.CODEX_HOME)
+  : join(home, ".codex");
+const codexHooks = [{ event: "PreToolUse", name: "coordinator-guard", matcher: "^(Bash|apply_patch)$" }];
+const codexHookFile = join(codexDir, "hooks.json");
+try {
+  await mkdir(codexDir, { recursive: true });
+  await registerHooks(codexHookFile, codexHooks, "Codex");
+} catch (error) {
+  console.log(`Skipped ${codexHookFile}: ${error.message}. Add a Codex PreToolUse hook running ${join(home, ".local/bin", "coordinator-guard")} by hand.`);
+}
