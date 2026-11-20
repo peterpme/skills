@@ -39,6 +39,7 @@ Every issue you touch carries one area label (`backpack` or `personal`) and one 
 
 The sidebar holds only the pinned coordinators and what Peter is in today; everything else is parked, never deleted. On this machine and each linked one (`t3_environment_links`), `t3_thread_list` with `allProjects: true`, every page, with `settled: false` and `snoozed: false`, then again with `settled: true`. Skip pinned threads, `Coordinator · ...` and `Chief of staff` threads, and threads running now. Idle means `updatedAt` is older than the limit.
 
+- Top-level `Review …` thread, not running or waiting, `openPullRequestCount` 0: settle it now, no 24-hour wait.
 - Top-level thread idle 24 hours, `openPullRequestCount` 0, not `waiting`: settle it (`t3_thread_organize` `settle`).
 - Top-level thread idle 24 hours with an open PR or `waiting`: snooze it 3 days (`snoozedUntil` 08:00 US Central). A new question, failed run or message wakes it early.
 - Forgotten: a top-level thread idle 4 days with an open PR or `waiting` (it already slept once and nothing moved). Snooze it 3 days again and put it on the forgotten list.
