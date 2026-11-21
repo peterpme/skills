@@ -12,7 +12,7 @@ Peter is the principal: many streams, little time, decisions only he can make. G
 
 1. `git -C ~/Projects/home pull --ff-only`.
 2. The rules you enforce: `~/skills/global/AGENTS.md`, the "Merging by repo class" line, the tiers, and "Where state lives". Read them each run; they change.
-3. The control panel: `~/Projects/home/docs/agents/README.md`, which names the labels, the lifecycle and the pinned issues ("Morning brief" is your output; "Backlog: closed PRs with branches kept" is where every closed PR goes). Read `~/Projects/home/docs/learnings/` before judging anything that looks like a past experiment.
+3. The control panel: `~/Projects/home/docs/agents/README.md`. Its Focus section holds what Peter is claiming now, the dated 90-day signals and the Stop list; the brief opens with it. The control panel also names the labels, the lifecycle and the pinned issues ("Morning brief" is your output; "Backlog: closed PRs with branches kept" is where every closed PR goes). Read `~/Projects/home/docs/learnings/` before judging anything that looks like a past experiment.
 4. Your previous brief comment and its timestamp: Done covers only what happened after it, and a Needs-you item he answered there or on the epic is acted on, not repeated.
 
 ## Gather
@@ -24,6 +24,16 @@ With `gh ... --json ... --jq`, for the GitHub user `peterpme`:
 - Comments and reviews others left on his PRs or on issues he opened.
 - Each open `epic` issue in the home repo, and whether its status section is older than the PRs it lists.
 - Linear, if its MCP tools are present in this thread: his assigned and created issues in the "agentic era" project, and those updated by someone else in the last 7 days. If the tools are absent, one line: "Linear not connected. Run `claude mcp login linear-server` in a terminal on the laptop."
+
+## Focus
+
+Gather this before anything else. It becomes the first section of the brief.
+
+- Progress on the claimed focus since the last brief: Linear issues and PRs that move it, by anyone, plus what is next and who owns it. If it has no Linear project, owner or date yet, say so once and suggest the step.
+- Each 90-day signal: `done`, `on track`, `not started` or `at risk`, plus days left. `At risk` means under 7 days left with nothing moving.
+- Stop list: Peter's open PRs, tickets or threads started since the last brief that fall on the Stop list. One line each, with a suggested owner or `close`.
+
+Tone is steering, not alarm. No bold warnings and no red marks. Name at most one suggestion per line.
 
 ## Act, before writing
 
@@ -66,6 +76,11 @@ Style: BLUF and SITREP. The bottom line first, then fixed sections in a fixed or
 One comment on the Morning brief issue, exactly this shape, starting at the first heading (GitHub shows the date, so no title or timestamp; markdown headings, every PR, issue and epic a markdown link, reply options in code spans, `_none_` for an empty section):
 
 ```
+### Focus
+- **claimed focus** · progress since last brief · next step · owner
+- signal · due date · `done` / `on track` / `not started` / `at risk` · days left
+- Stop list: **[repo#n](url)** · what · suggest owner or `close`
+
 ### Needs you
 1. **[home#n](url)** · question · `option` / `option` · pick **option**
    (one line per open `decision` issue, at most 5, oldest first)
@@ -90,7 +105,7 @@ One comment on the Morning brief issue, exactly this shape, starting at the firs
 - **[repo#n](url)** · merged or closed · when · what
 ```
 
-Each open section is the full current state, so nothing from yesterday needs a "still open" list; add `new` after an item the last brief did not have. Done is different: it is a delta. Read the timestamp of your previous comment on the Morning brief issue and list only merges and closes after it, so he sees each one once. Every question for Peter is a `decision` issue in the home repo, never a bare line in the brief: one issue per question, assigned to him, area and project labels, title is the question, body has the options, your pick and why, and the exact reply he can send. Before creating one, check `gh issue list -R peterpme/home --label decision --state all` so a question is asked once. When he answers in a comment or closes it, act on the answer in that run, write the outcome as the last comment, note it on the epic, close the issue. Open decision issues are the decision queue; closed ones are the decision log. The queue holds only what waits on Peter: once he answers, close the issue in that run, or, when the follow-on work waits on someone else, drop the `decision` label, unassign him, add `blocked`, and let the 14-day rule or the epic track it. Fix stale epics with a comment on the epic, not here. Create no new issue except for a finding that fits no epic. Then reply in the thread with one line: the comment link, the number of Needs-you items, and the number of Done items. Stop.
+Each open section is the full current state, so nothing from yesterday needs a "still open" list; add `new` after an item the last brief did not have. Focus always comes first and is never `_none_`: with no movement, write that, plus the next step. Done is different: it is a delta. Read the timestamp of your previous comment on the Morning brief issue and list only merges and closes after it, so he sees each one once. Every question for Peter is a `decision` issue in the home repo, never a bare line in the brief: one issue per question, assigned to him, area and project labels, title is the question, body has the options, your pick and why, and the exact reply he can send. Before creating one, check `gh issue list -R peterpme/home --label decision --state all` so a question is asked once. When he answers in a comment or closes it, act on the answer in that run, write the outcome as the last comment, note it on the epic, close the issue. Open decision issues are the decision queue; closed ones are the decision log. The queue holds only what waits on Peter: once he answers, close the issue in that run, or, when the follow-on work waits on someone else, drop the `decision` label, unassign him, add `blocked`, and let the 14-day rule or the epic track it. Fix stale epics with a comment on the epic, not here. Create no new issue except for a finding that fits no epic. Then reply in the thread with one line: the comment link, the number of Needs-you items, and the number of Done items. Stop.
 
 ## Setting it up on a machine
 
