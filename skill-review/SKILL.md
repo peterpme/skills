@@ -36,11 +36,7 @@ Case ids and judge notes name private work, so they go only in the T3 report and
 2. In the ledger table, take every row whose status starts with `merged` and compare its Events count with the `Merged rules:` line of the last `climb.md` entry. A count that rose means the merged rule is not holding. List each one in the report with old and new counts. It needs an open `finding` issue with the new events; if the scout has not reopened or filed one, do it under skill-scout section 6.
 3. With no earlier `Merged rules:` line, record the counts and flag nothing.
 
-## 4. Cuts and sizes
-
-Not here. Skill-gardener cuts duplicated, stale and narrated lines and flags oversized skills every three days. A line that is wrong rather than surplus is a `finding` issue, scored in section 2.
-
-## 5. Report
+## 4. Report
 
 ```
 **Skill review, <date>:** <N findings merged as PR #n / M dropped; nothing to do>
