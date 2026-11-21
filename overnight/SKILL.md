@@ -5,7 +5,7 @@ description: "Use when Peter types /overnight, says he is going to bed and to fi
 
 # Overnight
 
-Peter's words: "a skill called nightwatch or overnight and that will force the model to think more and figure it out on its own bc I'm sleeping and record every decision". This is his "figure it out yourself": the alignment rule in `global/AGENTS.md` (Align before you build) is switched off for this task, and nothing waits for him until morning.
+This is Peter's "figure it out yourself": the alignment rule in `global/AGENTS.md` (Align before you build) is switched off for this task, and nothing waits for him until morning.
 
 ## Models
 
@@ -32,7 +32,7 @@ A call that only Peter can make and that cannot be undone in the morning (a prod
 ## Do the work
 
 - Tier 1 and 2: `orchestrate` from the contract on, with your recorded decisions as its Decisions.
-- Every change ends with the Finish steps in `global/AGENTS.md`. Merging follows the repo-class rule: personal repos merge once the ready gate passes; work-repo PRs stay drafts for Peter.
+- Every change ends with the Finish steps in `global/AGENTS.md`. Merging follows the repo-class rule in `global/AGENTS.md`.
 - Long builds and evals go under `bgjob` and are waited on inside the turn. A dead end gets two other approaches before it is reported as blocked; then move to the rest of the task.
 
 ## Morning summary
