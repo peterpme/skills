@@ -3,14 +3,14 @@ build	Implementation ticket	codex	gpt-6.2-sol	high	about 1 in 2, at random: [ $(
 build	Implementation ticket	claudeAgent	claude-opus-5-5	medium	the rest
 investigate	Read-only investigation: inventories, log digging, spec or backend research	claudeAgent	claude-opus-5-5	low	-
 review-claude-code	Review of Claude-written code, a design or a contract	codex	gpt-6.2-sol	high	-
-review-gpt-code	Review of GPT-written code, or when a task names a second model family	claudeAgent	claude-fable-5-2	medium	-
-hardest	Hardest single task or review only	claudeAgent	claude-fable-5-2	high	alternate at random with the next row: [ $(date +%S) -lt 30 ] picks Sol; the report names which ran
+review-gpt-code	Review of GPT-written code, or when a task names a second model family	claudeAgent	claude-opus-5-5	medium	-
+hardest	Hardest single task or review only	claudeAgent	claude-opus-5-5	high	alternate at random with the next row: [ $(date +%S) -lt 30 ] picks Sol; the report names which ran
 hardest	Hardest single task or review only	codex	gpt-6.2-sol	xhigh	-
 orchestrator	The thread that plans and decides (orchestrate, overnight)	claudeAgent	claude-opus-5-5	high	-
-coordinator	Coordinator · … threads	claudeAgent	claude-opus-5-5	medium	exception: Coordinator · bpx-backend runs claude-fable-5-2 medium as a trial from 2026-11-17; wallet, wallet-api and bpx-exact went back to Opus on 2026-11-17
+coordinator	Coordinator · … threads	claudeAgent	claude-opus-5-5	medium	The Fable trial (home#261) ended on 2026-11-21 to save allowance
 chief-of-staff	Chief of staff thread and daily run	claudeAgent	claude-opus-5-5	medium	-
 scheduled-worker	The Worker task and any scheduled task that does ticket work	claudeAgent	claude-opus-5-5	high	create scheduled tasks only from an Opus thread: schedule_task copies the caller's model; no scheduled task runs Fable
-llp-author	llp-super-refine author and reviser	claudeAgent	claude-fable-5-2	medium	-
+llp-author	llp-super-refine author and reviser	claudeAgent	claude-opus-5-5	medium	-
 llp-reviewer-gpt	llp-super-refine non-Claude reviewer	codex	gpt-6.2-sol	high	read-only sandbox
-llp-reviewer-claude	llp-super-refine fresh Claude reviewer that edited no revision	claudeAgent	claude-fable-5-2	medium	-
+llp-reviewer-claude	llp-super-refine fresh Claude reviewer that edited no revision	claudeAgent	claude-opus-5-5	medium	-
 fallback	When all three hub Claude accounts are out, moved by hand (Opus and Sonnet threads only)	codex	gpt-6.2-sol	high	-
