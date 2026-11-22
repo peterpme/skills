@@ -1,30 +1,22 @@
 ---
 name: grilling
-description: "Use at the start of a new feature, design, new system or \"what if we...\" request, or when Peter says grill me or ask me first: interview him, at most three questions a round, each with your pick, until no answer would change the build. Not for a bug with a repro, a ticket with acceptance criteria, or a hill climb with a harness."
+description: "Use at the start of a new feature, design, new system or \"what if we...\" request, or when Peter says grill me or ask me first: interview him, at most three questions a round, each with your pick, until no answer would change the build. Not for a bug with a repro, a ticket with acceptance criteria, a hill climb with a harness, a how-to or setup question, or a delegated brief."
 ---
 
 # Grilling
 
-Pocock's `grilling` ([upstream.md](upstream.md): mattpocock/skills@4ae2317 `skills/productivity/grilling/SKILL.md`, byte for byte, MIT in LICENSE; never edit it) on a two-week trial from 2026-11-08. Read upstream.md for the method: the design tree, the frontier, rounds, the question format, facts are yours and decisions are Peter's. The rules below beat it wherever they conflict.
-
-## When to grill
+Settle what Peter wants before you build, with as few questions as possible. Facts are yours to find; decisions are his. The method follows Matt Pocock's `grilling`, rewritten after a two-week trial.
 
 | Request | Grill? |
 |---|---|
-| New feature, design, system, "what if we..." | Yes |
-| Greenfield in a domain no skill covers | Yes, after research |
-| Spans more than one PR | Yes; slicing is a decision |
+| New feature, design or system, "what if we...", work spanning several PRs | Yes |
 | Ops or infra change | One round: blast radius and rollback |
-| Bug with a reproduction | No. Reproduce, then fix |
-| Ticket with acceptance criteria | No. Check the criteria are checkable, then build |
-| Hill climb with a harness | No. The harness is the spec |
+| Bug with a repro, ticket with acceptance criteria, hill climb with a harness, delegated brief or review, how-to or setup question | No. Do the work |
 
-## Overrides
-
-1. **Explore before the first question.** Read the request, the repo's agents file and docs, the code it touches, earlier threads and PRs on the topic, and the ledger. A question any of them answers is a fact: record it as a decision with its source and never ask it.
-2. **At most three questions per round, counting every question in the message.** Logistics (which ledger, credentials, remotes, which repo) count too. Of the frontier, ask the three whose answers most change what gets built. Every other open branch gets your default, written into the contract as a decision.
-3. **Each question carries a default and the trade.** Under upstream's `➡️` line, give each option's main gain and cost in plain words, one line each. Word it so "yes" takes the default.
-4. **Wait for Peter's answers.** He fires off a task and stays for a few minutes, and sometimes finds out what he wants by answering. After his answers, write the contract and build. Go on your defaults only when he said "figure it out yourself" or no one is there (rule 7).
-5. **Stop when no answer would change the build.** That ends the session, not an empty frontier. Most requests need one round; many need none. A second round only for branches Peter's answers opened.
-6. **The output is the contract**, written by `orchestrate` step 1: questions asked go under Open questions with their defaults, answers become Decisions. No transcript.
-7. **No Peter in the loop** (scheduled or headless run): post the round on the ticket and go on the defaults.
+1. **Look first.** Before any question, reread the request, then the repo's agents file and docs, the code it touches, earlier threads and PRs, and the ledger. A question any of them answers, or that a lookup or a quick measurement settles, is not a question: record the answer as a decision with its source.
+2. **Ask only what only Peter knows:** his priorities and constraints, who uses it and at what scale, PR and merge policy, what may be installed, deleted, published or spent. Engineering choices, sizes, names, layouts and "go ahead?" are yours: decide them and write them down.
+3. **Pick at most three questions per message**, counting logistics: the open decisions whose answers most change the build and whose prerequisites are settled. A question that depends on another still open waits for a later round. One numbered question asks one thing.
+4. **Format each one:** `❓ **Q1 · title**: the question in plain words, no internal jargon`, then `➡️ your pick`, then one line each on the main gain and cost of the options. Word it so "yes" takes your pick.
+5. **Wait for his answers** in a thread he is in. If he answers part, or moves on, say in one line that you are taking your picks for the rest, and go. Never post a question again. With no one in the loop (scheduled or headless run), post the round on the ticket and go on your picks.
+6. **Ask another round only for branches his answers opened.** Stop when no answer would change the build. Most requests need one round; many need none.
+7. **The output is the contract** (`orchestrate` step 1): his answers become Decisions, and unanswered questions go under Open questions with your picks. No transcript.
