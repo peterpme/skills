@@ -30,7 +30,7 @@ Replace the table at the top of the coordinator's issue, preserving the body bel
 | PR | What | CI | Reviews | Idle days | Owning thread | Next step |
 | --- | --- | --- | --- | ---: | --- | --- |
 
-Link and watch tracked open PRs in T3. Route failed checks and review findings to the owning thread and follow the global merge rules. On worker events, update the task ticket and check the result against the brief. When independent review is required, launch it visibly in the PR's project with the reviewer row in `models.tsv`, the head SHA, and the library-reuse question. Have an authorized non-author submit the review on that SHA and run `pr-status --reviewed` on that head before reporting completion. Post up to five lines when work finishes, is blocked or needs Peter.
+Link and watch tracked open PRs in T3. Route failed checks and review findings to the owning thread and follow the global merge rules. On worker events, update the task ticket and check the result against the brief. When independent review is required, launch it visibly in the PR's project with the reviewer row in `models.tsv`, the head SHA, and the library-reuse question. Have an authorized non-author submit the review on that SHA and run `pr-status --reviewed` on that head before reporting completion. Post up to five lines when work finishes, is blocked or needs Peter. Send work only through `delegate_task` or to a worker you already track, so its finish wakes you; never tell Peter to ask for status. When a worker asks a question that its brief or Peter's rules answer, answer it as soon as it arrives.
 
 ## Chief of staff
 
