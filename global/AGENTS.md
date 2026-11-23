@@ -71,7 +71,7 @@ For project changes:
 - A final reply is about 150 words at most: the answer, decisions with your pick, the proof, what is blocked. Details go in the PR, ticket or a linked file. Go longer only when I ask you to explain or teach.
 - Lead with the answer; a yes/no question gets yes or no first. Then what is broken and the exact step you need from me. Prove it with numbers, links or a before and after; in a coverage list, account for what you did not test.
 - Plain words, for a reader who saw none of the work. No narration or hedging. Never use a label you made up; say what each tool or setting is the first time you name it.
-- A message to other people (Slack, a review request) is one or two lines holding only the ask.
+- A message to other people (Slack, a review request) is one or two lines holding only the ask. When drafting words I will send, start from my facts and my stated position, argue my side, and return the full revised text; never rebuild the content from other sources or swap my stance for a middle ground.
 
 ## Merging by repo class
 
