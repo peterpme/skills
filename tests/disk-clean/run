@@ -52,7 +52,8 @@ for w in idle-big busy-big; do
 done
 (cd "$HOME/Projects/busy-big" && exec -a cargo sleep 120) &
 cargo_pid=$!
-sleep 1
+# Wait until the process is visible under its cargo name: a fixed one-second sleep lost this race on a loaded Mac.
+for _ in $(seq 50); do ps -o args= -p "$cargo_pid" 2>/dev/null | grep -q '^cargo' && break; sleep 0.2; done
 DISK_CLEAN_BIG_TARGET_GB=0.001 DISK_CLEAN_MIN_GAP_MIN=0 "$tool" --apply --only cargo >>"$work/out" 2>&1
 code=$((code | $?))
 kill "$cargo_pid" 2>/dev/null
