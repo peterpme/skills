@@ -29,7 +29,7 @@ git clone https://github.com/peterpme/skills.git ~/skills
 cd ~/skills && npm run setup
 ```
 
-`npm run setup` installs this checkout's Git hooks and symlinks each skill into the global skill folder of every harness: Claude Code (`~/.claude/skills`), Codex (`~/.codex/skills`), Cursor (`~/.cursor/skills`), Grok (`~/.grok/skills`), Pi (`~/.pi/agent/skills`), Antigravity (`~/.gemini/config/skills`) and the shared `~/.agents/skills`. OpenCode reads `~/.claude/skills` and `~/.agents/skills`. It also links skills for OpenCode, GitHub Copilot, Droid, Gemini CLI and Windsurf when that harness's home folder exists. It links each `bin/` command into `~/.local/bin`, and `global/AGENTS.md` as `~/.codex/AGENTS.md`, `~/.pi/agent/AGENTS.md`, `~/.grok/AGENTS.md` and `~/.claude/CLAUDE.md`. Setup also installs a job that runs `git pull --ff-only` every 30 minutes: a launchd agent on macOS, a systemd user timer on Linux. Its log is `~/.local/state/personal-skills/pull.log`. Run setup once per clone; no dependencies need installing.
+`npm run setup` installs this checkout's Git hooks and symlinks each skill into the global skill folder of every harness: Claude Code (`~/.claude/skills`), Codex (`~/.codex/skills`), Grok (`~/.grok/skills`), Pi (`~/.pi/agent/skills`), Antigravity (`~/.gemini/config/skills`) and the shared `~/.agents/skills`. OpenCode reads `~/.claude/skills` and `~/.agents/skills`. It also links skills for OpenCode, GitHub Copilot, Droid, Gemini CLI and Windsurf when that harness's home folder exists. It links each `bin/` command into `~/.local/bin`, and `global/AGENTS.md` as `~/.codex/AGENTS.md`, `~/.pi/agent/AGENTS.md`, `~/.grok/AGENTS.md` and `~/.claude/CLAUDE.md`. Setup also installs a job that runs `git pull --ff-only` every 30 minutes: a launchd agent on macOS, a systemd user timer on Linux. Its log is `~/.local/state/personal-skills/pull.log`. Run setup once per clone; no dependencies need installing.
 
 `npm run list` shows what the [`skills` CLI](https://github.com/vercel-labs/skills) sees in the global folders. Sync does not use that CLI to install: it copies each skill into `~/.agents/skills` instead of linking the checkout, so edits would stop being live, and it has no support for the global instructions file or `bin/`. Its agent folder table (`docs/agents.md`) is where to look when adding a harness: add the folder to `destinations` or `optional` in `scripts/sync-skills.mjs`.
 
@@ -55,7 +55,7 @@ To remove a skill, delete its folder and its links from the global skill folders
 
 Follow the [Agent Skills spec](https://agentskills.io/specification): `name` matches the folder (lowercase, hyphens, up to 64 characters), and `description` is up to 1024 characters.
 
-Manual-only skills set `disable-model-invocation: true`. Claude Code, Cursor, and Pi honor it. Codex reads `agents/openai.yaml` with `policy.allow_implicit_invocation: false` instead, so add both.
+Manual-only skills set `disable-model-invocation: true`. Claude Code and Pi honor it. Codex reads `agents/openai.yaml` with `policy.allow_implicit_invocation: false` instead, so add both.
 
 ## Global instructions
 
@@ -63,7 +63,7 @@ CI fails a PR that adds more lines to `global/AGENTS.md` than it removes, unless
 
 `global/ENFORCERS.md` names what holds each hard rule in it: a hook, a CI check, a scheduled job, or prose with the reason or a finding. When a rule changes, update its row.
 
-`global/AGENTS.md` is the one instruction file every harness reads; edit it here, not through the links. There is no shared global path: Codex, Pi, Grok and OpenCode each read `AGENTS.md` from their own home folder, and Claude Code only reads `~/.claude/CLAUDE.md`. Cursor stores user rules in its settings, not on disk (a marker in `~/.cursor/rules/*.mdc` never loaded), so sync cannot link it. Instead its User Rules hold one pointer line, set once and never stale: run `npm run cursor-rules`, which copies the line and prints the three clicks (Cursor Settings, Customize, Rules; paste into User Rules). A Cursor session given that line read this file and answered from it. Antigravity loads the skills but loaded no global rules file from `~/.gemini/GEMINI.md`, `AGENTS.md`, `config/GEMINI.md`, `config/AGENTS.md` or `config/rules/AGENTS.md`, so it has no global instructions yet.
+`global/AGENTS.md` is the one instruction file every harness reads; edit it here, not through the links. There is no shared global path: Codex, Pi, Grok and OpenCode each read `AGENTS.md` from their own home folder, and Claude Code only reads `~/.claude/CLAUDE.md`. Antigravity loads the skills but loaded no global rules file from `~/.gemini/GEMINI.md`, `AGENTS.md`, `config/GEMINI.md`, `config/AGENTS.md` or `config/rules/AGENTS.md`, so it has no global instructions yet.
 
 ## Agent helpers
 
