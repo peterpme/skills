@@ -42,7 +42,7 @@ One `--apply` runs at a time per machine. While one runs it prints `disk-clean B
 
 ## Worktree rules
 
-The script only touches worktrees under agent paths: `~/.t3/worktrees`, `<repo>/.claude/worktrees`, `~/.codex/worktrees`, `.codex-worktrees` and `~/.cursor/worktrees`. Sibling clones such as `~/Projects/x/repo-feature` are left alone.
+The script only touches worktrees under agent paths: `~/.t3/worktrees`, `<repo>/.claude/worktrees`, `~/.codex/worktrees`, `.codex-worktrees` and . Sibling clones such as `~/Projects/x/repo-feature` are left alone.
 
 A tree is removed once it has been idle long enough for its kind. Idle time counts from the newest of: a file edit in the tree, a commit, checkout or reset (the last reflog entry), and activity in its T3 thread.
 

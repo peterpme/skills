@@ -1,6 +1,6 @@
 # Global agent instructions
 
-Source: `global/AGENTS.md` in `~/skills`; `npm run sync` links it into every harness (Cursor's User Rules point here).
+Source: `global/AGENTS.md` in `~/skills`; `npm run sync` links it into every harness.
 
 The repo you are in is the source of truth: its agents file, skills, docs and scripts say how to build, test and ship there. This file is only how I like to work, wherever you are.
 
@@ -71,7 +71,7 @@ Tickets are for work that outlives the thread: several PRs, something for later,
 
 ## This machine
 
-- Worktrees at `<repo root>/.claude/worktrees/<name>`; logs, scripts and proof in `.verification/<task>/`; never `/tmp`. Nothing from `.verification/` lands in a PR. Remove a worktree once its branch merges.
+- A thread that writes code gets its checkout from T3 Code (`t3_worktree_handoff`, or `delegate_task` with `isolation: "worktree"`); an agent that only reads or reviews shares its parent's. Never hand-make a worktree inside another: nothing knows when to remove it. Outside T3 Code, `<repo root>/.claude/worktrees/<name>`, removed once its branch merges. Logs, scripts and proof go in `.verification/<task>/`, never `/tmp`, and never into a PR. Settle a thread when its work is merged or dropped.
 - GNU `sed`, `grep`, `find`, `awk`, `date` and `stat` are first on PATH, with the dotfiles CLI set (`rg`, `fd`, `jq`, `ast-grep` and more; one page each in `~/dotfiles/docs/tools/`). `~/.rgrc` cuts `rg` lines at 100 columns and hides `.env` and lockfiles: use `-M 0` whenever you need a whole line, such as a URL.
 - For multi-step shell work, write a script in `.verification/<task>/` and run it: Claude Code stops to ask me about `rsync`, `cd` before `git`, `~` in an assignment and the like. Commands I paste run in my interactive shell, where `rm`, `cp` and `mv` prompt; run or dry-run a command yourself before handing it to me.
 - Simulators and emulators on my Macs come from `simpool` (`~/dotfiles/docs/tools/simpool.md`): never create, clone or boot one, or touch one not named `Agent …`. How to test an app, sign in to it and which device to use is in that repo's own skills.

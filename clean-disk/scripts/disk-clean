@@ -7,7 +7,7 @@ __doc__ = """disk-clean [--apply] [--only worktrees|cargo|caches] [--days 3] [--
 
 Free disk space from regenerable things. Default is a dry run; --apply deletes.
 
-worktrees  Agent git worktrees (T3 Code, Claude, Codex, Cursor paths), by how
+worktrees  Agent git worktrees (T3 Code, Claude, Codex paths), by how
            long since anyone used them (newest edit, commit or checkout, or T3
            thread activity):
              merged  1 day. Merged: its PR is merged or closed, its T3 thread
@@ -62,7 +62,7 @@ low disk   Runs last, only when free space on the home disk is under --low-under
            plenty of room is not scanned every day. Leave it off for a manual run.
 
 Default roots: ~/Projects ~/.t3/worktrees ~/skills ~/dotfiles ~/.codex/worktrees
-~/.cursor/worktrees ~/.claude/worktrees. --root and DISK_CLEAN_ROOTS (colon-separated)
+~/.claude/worktrees. --root and DISK_CLEAN_ROOTS (colon-separated)
 add more.
 State: ~/.local/state/disk-clean/ (history.log, backups/ kept 60 days).
 One --apply at a time per machine: while one runs, or within 15 minutes after one
@@ -91,9 +91,8 @@ DAY = 86400
 NOW = time.time()
 STATE = Path(os.environ.get("DISK_CLEAN_STATE", HOME / ".local/state/disk-clean"))
 DEFAULT_ROOTS = ["~/Projects", "~/.t3/worktrees", "~/skills", "~/dotfiles", "~/.codex/worktrees",
-                 "~/.cursor/worktrees", "~/.claude/worktrees"]
-AGENT_MARKERS = ("/.t3/worktrees/", "/.claude/worktrees/", "/.codex/worktrees/", "/.codex-worktrees/",
-                 "/.cursor/worktrees/")
+                 "~/.claude/worktrees"]
+AGENT_MARKERS = ("/.t3/worktrees/", "/.claude/worktrees/", "/.codex/worktrees/", "/.codex-worktrees/")
 SKIP_DIRS = {"node_modules", "target", ".git", "build", "dist", ".next", ".turbo", ".venv", "venv",
              "Pods", "vendor", "__pycache__", "coverage", ".cache", ".yarn", ".gradle", "DerivedData"}
 VERIFICATION = ".verification"
