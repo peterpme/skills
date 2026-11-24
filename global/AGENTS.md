@@ -12,8 +12,8 @@ The repo you are in is the source of truth: its agents file, skills, docs and sc
 - **Read first; never guess how something works.** Your memory is months old and thin on detail. Before you build on a library's model (how Jotai atoms compose), a protocol (how a WebSocket reconnects) or a feature others have already built (how other exchanges do it), read the current docs, the source and working examples, online and in the repo, and say what you read. Use the version that is installed, and treat an API you have not seen in that version's types or docs as one that does not exist.
 - **Know what done looks like first.** Before you change anything, name the check you will run and what it should show. Reproduce a reported failure first.
 - **Use what exists and build the simplest version.** Repo tools, framework conventions, established libraries, the installed `--help`. No hand-written encoder, crypto or RPC client, and no wrapper around a tool that already does the job. No feature flag, dev-only gate or second version kept beside the old one unless I ask for a flag: ship the change and delete what it replaces.
-- **Prove it for real.** Proof is the real UI, API or CLI with representative data, expected next to actual, against the live service. A pass count is not proof. Faster, smaller or better needs the number before and after. What you did not check is `implemented, unverified`, with what is missing.
-- **Small steps I can undo.** One draft PR holding the whole change; split it only once it works. Replace, don't pile up: close the superseded PR, delete the old script, cut a rule when you add one.
+- **Prove it for real.** Proof is the real UI, API or CLI with representative data, expected next to actual, against the live service. A pass count is not proof. Faster, smaller or better needs the number before and after. Lint, types and a green build keep the code tidy; they are not evidence that it works. What you did not check is `implemented, unverified`, with what is missing.
+- **Get it working locally, then show it.** Work on a branch until the thing works in front of you; open the PR then, as one PR holding the whole change. Replace, don't pile up: close the superseded PR, delete the old script, cut a rule when you add one.
 - **Every codebase is yours.** What it is for and how it is built are your call. Fix nearby problems you find and list them in the PR.
 
 ## Tiers
@@ -23,16 +23,16 @@ A rough guide to how much process a task deserves. Say the tier on the ticket; I
 | Tier | Examples | What it adds |
 |---|---|---|
 | 0 | Typo, config, one-file fix, question | Nothing: no reviewer, backup or new test for a small change that is easy to undo |
-| 1 | Feature, refactor, dependency change | The goal in my words, my decisions and the acceptance checks on the ticket; one draft PR with expected next to actual |
+| 1 | Feature, refactor, dependency change | The goal in my words, my decisions and the acceptance checks on the ticket; a PR with expected next to actual |
 | 2 | Money, keys, releases, public API, performance claims | Tier 1, plus: the check that would catch the change lands first and passes on today's code, and one reviewer whose findings each carry a failing command |
 
 ## Finish every change
 
 What a finished change usually looks like:
 
-- You ran what CI runs, not a local subset, and read the PR's CI result before saying checks pass. You read the diff for unrelated changes and secrets.
+- You watched it work the way its user will, and you say what you did not check.
 - Tests cover what would hurt if it broke (the wrong signer, money moved twice, data lost, a broken contract), once each, at the level its caller sees; nothing the compiler or framework already checks. A test that pinned old code went with it.
-- A task branch with only this task's changes and a draft PR whose body says why, what changed, expected next to actual and what is unverified.
+- The PR opened once it worked locally: only this task's changes, and a body that says why, what changed, expected next to actual and what is unverified. You read its CI result before calling it green.
 - Every review thread is answered; a human's thread closes only by a fix or their agreement.
 
 ## Reporting
@@ -68,9 +68,9 @@ Skills, read when the moment comes:
 
 In T3 Code, reach for its own tools before a script of yours: the question dialog for a decision that is mine, `request_secret` for a credential only I have, `watch_pull_request` to wait on checks or reviews, `t3_background_wait` for a background command, `schedule_task` for work that should run later, `device_open` for a simulator.
 
-Helper commands, each with `--help`: `pr-status` (exits 0 when a PR is green, mergeable and has no open threads; chain the merge on it with `&&`), `pr-threads`, `repo-state`, `buildgate <cmd>` around heavy builds, `runq`, `disk-clean`; outside T3 Code also `pr-wait` and `bgjob`.
+Helper commands, each with `--help`: `pr-threads` (open review threads on a PR), `buildgate <cmd>` around heavy builds, `disk-clean`, `ledger-comment N FILE` (a comment on a `home` issue).
 
-Tickets are for work that outlives the thread: several PRs, something for later, a decision I owe. Work under my work folder (the home repo README names it) is tracked in Linear, everything else in issues of the private `home` repo at `~/Projects/home` (`start-task` prints how to find one; `ledger-comment N FILE` comments). What you learn about a codebase goes in that repo's agents file or skills.
+Tickets are for work that outlives the thread: several PRs, something for later, a decision I owe. Work under my work folder (the home repo README names it) is tracked in Linear, everything else in issues of the private `home` repo at `~/Projects/home`. What you learn about a codebase goes in that repo's agents file or skills.
 
 ## This machine
 

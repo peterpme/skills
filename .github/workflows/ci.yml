@@ -33,16 +33,12 @@ jobs:
         run: tests/turn-check/run
       - name: scheduled-allow cases
         run: tests/scheduled-allow/run
-      - name: start-task cases
-        run: tests/start-task/run
       - name: tool-guard and model-guard cases
         run: tests/tool-guard/run
       - name: coordinator-guard cases
         run: tests/coordinator-guard/run
       - name: perf-claim cases
         run: tests/perf-claim/run
-      - name: pr-status hold and review cases
-        run: tests/pr-status-hold/run
       - name: scheduled-models cases
         run: tests/scheduled-models/run
       - name: pr-dupes cases

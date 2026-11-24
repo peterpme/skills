@@ -57,7 +57,7 @@ Check the contract against Peter's words and the repo's rules, then build. No mo
 
 ## 3. Build through workers
 
-On anything with several slices or workers, you are the orchestrator: you write briefs, enforce the contract and run the gate. You do not implement or review code yourself. Start every build as one draft PR holding the whole change and get it working there; workers build onto that one branch, and a slice is a unit of work, not a PR, until the split. Split the draft into the contract's PRs only once it works, and only as far as review needs; never open a stack of draft PRs up front. Then take the first split PR all the way through the ready gate before handing over the rest, so a wrong assumption costs one PR, not all of them. Handing over a PR does not end the program: hand over the next in the same turn, stacked on the previous branch if it depends on it, and never wait for a merge or for Peter to say "next". The program ends when the ticket's last PR passes the gate or Peter stops it. Use one worker for a dependent chain that fits one context; parallelize independent work or work larger than one context, keeping Peter’s requested worker count. Follow `delegate` for routing, briefs and stall checks. Each brief adds:
+On anything with several slices or workers, you are the orchestrator: you write briefs, enforce the contract and run the gate. You do not implement or review code yourself. Start every build on one branch and get it working there locally; workers build onto that one branch, and a slice is a unit of work, not a PR. Open the PR once it works, and split it into the contract's PRs only as far as review needs; never open a stack of draft PRs up front. Then take the first split PR all the way through the ready gate before handing over the rest, so a wrong assumption costs one PR, not all of them. Handing over a PR does not end the program: hand over the next in the same turn, stacked on the previous branch if it depends on it, and never wait for a merge or for Peter to say "next". The program ends when the ticket's last PR passes the gate or Peter stops it. Use one worker for a dependent chain that fits one context; parallelize independent work or work larger than one context, keeping Peter’s requested worker count. Follow `delegate` for routing, briefs and stall checks. Each brief adds:
 
 - the contract path and which slice this is;
 - the Verification checks this slice must show, with expected results copied from the contract, and the Validation scenario if this slice completes the feature;
@@ -98,7 +98,7 @@ Use `~/skills/global/models.tsv`. Give the reviewer the PR, contract and commit 
 
 A PR is ready only when all of these hold. Check them with the helpers, not from memory:
 
-- `pr-status <n>` exits 0: CI green, mergeable, no unresolved threads (`pr-threads <n>` is empty) after the review bots have commented on the head SHA. Exit 9 means a tier 2 PR is inside its two hours after the contract: it stays a draft.
+- CI is green, the PR is mergeable and no review thread is open (`pr-threads <n>` is empty) after the review bots have commented on the head SHA. In T3 Code, `watch_pull_request` wakes you when checks or reviews change.
 - `perf-claim <n>` exits 0: no performance claim, or both numbers are in the body.
 - The proof table covers every operation in scope, and every acceptance check passes or is marked unverified with a reason.
 - The reviewer's findings are fixed or answered, and the reviewed SHA is the PR's head.

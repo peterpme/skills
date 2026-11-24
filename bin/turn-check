@@ -64,14 +64,14 @@ out=$(jq -c --argjson seen "$seenjson" --argjson delegated "$delegated" '
     | if ($tasks | length) > 0 then
         {decision: "block",
          ids: ($tasks | map(.id // "?" | tostring)),
-         reason: ("turn-check: \($tasks | length) background task(s) still running: \($tasks | map(describe) | join("; ")). A harness background command dies with the session, and in a scheduled or T3 run the session ends with this turn. Wait for it inside the turn (t3_background_wait, Monitor, or `bgjob wait NAME`) and report the result, or restart it under `bgjob start NAME -- <cmd>` and tell the user how to check it. If it is meant to stay up (a dev server) or something will truly wake you, say so and stop again; this task will not block again.")}
+         reason: ("turn-check: \($tasks | length) background task(s) still running: \($tasks | map(describe) | join("; ")). A harness background command dies with the session, and in a scheduled or T3 run the session ends with this turn. Wait for it inside the turn (t3_background_wait or Monitor) and report the result. If it is meant to stay up (a dev server) or something will truly wake you, say so and stop again; this task will not block again.")}
       elif ((.session_crons // []) | length) > 0 then empty
       elif $delegated then empty
       else
         ((.last_assistant_message // "") | promise) as $m
         | if $m then
             {decision: "block",
-             reason: ("turn-check: the final message promises a later report (\"\($m)\") but nothing will wake you: " + (if ($running | length) > 0 then "the running task was already flagged once" else "no background task is registered" end) + " and no wakeup is scheduled. Finish the job in this turn (`bgjob wait NAME`), or replace the promise with what the user runs to check (`bgjob status NAME`). If you cannot wait, say so plainly and stop again.")}
+             reason: ("turn-check: the final message promises a later report (\"\($m)\") but nothing will wake you: " + (if ($running | length) > 0 then "the running task was already flagged once" else "no background task is registered" end) + " and no wakeup is scheduled. Finish the job in this turn (t3_background_wait or Monitor), or replace the promise with what the user runs to check. If you cannot wait, say so plainly and stop again.")}
           else empty end
       end
   end' <<<"$input" 2>/dev/null) || exit 0
