@@ -4,6 +4,7 @@ Personal agent skills. One folder per skill at the repository root.
 
 - [skill-creator](skill-creator/SKILL.md): Anthropic's skill for creating, testing and tuning skills, vendored unchanged (see `UPSTREAM.md`).
 - [tldr](tldr/SKILL.md): Cut the last response down to a one-sentence summary, your decisions, and what is next.
+- [research](research/SKILL.md): Before building on a library, protocol or feature you have not just read about: a background agent reads primary sources and saves cited findings.
 - [grilling](grilling/SKILL.md): Only when Peter asks to be grilled: look first, then ask every open decision in rounds, each with a pick, until no answer would change the build.
 - [word-this](word-this/SKILL.md): Make a draft coherent while preserving your voice, casing, and prose. Invoke explicitly; automatic invocation is disabled.
 - [ticket](ticket/SKILL.md): One line from Peter becomes one well-formed ledger issue (home or Linear) or a decision issue, filed by a cheap model.
