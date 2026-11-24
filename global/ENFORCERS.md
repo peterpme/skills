@@ -10,7 +10,7 @@ Kinds: **hook** (runs in the harness), **CI** (runs on the PR), **scheduled** (a
 | Promise a later report only when something will wake you | `bin/turn-check` Stop hook, cases in `tests/turn-check/` | hook | |
 | Remove a worktree once its branch is merged or abandoned; clean and report low disk to Chief of staff | `bin/disk-clean`, daily through `clean-disk`; `t3_thread_send` in queue mode | scheduled, helper, prose | Low-disk reporting is agent-driven (home#253) |
 | Close your own PR when superseded or idle for 14 days | `chief-of-staff` daily run; its `bin/pr-dupes` lists every open PR whose newer sibling says "supersedes #n" | scheduled, helper | "Same turn" is not held: a superseded PR is caught the next morning, not in the turn |
-| Feedback goes in with `feedback add` the same turn | `bin/feedback`; `skill-scout` daily adds what was missed | helper, scheduled | |
+| My corrections are collected weekly | The weekly `skill-scout` run reads the week's threads and records them with `bin/feedback`; agents no longer run `feedback add` each turn | scheduled | A correction made outside T3 Code is missed |
 | Every review thread is resolved before draft ends and before handover | `bin/pr-status`, `bin/pr-threads`, called by the `orchestrate` ready gate | helper | No branch rule requires resolved threads; the gate's checklist is the control |
 | Worktrees and `.verification/` stay out of PRs | The global excludes file (`~/.gitignore`, from dotfiles) | setup | |
 | `<!-- agent -->` ends every home comment | `bin/ledger-comment` adds it | helper | |
