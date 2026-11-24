@@ -2,7 +2,8 @@
 ''''exec python3 "$0" "$@" #'''
 # Line 2 hands `bash disk-clean` or `sh disk-clean` to Python before the shell reads the docstring below.
 from __future__ import annotations
-__doc__ = """disk-clean [--apply] [--only worktrees|cargo|caches] [--days 3] [--root DIR]... [--skip-if-free-over SIZE] [-v]
+__doc__ = """disk-clean [--apply] [--only worktrees|cargo|caches] [--days 3] [--root DIR]... [--skip-if-free-over SIZE]
+           [--low-under 100G] [--free-target 150G] [-v]
 
 Free disk space from regenerable things. Default is a dry run; --apply deletes.
 
@@ -34,6 +35,21 @@ caches     `mo purge --yes` (Mole: build folders in projects idle 7 days),
            no process uses go too). exact build cache entries idle 7 days.
            Listed, never deleted: ~/.mtplx, simulators, ~/.t3/scratch.
            `mo clean` is not used: it hangs at its developer-tools step.
+
+low disk   Runs last, only when free space on the home disk is under --low-under (100G)
+           after the passes above. The rules above go by age, so a day that makes forty
+           worktrees is never touched (255 GB on 2026-11-24, home#367). This pass ignores age:
+           in every kept agent worktree no process is running in, it deletes folders that
+           can be rebuilt, biggest first, until free space reaches --free-target (150G).
+           Rebuildable: node_modules, Pods, DerivedData, .gradle, .cxx, .expo, .next, .turbo,
+           build under an android or ios folder, Rust target/, an Xcode Build folder; also
+           inside .verification/ and checkouts nested there. Only when git ignores the folder
+           and it holds no tracked file. Trees idle 2 hours or more go first. Free space is
+           read from the disk after each delete (cloned files free less than their size);
+           if it has not followed after twice the shortfall in listed sizes, the pass stops.
+           Still under the target: trash-cli items deleted 1+ day ago go too. Big ignored
+           folders it does not recognise are listed as "left", never deleted.
+           Never touched: tracked files, untracked files git does not ignore, proof files.
 
 --skip-if-free-over SIZE  Print one line and exit 0 without scanning or removing anything when
            free space on the home disk is above SIZE (for example 100G; units K, M, G, T
@@ -90,6 +106,13 @@ MOLE_TIMEOUT = 300
 PROOF_TARGET_DAYS = 1
 CACHE_DAYS = 7
 TRASH_DAYS = 3
+# Low-disk pass: what counts as rebuildable by name (build, target and Xcode Build folders are matched
+# by what surrounds them), how recent a tree goes last, and the trash age it empties.
+REBUILD_NAMES = {"node_modules", "Pods", "DerivedData", ".gradle", ".cxx", ".expo", ".next", ".turbo"}
+LOW_RECENT_H = 2
+LOW_TRASH_DAYS = 1
+LOW_UNKNOWN_MIN = 1e9
+LOW_MIN = float(os.environ.get("DISK_CLEAN_LOW_MIN_MB", "50")) * 1e6  # smaller folders are not worth a reinstall
 RUNTIME_DAYS = 14
 UV_ARCHIVE_DAYS = 14
 # Branches whose contents count as shipped, besides origin's default branch.
@@ -561,7 +584,156 @@ def worktrees(roots, days, apply, verbose):
             continue
         size = gb(r["size"]) if r["size"] else ""
         print(f"  {r['action']:<7} {size:>8}  {short(r['path'])}  {r.get('branch', '')}  ({r['why']})")
-    return sum(r["size"] for r in removed + scratch), failed, {str(r["path"]) for r in removed + scratch}
+    kept = {"rows": rows, "all": seen, "cwds": cwds}
+    return sum(r["size"] for r in removed + scratch), failed, {str(r["path"]) for r in removed + scratch}, kept
+
+
+# ---------- low disk ----------
+
+LOW_FREED = 0  # listed bytes this run's low-disk pass has deleted; only the test's fake reading uses it
+
+
+def free_bytes():
+    """Free space on the home disk. DISK_CLEAN_FAKE_FREE (bytes) replaces the reading in tests:
+    that number plus what the low-disk pass has deleted so far."""
+    fake = os.environ.get("DISK_CLEAN_FAKE_FREE")
+    return float(fake) + LOW_FREED if fake else shutil.disk_usage(HOME).free
+
+
+def rebuildable(root, others):
+    """(git root, folder) for each dependency or build folder under one worktree.
+
+    A checkout nested inside (a clone under .verification/) is checked against its own git, and a
+    registered worktree nested inside is left to its own turn.
+    """
+    found = []
+
+    def walk(top, gitroot):
+        for dirpath, dirnames, _ in os.walk(top):
+            d, keep = Path(dirpath), []
+            for n in dirnames:
+                p = d / n
+                if n == ".git" or p in others or p.is_symlink():
+                    continue
+                parts = set(p.relative_to(gitroot).parts[:-1])
+                if (n in REBUILD_NAMES
+                        or (n == "build" and parts & {"android", "ios"})
+                        or (n == "target" and ((p / "CACHEDIR.TAG").exists() or (p / ".rustc_info.json").exists()))
+                        or (n == "Build" and ((p / "Intermediates.noindex").exists() or (p / "Products").exists()))):
+                    found.append((gitroot, p))
+                elif (p / ".git").exists():
+                    walk(p, p)
+                else:
+                    keep.append(n)
+            dirnames[:] = keep
+
+    walk(root, root)
+    return found
+
+
+def ignored_only(gitroot, paths):
+    """The paths git ignores that hold no tracked file. Anything git does not vouch for is dropped."""
+    rels = {str(p.relative_to(gitroot)): p for p in paths}
+    try:
+        p = subprocess.run(["git", "-C", str(gitroot), "check-ignore", "-z", "--stdin"], env=ENV, text=True,
+                           input="".join(r + "\0" for r in rels), capture_output=True, timeout=120)
+    except (OSError, subprocess.TimeoutExpired):
+        return []
+    ignored = [r for r in p.stdout.split("\0") if r in rels]
+    tracked = set()
+    for i in range(0, len(ignored), 200):
+        code, out, _ = git(gitroot, "ls-files", "-z", "--", *ignored[i:i + 200], timeout=120)
+        if code != 0:
+            return []
+        for f in out.split("\0"):
+            tracked.update(str(a) for a in Path(f).parents)
+    return [rels[r] for r in ignored if r not in tracked]
+
+
+def unrecognised(tree, taken):
+    """Ignored folders over 1 GB that the pass does not know how to rebuild: (path, size left after
+    the folders it does take). Listed for a person, never deleted."""
+    code, out, _ = git(tree, "ls-files", "-z", "--others", "--ignored", "--exclude-standard", "--directory",
+                       timeout=120)
+    rows, mine = [], {str(t): s for t, s in taken.items() if str(t).startswith(str(tree) + "/")}
+    for rel in out.split("\0") if code == 0 else []:
+        p = str(tree / rel.rstrip("/"))
+        if not rel.endswith("/") or p in mine or any(p.startswith(t + "/") for t in mine):
+            continue
+        left = du(p, timeout=ESTIMATE_TIMEOUT) - sum(s for t, s in mine.items() if t.startswith(p + "/"))
+        if left >= LOW_UNKNOWN_MIN:
+            rows.append((Path(p), left))
+    return rows
+
+
+def low_disk(kept, apply, verbose, low_under, target, planned):
+    """Below low_under free, delete rebuildable folders from kept agent worktrees, biggest first,
+    until free space reaches the target. Age does not protect a folder; a running process does."""
+    global LOW_FREED
+    free = free_bytes() + (0 if apply else planned)
+    if free >= low_under:
+        print(f"low disk: {gb(free)} free{'' if apply else ' after the passes above'}, "
+              f"not under {gb(low_under)}; nothing removed")
+        return 0, 0
+    # The worktree pass read the running processes minutes ago; read them again before deleting.
+    cwds = process_cwds() if apply else kept["cwds"]
+    trees = [r for r in kept["rows"] if r["action"] in ("keep", "watch") and "idle" in r and r["path"].is_dir()
+             and not any(c == str(r["path"]) or c.startswith(str(r["path"]) + "/") for c in cwds)]
+
+    def scan(r):
+        groups = {}
+        for gitroot, p in rebuildable(r["path"], kept["all"] - {r["path"]}):
+            groups.setdefault(gitroot, []).append(p)
+        return [(r, p) for gitroot, paths in groups.items() for p in ignored_only(gitroot, paths)]
+
+    with ThreadPoolExecutor(WORKERS) as pool:
+        cands = [c for found in pool.map(scan, trees) for c in found]
+        sizes = list(pool.map(lambda c: du(c[1]), cands))
+    rows = sorted(({"tree": r, "path": p, "size": s, "recent": r["idle"] * 24 < LOW_RECENT_H}
+                   for (r, p), s in zip(cands, sizes) if s >= LOW_MIN), key=lambda c: (c["recent"], -c["size"]))
+
+    need, listed, failed, spare, stop = target - free, 0, 0, [], ""
+    print(f"low disk: {gb(free)} free, under {gb(low_under)}; freeing to {gb(target)} "
+          f"from {len(trees)} worktrees no process is running in")
+    for c in rows:
+        now = free_bytes() if apply else free + listed
+        if not stop and now >= target:
+            stop = f"free space {'is' if apply else 'would be about'} {gb(now)}, at the target"
+        # Cloned files and disk snapshots make a delete free less than its listed size. If free space
+        # has not followed after twice the shortfall, stop and let the next run decide, not empty every tree.
+        if not stop and apply and listed >= 2 * need:
+            stop = f"deleted {gb(listed)} listed, twice the shortfall, and free space is {gb(now)}"
+        if stop:
+            spare.append(c)
+            continue
+        why = f"tree idle {c['tree']['idle'] * 24:.0f}h" + (", used in the last 2h" if c["recent"] else "")
+        action = "remove"
+        if apply:
+            try:
+                shutil.rmtree(c["path"])
+                LOW_FREED += c["size"]
+            except OSError as e:
+                failed, action, why = failed + 1, "FAILED", f"{why}; {e}"
+        listed += c["size"] if action == "remove" else 0
+        print(f"  {action:<7} {gb(c['size']):>8}  {short(c['path'])}  ({why})")
+    if spare:
+        print(f"  stop: {stop}; {len(spare)} more folders ({gb(sum(c['size'] for c in spare))}) left in place")
+        for c in spare if verbose else []:
+            print(f"  {'spare':<7} {gb(c['size']):>8}  {short(c['path'])}")
+    if (free_bytes() if apply else free + listed) < target:
+        r = Report(apply)
+        trash_cli(r, LOW_TRASH_DAYS)
+        print("\n".join(r.lines)) if r.lines else None
+        listed, failed = listed + r.freed, failed + r.failed
+    taken = {c["path"]: c["size"] for c in rows}
+    with ThreadPoolExecutor(WORKERS) as pool:
+        unknown = [u for found in pool.map(lambda r: unrecognised(r["path"], taken), trees) for u in found]
+    for p, left in sorted(unknown, key=lambda u: -u[1]):
+        print(f"  {'left':<7} {gb(left):>8}  {short(p)}  (not recognised, left alone)")
+    end = free_bytes() if apply else free + listed
+    print(f"low disk: free space {gb(free)} -> {gb(end)}" + ("" if apply else " (estimate from listed sizes;"
+          " cloned files free less)") + ("" if end >= target else f"; still under {gb(target)}"))
+    return listed, failed
 
 
 # ---------- cargo ----------
@@ -742,7 +914,7 @@ def derived_data(r, gone):
     r.remove(f"Xcode DerivedData, {len(old)} projects idle {CACHE_DAYS}d+", old)
 
 
-def trash_cli(r):
+def trash_cli(r, days=TRASH_DAYS):
     trash = HOME / ".local/share/Trash"
     stale = []
     for info in (trash / "info").glob("*.trashinfo") if trash.is_dir() else []:
@@ -751,9 +923,9 @@ def trash_cli(r):
             when = dt.datetime.fromisoformat(m.group(1)).timestamp() if m else mtime(info)
         except ValueError:
             when = mtime(info)
-        if NOW - when > TRASH_DAYS * DAY:
+        if NOW - when > days * DAY:
             stale += [trash / "files" / info.stem, info]
-    r.remove(f"{len(stale) // 2} trash-cli items deleted {TRASH_DAYS}d+ ago", stale)
+    r.remove(f"{len(stale) // 2} trash-cli items deleted {days}d+ ago", stale)
 
 
 def sim_runtimes(r):
@@ -906,6 +1078,7 @@ def prune_backups():
 
 def main(argv):
     apply, verbose, only, days, roots, skip_over = False, False, None, 3.0, [], None
+    low = {"--low-under": 100e9, "--free-target": 150e9}
     it = iter(argv)
     for a in it:
         if a in ("-h", "--help"):
@@ -926,6 +1099,12 @@ def main(argv):
                 skip_over = parse_size(next(it, ""))
             except ValueError:
                 print("disk-clean: --skip-if-free-over needs a size such as 100G", file=sys.stderr)
+                return 2
+        elif a in low:
+            try:
+                low[a] = parse_size(next(it, ""))
+            except ValueError:
+                print(f"disk-clean: {a} needs a size such as 100G", file=sys.stderr)
                 return 2
         else:
             print(f"disk-clean: bad argument {a!r} (see --help)", file=sys.stderr)
@@ -952,14 +1131,14 @@ def main(argv):
         print(f"disk-clean SKIPPED: {gb(start.free)} free, above the {gb(skip_over)} threshold; nothing scanned or removed")
         return 0
     print(f"disk-clean {'APPLY' if apply else 'DRY RUN'}: {gb(start.free)} free of {gb(start.total)}")
-    planned, failed, gone = 0, 0, set()
+    planned, failed, gone, kept = 0, 0, set(), None
     # The slow read-only scans run alongside the worktree pass, so a dry run stays under a minute.
     # Removals still happen in order: worktrees, then cargo, then caches.
     early = ThreadPoolExecutor(2)
     scan = early.submit(cargo_scan, roots) if only in (None, "cargo") else None
     sizes = early.submit(peter_decides_sizes) if only in (None, "caches") else None
     if only in (None, "worktrees"):
-        n, f, gone = worktrees(roots, days, apply, verbose)
+        n, f, gone, kept = worktrees(roots, days, apply, verbose)
         planned, failed = planned + n, failed + f
     if scan:
         n, f = cargo(scan.result(), apply, gone)
@@ -968,6 +1147,9 @@ def main(argv):
         n, f = caches(apply, frozenset(gone))
         planned, failed = planned + n, failed + f
         peter_decides(*sizes.result())
+    if kept:
+        n, f = low_disk(kept, apply, verbose, low["--low-under"], max(low.values()), planned)
+        planned, failed = planned + n, failed + f
     early.shutdown()
     end = shutil.disk_usage(HOME)
     if apply:
