@@ -89,16 +89,13 @@ for (const entry of await readdir(join(root, "bin"), { withFileTypes: true })) {
 // - PermissionRequest, bin/scheduled-allow: answers allow to every permission prompt in a session
 //   whose first message starts with [t3-sentinel-run], so a scheduled run never waits on Peter
 //   (home #84). A PreToolUse allow does not stop the prompts bypass mode still raises.
-// - SessionStart and PreToolUse, bin/start-task: opens every session with the folder's tracker, its
-//   search command and the Tiers table, and denies the first file edit of a session with no ticket
-//   link, once, so the ticket and tier come before any other action (home #17).
+// - bin/start-task is no longer a hook (home #367): in two weeks it led to 212 tickets, 95 of them
+//   never used again. It stays a command, and retiredHooks below takes its entries out of settings.
 // - PreToolUse, bin/tool-guard: a permission ask on deploy commands and a warning on /tmp paths
 //   (home #105).
 const claudeHooks = [
   { event: "Stop", name: "turn-check" },
   { event: "PermissionRequest", name: "scheduled-allow" },
-  { event: "SessionStart", name: "start-task" },
-  { event: "PreToolUse", name: "start-task", matcher: "Edit|Write|MultiEdit|NotebookEdit|Bash" },
   { event: "PreToolUse", name: "tool-guard", matcher: "Bash|Write|Edit|NotebookEdit" },
   { event: "PreToolUse", name: "coordinator-guard", matcher: "Bash|Write|Edit|MultiEdit|NotebookEdit" },
 ];
@@ -118,6 +115,8 @@ async function registerClaudeHooks() {
     }
   }
 }
+// Hooks sync once registered and must now remove, by the name of their command in ~/.local/bin.
+const retiredHooks = ["start-task"];
 async function registerHooks(link, hooks, harness) {
   // Follow a symlink (a dotfiles-tracked file) so the rename below replaces the target, not the link.
   const file = (await stat(link)) ? await realpath(link) : link;
@@ -133,6 +132,15 @@ async function registerHooks(link, hooks, harness) {
   if (typeof settings !== "object" || settings === null || Array.isArray(settings)) throw new Error(`${file} is not a JSON object`);
   if (typeof settings.hooks !== "object" || settings.hooks === null || Array.isArray(settings.hooks)) settings.hooks = {};
   const changes = [];
+  for (const event of Object.keys(settings.hooks)) {
+    if (!Array.isArray(settings.hooks[event])) continue;
+    const retired = (hook) => typeof hook?.command === "string" && retiredHooks.some((name) => hook.command.endsWith(`/bin/${name}`));
+    const before = JSON.stringify(settings.hooks[event]);
+    settings.hooks[event] = settings.hooks[event]
+      .map((entry) => (Array.isArray(entry?.hooks) ? { ...entry, hooks: entry.hooks.filter((hook) => !retired(hook)) } : entry))
+      .filter((entry) => !Array.isArray(entry?.hooks) || entry.hooks.length);
+    if (JSON.stringify(settings.hooks[event]) !== before) changes.push(`Removed retired ${harness} ${event} hook`);
+  }
   for (const { event, name, matcher = "" } of hooks) {
     const command = join(home, ".local/bin", name);
     if (!Array.isArray(settings.hooks[event])) settings.hooks[event] = [];
