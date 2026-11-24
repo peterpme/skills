@@ -49,3 +49,5 @@ jobs:
         run: tests/pr-dupes/run
       - name: disk-clean cases
         run: tests/disk-clean/run
+      - name: disk-clean low-disk cases
+        run: tests/disk-clean/low-disk

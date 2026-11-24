@@ -2,7 +2,8 @@
 ''''exec python3 "$0" "$@" #'''
 # Line 2 hands `bash disk-clean` or `sh disk-clean` to Python before the shell reads the docstring below.
 from __future__ import annotations
-__doc__ = """disk-clean [--apply] [--only worktrees|cargo|caches] [--days 3] [--root DIR]... [--skip-if-free-over SIZE] [-v]
+__doc__ = """disk-clean [--apply] [--only worktrees|cargo|caches] [--days 3] [--root DIR]... [--skip-if-free-over SIZE]
+           [--low-under 100G] [--free-target 150G] [-v]
 
 Free disk space from regenerable things. Default is a dry run; --apply deletes.
 
@@ -35,6 +36,26 @@ caches     `mo purge --yes` (Mole: build folders in projects idle 7 days),
            Listed, never deleted: ~/.mtplx, simulators, ~/.t3/scratch.
            `mo clean` is not used: it hangs at its developer-tools step.
 
+low disk   Runs last, only when free space on the home disk is under --low-under (100G)
+           after the passes above. The rules above go by age, so a day that makes forty
+           worktrees is never touched (255 GB on 2026-11-24, home#367). This pass ignores age:
+           in every kept agent worktree no process is running in, it deletes folders that
+           can be rebuilt, biggest first, until free space reaches --free-target (150G).
+           Rebuildable: node_modules, Pods, DerivedData, .gradle, .cxx, .expo, .next, .turbo,
+           build under an android or ios folder, Rust target/, an Xcode Build folder; also
+           inside .verification/ and checkouts nested there. Only when git ignores the folder
+           and it holds no tracked file. Trees idle 2 hours or more go first. Free space is
+           read from the disk after each delete (cloned files free less than their size);
+           three deletes in a row that free nothing end the pass. Right before each delete
+           it reads the running processes again: a tree a process has entered, or a folder
+           with a file held open, stays. node_modules needs a package.json beside it and
+           Pods a Podfile. A folder holding a repository or worktree, and big ignored
+           folders it does not recognise, are listed as "left", never deleted.
+           Never touched: files in git's index or last commit (names compared without case,
+           as the Mac's disk does), untracked files git does not ignore, proof files, trash.
+           Lost with a dependency folder: anything edited by hand inside it. Keep such a
+           change in a tracked patch file.
+
 --skip-if-free-over SIZE  Print one line and exit 0 without scanning or removing anything when
            free space on the home disk is above SIZE (for example 100G; units K, M, G, T
            are decimal, like the GB figures above). Used by the scheduled run so a machine with
@@ -61,6 +82,7 @@ import subprocess
 import sys
 import tarfile
 import time
+import unicodedata
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -90,6 +112,13 @@ MOLE_TIMEOUT = 300
 PROOF_TARGET_DAYS = 1
 CACHE_DAYS = 7
 TRASH_DAYS = 3
+# Low-disk pass: what counts as rebuildable by name (build, target and Xcode Build folders are matched
+# by what surrounds them), how recent a tree goes last, and how many fruitless deletes end the pass.
+REBUILD_NAMES = {"node_modules", "Pods", "DerivedData", ".gradle", ".cxx", ".expo", ".next", ".turbo"}
+LOW_RECENT_H = 2
+LOW_STALL = 3
+LOW_UNKNOWN_MIN = 1e9
+LOW_MIN = float(os.environ.get("DISK_CLEAN_LOW_MIN_MB", "50")) * 1e6  # smaller folders are not worth a reinstall
 RUNTIME_DAYS = 14
 UV_ARCHIVE_DAYS = 14
 # Branches whose contents count as shipped, besides origin's default branch.
@@ -183,7 +212,15 @@ def process_cwds():
                     pass
         return cwds
     code, out, _ = sh(["lsof", "-nP", "-w", "-d", "cwd", "-Fn"], timeout=90)
-    return {line[1:] for line in out.splitlines() if line.startswith("n/")}
+    cwds = {line[1:] for line in out.splitlines() if line.startswith("n/")}
+    # A timed-out or empty read (a Mac at load 600 on 2026-11-24) is "unknown", never "nothing runs":
+    # None makes in_use() answer yes for every path.
+    return cwds if code != 99 and cwds else None
+
+
+def in_use(path, paths):
+    """True when a process runs in or holds something under path, or when that could not be read."""
+    return paths is None or any(o == str(path) or o.startswith(str(path) + "/") for o in paths)
 
 
 # ---------- worktrees ----------
@@ -353,8 +390,9 @@ def inspect_tree(wt, common, threads, cwds, days):
     row = {"path": path, "common": common, "branch": branch or "(detached)", "size": 0}
     if wt.get("locked"):
         return {**row, "action": "keep", "why": "locked"}
-    if any(c == str(path) or c.startswith(str(path) + "/") for c in cwds):
-        return {**row, "action": "keep", "why": "a process is running in it"}
+    if in_use(path, cwds):
+        why = "a process is running in it" if cwds is not None else "running processes could not be read"
+        return {**row, "action": "keep", "why": why}
     code, status, _ = git(path, "status", "--porcelain=v1", "-z", "--untracked-files=all")
     if code != 0:
         return {**row, "action": "keep", "why": "git status failed"}
@@ -468,7 +506,7 @@ def proof_targets(tree, cwds):
         d = Path(dirpath)
         if (d / "CACHEDIR.TAG").exists() or (d / ".rustc_info.json").exists():
             dirnames[:] = []
-            if any(c == str(d) or c.startswith(str(d) + "/") for c in cwds):
+            if in_use(d, cwds):
                 continue
             if (idle := target_idle(d)) >= PROOF_TARGET_DAYS:
                 rows.append({"action": "scratch", "path": d, "size": 0,
@@ -505,7 +543,7 @@ def worktrees(roots, days, apply, verbose):
     with ThreadPoolExecutor(WORKERS) as pool:
         rows += pool.map(lambda a: inspect_tree(a[0], a[1], threads, cwds, days), todo)
     # A proof folder can hold a checkout or worktree of its own: leave it while anything inside runs or stays.
-    busy = list(cwds) + [str(r["path"]) for r in rows if r["action"] in ("keep", "watch")]
+    busy = list(cwds or []) + [str(r["path"]) for r in rows if r["action"] in ("keep", "watch")]
     for r in list(rows):
         s = r.pop("scratch", None)
         if s and not any(b == str(s["path"]) or b.startswith(str(s["path"]) + "/") for b in busy):
@@ -561,7 +599,216 @@ def worktrees(roots, days, apply, verbose):
             continue
         size = gb(r["size"]) if r["size"] else ""
         print(f"  {r['action']:<7} {size:>8}  {short(r['path'])}  {r.get('branch', '')}  ({r['why']})")
-    return sum(r["size"] for r in removed + scratch), failed, {str(r["path"]) for r in removed + scratch}
+    kept = {"rows": rows, "all": seen, "cwds": cwds}
+    return sum(r["size"] for r in removed + scratch), failed, {str(r["path"]) for r in removed + scratch}, kept
+
+
+# ---------- low disk ----------
+
+LOW_FREED = 0  # listed bytes this run's low-disk pass has deleted; only the test's fake reading uses it
+
+
+def free_bytes():
+    """Free space on the home disk. DISK_CLEAN_FAKE_FREE (bytes) replaces the reading in tests: that
+    number plus DISK_CLEAN_FAKE_GAIN (default 1) times what the low-disk pass has deleted so far, so a
+    test can make deletes free less than their listed size, as cloned files do."""
+    fake = os.environ.get("DISK_CLEAN_FAKE_FREE")
+    if not fake:
+        return shutil.disk_usage(HOME).free
+    return float(fake) + LOW_FREED * float(os.environ.get("DISK_CLEAN_FAKE_GAIN", "1"))
+
+
+def open_paths():
+    """Every path a process has open or runs in, read just before a delete: the worktree pass looked
+    minutes ago, and a build can hold files in a tree while its working directory is elsewhere."""
+    proc, paths = Path("/proc"), set()
+    if proc.is_dir():
+        for p in proc.iterdir():
+            if p.name.isdigit():
+                for link in [p / "cwd", *((p / "fd").glob("*") if os.access(p / "fd", os.R_OK) else [])]:
+                    try:
+                        paths.add(os.readlink(link))
+                    except OSError:
+                        pass
+        return paths
+    code, out, _ = sh(["lsof", "-nP", "-w", "-Fn"], timeout=120)
+    paths = {line[1:] for line in out.splitlines() if line.startswith("n/")}
+    return paths if code != 99 and paths else None
+
+
+def rebuilds_from(p):
+    """What shows a folder can be rebuilt: the file its package manager installs from, beside it."""
+    need = {"node_modules": ("package.json",), "Pods": ("Podfile",)}.get(p.name)
+    return need is None or any((p.parent / n).exists() for n in need)
+
+
+def same_name(path):
+    return unicodedata.normalize("NFC", path).casefold()
+
+
+def holds_checkout(p, others):
+    """True when a repository (with a .git, or bare) or a registered worktree sits inside: its work
+    is not build output. A failed search counts as yes."""
+    if any(str(o).startswith(str(p) + "/") for o in others):
+        return True
+    code, out, _ = sh(["find", str(p), "(", "-name", ".git", "-o", "-type", "d", "-name", "objects", ")", "-print"],
+                      timeout=600)
+    if code != 0:
+        return True
+    for hit in out.splitlines():
+        h = Path(hit)
+        if h.name == ".git" or ((h.parent / "HEAD").is_file() and (h.parent / "refs").is_dir()):
+            return True
+    return False
+
+
+def rebuildable(root, others):
+    """(git root, folder) for each dependency or build folder under one worktree.
+
+    A checkout nested inside (a clone under .verification/) is checked against its own git, and a
+    registered worktree nested inside is left to its own turn.
+    """
+    found = []
+
+    def walk(top, gitroot):
+        for dirpath, dirnames, _ in os.walk(top):
+            d, keep = Path(dirpath), []
+            for n in dirnames:
+                p = d / n
+                if n == ".git" or p in others or p.is_symlink():
+                    continue
+                parts = set(p.relative_to(gitroot).parts[:-1])
+                if not rebuilds_from(p):
+                    keep.append(n)
+                elif (n in REBUILD_NAMES
+                        or (n == "build" and parts & {"android", "ios"})
+                        or (n == "target" and ((p / "CACHEDIR.TAG").exists() or (p / ".rustc_info.json").exists()))
+                        or (n == "Build" and ((p / "Intermediates.noindex").exists() or (p / "Products").exists()))):
+                    found.append((gitroot, p))
+                elif (p / ".git").exists():
+                    walk(p, p)
+                else:
+                    keep.append(n)
+            dirnames[:] = keep
+
+    walk(root, root)
+    return found
+
+
+def ignored_only(gitroot, paths):
+    """The paths git ignores that hold no tracked file. Anything git does not vouch for is dropped."""
+    rels = {str(p.relative_to(gitroot)): p for p in paths}
+    try:
+        p = subprocess.run(["git", "-C", str(gitroot), "check-ignore", "-z", "--stdin"], env=ENV, text=True,
+                           input="".join(r + "\0" for r in rels), capture_output=True, timeout=120)
+    except (OSError, subprocess.TimeoutExpired):
+        return []
+    ignored = [r for r in p.stdout.split("\0") if r in rels]
+    # Tracked means in the index or in the last commit (a file dropped from the index with
+    # `git rm --cached` still has unpublished edits on disk). Every tracked name is read once and
+    # compared the way a Mac's disk compares names, case and Unicode form folded: `pkg/` on disk is
+    # the folder git knows as `PKG/`, and a decomposed `café` is git's composed `café`.
+    tracked = set()
+    for cmd in (["ls-files", "-z"], ["ls-tree", "-r", "-z", "--name-only", "HEAD"]):
+        code, out, err = git(gitroot, *cmd, timeout=120)
+        if code != 0 and "HEAD" not in err:  # a repository with no commit yet has no HEAD
+            return []
+        for f in out.split("\0") if code == 0 else []:
+            tracked.update(same_name(str(a)) for a in Path(f).parents)
+    return [rels[r] for r in ignored if same_name(r) not in tracked]
+
+
+def unrecognised(tree, taken):
+    """Ignored folders over 1 GB that the pass does not know how to rebuild: (path, size left after
+    the folders it does take). Listed for a person, never deleted."""
+    code, out, _ = git(tree, "ls-files", "-z", "--others", "--ignored", "--exclude-standard", "--directory",
+                       timeout=120)
+    rows, mine = [], {str(t): s for t, s in taken.items() if str(t).startswith(str(tree) + "/")}
+    for rel in out.split("\0") if code == 0 else []:
+        p = str(tree / rel.rstrip("/"))
+        if not rel.endswith("/") or p in mine or any(p.startswith(t + "/") for t in mine):
+            continue
+        left = du(p, timeout=ESTIMATE_TIMEOUT) - sum(s for t, s in mine.items() if t.startswith(p + "/"))
+        if left >= LOW_UNKNOWN_MIN:
+            rows.append((Path(p), left))
+    return rows
+
+
+def low_disk(kept, apply, verbose, low_under, target, planned):
+    """Below low_under free, delete rebuildable folders from kept agent worktrees, biggest first,
+    until free space reaches the target. Age does not protect a folder; a running process does."""
+    global LOW_FREED
+    free = free_bytes() + (0 if apply else planned)
+    if free >= low_under:
+        print(f"low disk: {gb(free)} free{'' if apply else ' after the passes above'}, "
+              f"not under {gb(low_under)}; nothing removed")
+        return 0, 0
+    trees = [r for r in kept["rows"] if r["action"] in ("keep", "watch") and "idle" in r and r["path"].is_dir()
+             and not in_use(r["path"], kept["cwds"])]
+
+    def scan(r):
+        groups = {}
+        for gitroot, p in rebuildable(r["path"], kept["all"] - {r["path"]}):
+            groups.setdefault(gitroot, []).append(p)
+        return [(r, p) for gitroot, paths in groups.items() for p in ignored_only(gitroot, paths)]
+
+    with ThreadPoolExecutor(WORKERS) as pool:
+        cands = [c for found in pool.map(scan, trees) for c in found]
+        sizes = list(pool.map(lambda c: du(c[1]), cands))
+        big = [(r, p, s) for (r, p), s in zip(cands, sizes) if s >= LOW_MIN]
+        nested = list(pool.map(lambda c: holds_checkout(c[1], kept["all"]), big))
+    rows = sorted(({"tree": r, "path": p, "size": s, "recent": r["idle"] * 24 < LOW_RECENT_H}
+                   for (r, p, s), inside in zip(big, nested) if not inside), key=lambda c: (c["recent"], -c["size"]))
+    held = [(p, s) for (r, p, s), inside in zip(big, nested) if inside]
+
+    listed, failed, spare, stop, stalled = 0, 0, [], "", 0
+    print(f"low disk: {gb(free)} free, under {gb(low_under)}; freeing to {gb(target)} "
+          f"from {len(trees)} worktrees no process is running in")
+    for c in rows:
+        now = free_bytes() if apply else free + listed
+        if not stop and now >= target:
+            stop = f"free space {'is' if apply else 'would be about'} {gb(now)}, at the target"
+        # Cloned files and disk snapshots make a delete free less than its listed size. Keep going
+        # while free space rises at all; stop when three deletes in a row gained nothing, so a disk
+        # whose free space cannot rise does not lose every tree's dependencies in one run.
+        if not stop and stalled >= LOW_STALL:
+            stop = f"the last {LOW_STALL} deletes freed nothing; free space is {gb(now)}"
+        if stop:
+            spare.append(c)
+            continue
+        why = f"tree idle {c['tree']['idle'] * 24:.0f}h" + (", used in the last 2h" if c["recent"] else "")
+        action = "remove"
+        if apply:
+            # Look again right before deleting: a process may have started in the tree, or hold a
+            # file in this folder open from elsewhere, since the scan.
+            busy = open_paths()
+            if in_use(c["tree"]["path"], process_cwds()) or in_use(c["path"], busy):
+                print(f"  {'keep':<7} {gb(c['size']):>8}  {short(c['path'])}  "
+                      f"({'a process started using it' if busy is not None else 'running processes could not be read'})")
+                continue
+            try:
+                shutil.rmtree(c["path"])
+                LOW_FREED += c["size"]
+                stalled = stalled + 1 if free_bytes() - now < c["size"] / 100 else 0
+            except OSError as e:
+                failed, action, why = failed + 1, "FAILED", f"{why}; {e}"
+        listed += c["size"] if action == "remove" else 0
+        print(f"  {action:<7} {gb(c['size']):>8}  {short(c['path'])}  ({why})")
+    if spare:
+        print(f"  stop: {stop}; {len(spare)} more folders ({gb(sum(c['size'] for c in spare))}) left in place")
+        for c in spare if verbose else []:
+            print(f"  {'spare':<7} {gb(c['size']):>8}  {short(c['path'])}")
+    for p, size in sorted(held, key=lambda h: -h[1]):
+        print(f"  {'left':<7} {gb(size):>8}  {short(p)}  (holds a repository or worktree, left alone)")
+    taken = {c["path"]: c["size"] for c in rows}
+    with ThreadPoolExecutor(WORKERS) as pool:
+        unknown = [u for found in pool.map(lambda r: unrecognised(r["path"], taken), trees) for u in found]
+    for p, left in sorted(unknown, key=lambda u: -u[1]):
+        print(f"  {'left':<7} {gb(left):>8}  {short(p)}  (not recognised, left alone)")
+    end = free_bytes() if apply else free + listed
+    print(f"low disk: free space {gb(free)} -> {gb(end)}" + ("" if apply else " (estimate from listed sizes;"
+          " cloned files free less)") + ("" if end >= target else f"; still under {gb(target)}"))
+    return listed, failed
 
 
 # ---------- cargo ----------
@@ -589,9 +836,11 @@ def cargo_scan(roots):
 def rust_builds():
     """(cwd, args) of every running cargo or rustc process: a target is in use when it lives under
     one's cwd or the process names it (rustc passes --out-dir <target>/debug/deps)."""
-    code, out, _ = sh(["ps", "-axo", "pid=,args="], timeout=10)
+    code, out, _ = sh(["ps", "-axo", "pid=,args="], timeout=60)
+    if code != 0 or not out:
+        return None  # unknown, never "no build is running"
     procs = {}
-    for line in out.splitlines() if code == 0 else []:
+    for line in out.splitlines():
         pid, _, args = line.strip().partition(" ")
         head = os.path.basename(args.split(" ", 1)[0])
         if head in ("cargo", "rustc", "clippy-driver", "rustdoc") or head.startswith("cargo-"):
@@ -599,6 +848,8 @@ def rust_builds():
     if not procs:
         return []
     code, out, _ = sh(["lsof", "-nP", "-w", "-a", "-p", ",".join(procs), "-d", "cwd", "-Fpn"], timeout=60)
+    if code == 99 or not out:
+        return None
     cwds, pid = {}, None
     for line in out.splitlines():
         if line.startswith("p"):
@@ -609,6 +860,8 @@ def rust_builds():
 
 
 def target_in_use(t, builds):
+    if builds is None:
+        return True
     ws = os.path.realpath(t.parent)  # lsof prints resolved paths (/private/var/..., not /var/...)
     return any((c and (c == ws or c.startswith(ws + "/"))) or str(t) in a or ws + "/target" in a
                for c, a in builds)
@@ -623,7 +876,7 @@ def cargo(scan, apply, skip_under):
         if idle >= CARGO_DAYS:
             rows.append(("remove", size, t, f"not built for {idle:.0f}d"))
         elif size > BIG_TARGET and idle * 24 >= BIG_TARGET_IDLE_H:
-            builds = rust_builds() if builds is None else builds
+            builds = rust_builds() if builds is None else builds  # None again when the read failed
             if target_in_use(t, builds):
                 rows.append(("keep", size, t, f"over {gb(BIG_TARGET)}, a cargo/rustc process is using it"))
             else:
@@ -906,6 +1159,7 @@ def prune_backups():
 
 def main(argv):
     apply, verbose, only, days, roots, skip_over = False, False, None, 3.0, [], None
+    low = {"--low-under": 100e9, "--free-target": 150e9}
     it = iter(argv)
     for a in it:
         if a in ("-h", "--help"):
@@ -926,6 +1180,12 @@ def main(argv):
                 skip_over = parse_size(next(it, ""))
             except ValueError:
                 print("disk-clean: --skip-if-free-over needs a size such as 100G", file=sys.stderr)
+                return 2
+        elif a in low:
+            try:
+                low[a] = parse_size(next(it, ""))
+            except ValueError:
+                print(f"disk-clean: {a} needs a size such as 100G", file=sys.stderr)
                 return 2
         else:
             print(f"disk-clean: bad argument {a!r} (see --help)", file=sys.stderr)
@@ -952,14 +1212,14 @@ def main(argv):
         print(f"disk-clean SKIPPED: {gb(start.free)} free, above the {gb(skip_over)} threshold; nothing scanned or removed")
         return 0
     print(f"disk-clean {'APPLY' if apply else 'DRY RUN'}: {gb(start.free)} free of {gb(start.total)}")
-    planned, failed, gone = 0, 0, set()
+    planned, failed, gone, kept = 0, 0, set(), None
     # The slow read-only scans run alongside the worktree pass, so a dry run stays under a minute.
     # Removals still happen in order: worktrees, then cargo, then caches.
     early = ThreadPoolExecutor(2)
     scan = early.submit(cargo_scan, roots) if only in (None, "cargo") else None
     sizes = early.submit(peter_decides_sizes) if only in (None, "caches") else None
     if only in (None, "worktrees"):
-        n, f, gone = worktrees(roots, days, apply, verbose)
+        n, f, gone, kept = worktrees(roots, days, apply, verbose)
         planned, failed = planned + n, failed + f
     if scan:
         n, f = cargo(scan.result(), apply, gone)
@@ -968,6 +1228,9 @@ def main(argv):
         n, f = caches(apply, frozenset(gone))
         planned, failed = planned + n, failed + f
         peter_decides(*sizes.result())
+    if kept:
+        n, f = low_disk(kept, apply, verbose, low["--low-under"], low["--free-target"], planned)
+        planned, failed = planned + n, failed + f
     early.shutdown()
     end = shutil.disk_usage(HOME)
     if apply:
