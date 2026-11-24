@@ -27,6 +27,7 @@ Kinds: **hook** (runs in the harness), **CI** (runs on the PR), **scheduled** (a
 | Define done first; never say verified without checking | `orchestrate` proof table and ready gate | prose | Judgment. A false "verified" is a postmortem trigger in the home ledger, so a miss gets a tool |
 | Contract before code; tier written on the ticket | `orchestrate` step 1; the Worker reads the tier from the ticket | prose | Judgment about content; a missing contract shows on the ticket |
 | Use what exists | `delegate` library field, `ci-balance-delegate` replay, `coordinator` draft review with `pr-status --reviewed` | eval, review | Reviewer identifies functionality already in libraries |
+| No feature flag, dev-only gate or second version unless the task asks for a flag | none | prose | Peter rejected a flag on 11-19, 11-21, 11-22 and 11-24 (home#324, home#367); a repo rule that asks for flags (wallet `AGENTS.md`) is changed in that repo |
 | Align before you build; go on picks only when told or unattended | `npm run eval` (`orchestrate` replay) | eval | Judgment; the eval scores needed against routine questions |
 | Report like a VP, in the `tldr` shape | `npm run eval` scores the shape | prose | Style; the eval catches drift in the skill, not in one reply |
 | State lives in the ledger | `chief-of-staff` reads every epic daily | scheduled | A missing event shows as a stale epic |
