@@ -11,8 +11,6 @@ Personal agent skills. One folder per skill at the repository root.
 - [delegate](delegate/SKILL.md): Delegate investigations, tickets and reviews with model and effort routing, self-contained briefs and stall checks.
 - [orchestrate](orchestrate/SKILL.md): Build without Peter steering: a contract (his decisions, acceptance checks, slices, defaulted questions) workers build, one reviewer reports findings that come with a failing command, and only PRs that pass the ready gate reach him. `evals/orchestrate/` replays real tasks to score it.
 - [overnight](overnight/SKILL.md): `/overnight <task>` before bed: Opus 5.5 high decides every open question itself, records each as a closed decision issue with a one-word undo, finishes the work, and leaves one summary on the Morning brief.
-- [skill-review](skill-review/SKILL.md): Weekly: turns filed findings into one scored change and merges it when the replay eval says it helps, and adds replay cases.
-- [skill-gardener](skill-gardener/SKILL.md): Every three days: cuts duplicated, stale and narrated lines from `global/AGENTS.md` and the skills in one PR with a words-before-and-after table, merged when the replay eval holds. `scripts/words` prints the table.
 - [effect-v4](effect-v4/SKILL.md): Effect v4 reference for writing, reviewing and testing Effect TypeScript code.
 - [clean-disk](clean-disk/SKILL.md): Daily on each machine, free disk space from merged or idle agent worktrees, stale Rust `target/` folders, build folders (through Mole), replaced simulator runtimes and oversized caches. `bin/disk-clean` holds the rules and backs up uncommitted changes first.
 - [harness-first](harness-first/SKILL.md): Land a baseline from a harness in the repo before any change meant to improve a number.
