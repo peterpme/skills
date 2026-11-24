@@ -45,7 +45,7 @@ On a program with several workers, keep your context for decisions: have a read-
    - **For a change to shared code:** list its blast radius: who imports it, which flows run through it, and which of those flows have no automated check today. Each unchecked flow gets a Verification check or an unverified proof row.
    - **Separate PRs:** give these their own PR and never mix them with behavior changes: sensitive packages (security, keys, money, auth), docs and agent instructions, and pure moves or renames. Keep each PR small enough to review in one sitting. For a mechanical change across many files, use or write a codemod (`ast-grep`, `jscodeshift`, a script) and name it in the PR. Each slice must pass CI and work on its own.
 5. **Out of scope.** What you will not touch, including tempting cleanups.
-6. **Open questions.** Only questions where the answer changes what gets built and neither the request, the repo nor history answers it. Most tasks have none, one or two. Each carries your default and why. For a feature, design or multi-PR request, ask them as one `grilling` round (at most three) and wait for Peter's answers, unless he said figure it out yourself or no one is there.
+6. **Open questions.** Only questions where the answer changes what gets built and neither the request, the repo nor history answers it. Most tasks have none, one or two. Each carries your default and why. Ask them in plain words, each with what you would do, and keep working on everything the answers do not change.
 
    Never ask Peter to pick between equivalent options. Decide routine choices (names, file locations, test layout, equivalent APIs) yourself, record them as decisions, and act on them.
 

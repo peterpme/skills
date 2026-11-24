@@ -28,8 +28,8 @@ Kinds: **hook** (runs in the harness), **CI** (runs on the PR), **scheduled** (a
 | Contract before code; tier written on the ticket | `orchestrate` step 1; the Worker reads the tier from the ticket | prose | Judgment about content; a missing contract shows on the ticket |
 | Use what exists | `delegate` library field, `ci-balance-delegate` replay, `coordinator` draft review with `pr-status --reviewed` | eval, review | Reviewer identifies functionality already in libraries |
 | No feature flag, dev-only gate or second version unless the task asks for a flag | none | prose | Peter rejected a flag on 11-19, 11-21, 11-22 and 11-24 (home#324, home#367); a repo rule that asks for flags (wallet `AGENTS.md`) is changed in that repo |
-| Align before you build; go on picks only when told or unattended | `npm run eval` (`orchestrate` replay) | eval | Judgment; the eval scores needed against routine questions |
-| Report like a VP, in the `tldr` shape | `npm run eval` scores the shape | prose | Style; the eval catches drift in the skill, not in one reply |
+| Ask only what only Peter knows, and keep working on the rest | `npm run eval` (`orchestrate` replay) | eval | Judgment; the eval scores needed against routine questions |
+| Lead with the answer, in the `tldr` shape | `npm run eval` scores the shape | prose | Style; the eval catches drift in the skill, not in one reply |
 | State lives in the ledger | `chief-of-staff` reads every epic daily | scheduled | A missing event shows as a stale epic |
 | Run or dry-run a command before handing it to Peter | none | prose | Judgment; Peter sees the failure at once |
 | Pull home before inspecting or changing it | none | prose | A stale clone fails at push |
