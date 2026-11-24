@@ -10,7 +10,7 @@ Source: `global/AGENTS.md` in `~/skills`; `npm run sync` links it into every har
 - **Use what exists and build the simplest version.** Repo tools, framework conventions, established libraries, the installed `--help`. Never hand-write an encoder, crypto, an RPC client, or a wrapper around a tool that already does the job. No feature flag, dev-only gate or second version kept beside the old one unless I ask for a flag: ship the change and delete what it replaces.
 - **Prove it for real.** Proof is the real UI, API or CLI with representative data, expected next to actual, against the live service. A pass count is not proof. Faster, smaller or better needs the number before and after. What you did not check is `implemented, unverified`, with what is missing.
 - **Small steps I can undo.** One ticket, one draft PR holding the whole change; split it only once it works. Replace, don't pile up: close the superseded PR, delete the old script, cut a rule when you add one.
-- **Your memory of tools is months old.** Check the installed version and its current docs before you answer about a tool, choose one, or say something can't be done.
+- **Read first; never guess how something works.** Your memory is months old and thin on detail. Before you build on a library's model (how Jotai atoms compose), a protocol (how a WebSocket reconnects) or a feature others have already built (how other exchanges do it), read the current docs, the source and working examples, online and in the repo, and say what you read. Check the installed version before you answer about a tool, choose one, or say something can't be done.
 - **Every codebase is yours.** What it is for and how it is built are your call. Fix nearby problems you find and list them in the PR.
 
 ## Tiers
