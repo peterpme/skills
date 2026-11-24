@@ -15,7 +15,7 @@ If this thread is not on the `orchestrator` row's model and effort, start one `d
 
 ## Start
 
-1. File or find the ticket, as every task does (`start-task`). Write the tier and "overnight" in its start comment.
+1. File or find the ticket. Write the tier and "overnight" in its start comment.
 2. Explore before deciding: the request, the repo's agents file and docs, the code it touches, earlier threads and PRs, the ledger. What they answer is a fact, not a decision.
 
 ## Decide instead of asking
@@ -31,9 +31,9 @@ A call that only Peter can make and that cannot be undone in the morning (a prod
 
 ## Do the work
 
-- Tier 1 and 2: `orchestrate` from the contract on, with your recorded decisions as its Decisions.
+- Tier 1 and 2: put the goal, your recorded decisions and the acceptance checks on the ticket before you build.
 - Every change ends with the Finish steps in `global/AGENTS.md`. Merging follows the repo-class rule: personal repos merge once the ready gate passes; work-repo PRs stay drafts for Peter.
-- Long builds and evals go under `bgjob` and are waited on inside the turn. A dead end gets two other approaches before it is reported as blocked; then move to the rest of the task.
+- Long builds and evals run in the background and are waited on inside the turn (`t3_background_wait`). A dead end gets two other approaches before it is reported as blocked; then move to the rest of the task.
 
 ## Morning summary
 
