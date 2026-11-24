@@ -37,8 +37,6 @@ jobs:
         run: tests/tool-guard/run
       - name: coordinator-guard cases
         run: tests/coordinator-guard/run
-      - name: perf-claim cases
-        run: tests/perf-claim/run
       - name: scheduled-models cases
         run: tests/scheduled-models/run
       - name: pr-dupes cases

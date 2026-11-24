@@ -61,7 +61,7 @@ Post the forgotten list in the pinned `Chief of staff` thread (the daily run is 
 
 ## Retargeted stacks
 
-An agent's draft PR whose base became the default branch since the last run (its parent merged) gets the orchestrate ready gate in this run: checks green, `pr-threads` empty, then `gh pr ready`. Until then it stays a draft and is never listed as needing Peter.
+An agent's draft PR whose base became the default branch since the last run (its parent merged) is marked ready in this run once its checks are green and `pr-threads` is empty (`gh pr ready`). Until then it stays a draft and is never listed as needing Peter.
 
 ## Trust tally
 

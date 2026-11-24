@@ -31,7 +31,7 @@ A call that only Peter can make and that cannot be undone in the morning (a prod
 
 ## Do the work
 
-- Tier 1 and 2: `orchestrate` from the contract on, with your recorded decisions as its Decisions.
+- Tier 1 and 2: put the goal, your recorded decisions and the acceptance checks on the ticket before you build.
 - Every change ends with the Finish steps in `global/AGENTS.md`. Merging follows the repo-class rule: personal repos merge once the ready gate passes; work-repo PRs stay drafts for Peter.
 - Long builds and evals run in the background and are waited on inside the turn (`t3_background_wait`). A dead end gets two other approaches before it is reported as blocked; then move to the rest of the task.
 

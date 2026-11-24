@@ -1,6 +1,6 @@
 ---
 name: delegate
-description: "Use whenever work goes to another agent or model (\"spin up sonnet\", \"get codex to review\", \"hand this off\"): picks the model, writes the brief, watches for stalls. For a whole feature, use orchestrate."
+description: "Use whenever work goes to another agent or model (\"spin up sonnet\", \"get codex to review\", \"hand this off\"): picks the model, writes the brief, watches for stalls."
 ---
 
 # Delegate

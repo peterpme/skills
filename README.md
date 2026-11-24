@@ -11,7 +11,6 @@ Personal agent skills. One folder per skill at the repository root.
 - [chief-of-staff](chief-of-staff/SKILL.md): Daily run that keeps every stream moving: applies the merge and 14-day rules, closes or parks stale work and writes its learnings, parks idle T3 threads (settle, or snooze when a PR is open), sends forgotten ones to the Chief of staff thread, archives finished workers, posts one brief with only the decisions no rule covers.
 - [coordinator](coordinator/SKILL.md): Decisions, status and small tasks in one permanent thread per folder. Larger tasks get visible threads in the repos they touch.
 - [delegate](delegate/SKILL.md): Delegate investigations, tickets and reviews with model and effort routing, self-contained briefs and stall checks.
-- [orchestrate](orchestrate/SKILL.md): Build without Peter steering: a contract (his decisions, acceptance checks, slices, defaulted questions) workers build, one reviewer reports findings that come with a failing command, and only PRs that pass the ready gate reach him. `evals/orchestrate/` replays real tasks to score it.
 - [overnight](overnight/SKILL.md): `/overnight <task>` before bed: Opus 5.5 high decides every open question itself, records each as a closed decision issue with a one-word undo, finishes the work, and leaves one summary on the Morning brief.
 - [effect-v4](effect-v4/SKILL.md): Effect v4 reference for writing, reviewing and testing Effect TypeScript code.
 - [clean-disk](clean-disk/SKILL.md): Daily on each machine, free disk space from merged or idle agent worktrees, stale Rust `target/` folders, build folders (through Mole), replaced simulator runtimes and oversized caches. `bin/disk-clean` holds the rules and backs up uncommitted changes first.
@@ -78,7 +77,6 @@ CI fails a PR that adds more lines to `global/AGENTS.md` than it removes, unless
 
 `bin/tool-guard` is the fourth hook sync registers (home#105), a `PreToolUse` hook on Bash, Write, Edit and NotebookEdit: a Bash deploy command (`railway up`, `vercel --prod`, `wrangler deploy`, `fly deploy` and similar, at a command position, so a commit message that names one is quiet) gets a permission `ask`, never a deny, unless that command carries its own tool's dry-run flag (`wrangler ... --dry-run`, `vercel ... --dry`; a flag on a different command in the same line does not count; home#227), and a command or file path under `/tmp` gets a warning that never blocks. `bin/scheduled-allow` leaves a deploy prompt unanswered, so a scheduled run cannot deploy. `tests/tool-guard/run` runs in CI.
 
-`bin/perf-claim <pr>` fails a PR that claims a speed, latency, memory or size gain without a before and after number. The `orchestrate` ready gate runs it. `tests/perf-claim/run` runs in CI.
 
 `bin/scheduled-models` lists the T3 scheduled tasks from the local T3 database and flags an enabled one on Fable, Grok or opencode, or a Worker off the `scheduled-worker` row of `global/models.tsv`; `bin/pr-dupes` lists open PRs that a newer PR says it supersedes. The chief of staff runs both daily (home#105). `tests/scheduled-models/run` and `tests/pr-dupes/run` run in CI.
 

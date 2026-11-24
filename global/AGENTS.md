@@ -58,15 +58,12 @@ Skills, read when the moment comes:
 |---|---|
 | I say grill me, or ask me first | `grilling` |
 | You are about to build on something you have not just read | `research` |
-| Several PRs, or coordinating other agents | `orchestrate` |
 | Handing work to another agent or model | `delegate` (models come from `~/skills/global/models.tsv`; "codex" is `gpt-6.2-sol`) |
 | A change meant to move a number (speed, size, flakiness) | `harness-first` |
 | A repo with an `llp/` folder | `llp-orient` |
 | Effect code | `effect-v4` |
 | Creating or changing a skill | `skill-creator` |
 | I ask for a ticket, a plan or a set of principles | deliver that and stop (`ticket` for issues) |
-
-In T3 Code, reach for its own tools before a script of yours: the question dialog for a decision that is mine, `request_secret` for a credential only I have, `watch_pull_request` to wait on checks or reviews, `t3_background_wait` for a background command, `schedule_task` for work that should run later, `device_open` for a simulator.
 
 Helper commands, each with `--help`: `pr-threads` (open review threads on a PR), `buildgate <cmd>` around heavy builds, `disk-clean`, `ledger-comment N FILE` (a comment on a `home` issue).
 
@@ -79,4 +76,5 @@ Tickets are for work that outlives the thread: several PRs, something for later,
 - For multi-step shell work, write a script in `.verification/<task>/` and run it: Claude Code stops to ask me about `rsync`, `cd` before `git`, `~` in an assignment and the like. Commands I paste run in my interactive shell, where `rm`, `cp` and `mv` prompt; run or dry-run a command yourself before handing it to me.
 - Simulators and emulators on my Macs come from `simpool` (`~/dotfiles/docs/tools/simpool.md`): never create, clone or boot one, or touch one not named `Agent …`. How to test an app, sign in to it and which device to use is in that repo's own skills.
 - Under 50 GB free, run `disk-clean --apply` and send the Chief of staff thread one line with the free GB before and after (`t3_thread_send`, `mode: "queue"`, `threadId: "mcp:launch:5e07fa5b4ba2dbb3d01a19297ecbb0404004dbb5a1c7d3a69e60e13d9f41a07e"`).
+- Until the team has a shared way to get test accounts, `bpx-login` gives my Backpack exchange login (email, password, current 2FA code; `bpx-login check` proves it works): sign in and trade with it, and ask before any withdrawal.
 - My home setup lives in `peterpme/home` at `~/Projects/home`: pull it and read the README and the matching doc before you change any of it, and update that doc. No secrets there.

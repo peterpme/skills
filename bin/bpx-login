@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# bpx-login email|password|code|check
+#
+# Peter's Backpack exchange login for agents (peter@backpack.app: a production account that is his
+# testing account; using it is allowed, withdrawals off the exchange are not).
+#
+#   email      print the sign-in email
+#   password   print the password. Never run this alone: pass it inline, so it reaches the device and
+#              not your transcript, for example  <device command> type "$(bpx-login password)"
+#              With argent, type {{secret:PETER_BPX_PASSWORD}} instead and skip this command.
+#   code       print the current six-digit authenticator code (a new one every 30 seconds)
+#   check      sign in against the live API with all three and print whether each step worked
+#
+# Reads ARGENT_SECRET_PETER_BPX_EMAIL, _PASSWORD and _TOTP (the authenticator's base32 seed) from the
+# environment or ~/.argent/secrets.env. Codes come from oathtool (brew install oath-toolkit).
+# Exit 0 ok, 1 a check step failed, 2 usage or a missing secret or tool.
+set -uo pipefail
+
+secret() {
+  local key="ARGENT_SECRET_PETER_BPX_$1"
+  local value="${!key:-}"
+  if [[ -z $value && -r $HOME/.argent/secrets.env ]]; then
+    value=$(grep -m1 "^$key=" "$HOME/.argent/secrets.env" | cut -d= -f2-)
+    value=${value#[\"\']}; value=${value%[\"\']}
+  fi
+  [[ -n $value ]] || { echo "bpx-login: $key is not set (see ~/.argent/secrets.env)" >&2; exit 2; }
+  printf '%s' "$value"
+}
+
+code() {
+  command -v oathtool >/dev/null || { echo "bpx-login: oathtool is not installed (brew install oath-toolkit)" >&2; exit 2; }
+  local seed; seed=$(secret TOTP) || exit 2
+  oathtool --totp -b "${seed//[[:space:]]/}"
+}
+
+case "${1:-}" in
+  email) secret EMAIL; echo ;;
+  password) secret PASSWORD; echo ;;
+  code) code ;;
+  check)
+    api=${BPX_API:-https://api.backpack.exchange}
+    email=$(secret EMAIL) || exit 2; password=$(secret PASSWORD) || exit 2
+    body=$(jq -nc --arg e "$email" --arg p "$password" '{email: $e, password: $p}')
+    res=$(curl -sS -m 30 -w '\n%{http_code}' -H 'content-type: application/json' -d "$body" "$api/wapi/v1/user/login/request")
+    status=${res##*$'\n'}; json=${res%$'\n'*}
+    echo "password step: HTTP $status"
+    [[ $status == 200 ]] || { echo "$json" | head -c 200; echo; exit 1; }
+    token=$(jq -r '.token // empty' <<<"$json")
+    echo "authenticator set up on the account: $(jq -r '.twoFactorVerified // .two_factor_verified // "unknown"' <<<"$json")"
+    body=$(jq -nc --arg t "$token" --arg o "$(code)" '{token: $t, otp: $o}')
+    status=$(curl -sS -m 30 -o /dev/null -w '%{http_code}' -H 'content-type: application/json' -d "$body" "$api/wapi/v1/user/login/confirm")
+    echo "code step: HTTP $status"
+    [[ $status == 200 ]] || exit 1
+    ;;
+  *) sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+esac
