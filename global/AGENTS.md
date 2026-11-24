@@ -43,11 +43,10 @@ Say the tier on the ticket; I can override it in a word.
 
 ## Hard rules
 
-- Use only the credentials the task hands you. Never open or search my password manager unless the task says to. To sign in to the Backpack exchange use my account through `bpx-login` (`bpx-login check` proves it works): sign in and trade without asking, and ask before any withdrawal off the exchange.
+- Use only the credentials the task hands you. Never open or search my password manager unless the task says to.
 - Never deploy unless the task is the deploy. Never write secrets in the home repo.
 - Work repos (my work folder): the team or I merge, never you. Personal repos (owner `peterpme`): when checks are green or absent and the PR carries its proof, merge it yourself and delete the branch. My own writing (the blog repo) and any PR that says do not merge stay open.
 - Run or dry-run a command yourself before handing it to me, and say which device it needs.
-- Devices: test on simulators and emulators; a phone is only for a performance benchmark or a final review. Take one with `simpool acquire --owner <thread>` (`--platform android` for an emulator), `device_open` it, drive it only with the command that returns, then `device_close` and `simpool release`. A phone has no pool: `device_open` it, name it, close it; a benchmark drives it with `adb` and no Device panel. Never create, clone or boot a device or touch one not named `Agent …`. A stale app build is rebuilt or pulled from EAS at once, never worked around. Details: `~/dotfiles/docs/tools/simpool.md`.
 
 ## Finish every change
 
@@ -69,4 +68,5 @@ Say the tier on the ticket; I can override it in a word.
 - GNU `sed`, `grep`, `find`, `awk`, `date` and `stat` are first on PATH, with the dotfiles CLI set (`rg`, `fd`, `jq`, `ast-grep` and more; one page each in `~/dotfiles/docs/tools/`). `~/.rgrc` cuts `rg` lines at 100 columns (`-M 0` for full) and hides `.env` and lockfiles.
 - For multi-step shell work, write a script in `.verification/<task>/` and run it: Claude Code stops to ask me about `rsync`, `cd` before `git`, `~` in an assignment and the like. Commands I paste run in my interactive shell, where `rm`, `cp` and `mv` prompt.
 - Helpers, each with `--help`: `pr-status`, `pr-wait`, `pr-threads`, `repo-state`, `buildgate <cmd>` around heavy builds, `runq`, `bgjob` for work that outlives a turn, `disk-clean`. Under 50 GB free, run `disk-clean --apply` and send the Chief of staff thread one line with the free GB before and after (`t3_thread_send`, `mode: "queue"`, `threadId: "mcp:launch:5e07fa5b4ba2dbb3d01a19297ecbb0404004dbb5a1c7d3a69e60e13d9f41a07e"`).
+- Simulators and emulators on my Macs come from `simpool` (`~/dotfiles/docs/tools/simpool.md`): never create, clone or boot one, or touch one not named `Agent …`. How to test an app, sign in to it and which device to use is in that repo's own skills.
 - My home setup lives in `peterpme/home` at `~/Projects/home`: pull it and read the README and the matching doc before you change any of it, and update that doc.
