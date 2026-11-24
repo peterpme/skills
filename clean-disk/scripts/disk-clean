@@ -211,7 +211,15 @@ def process_cwds():
                     pass
         return cwds
     code, out, _ = sh(["lsof", "-nP", "-w", "-d", "cwd", "-Fn"], timeout=90)
-    return {line[1:] for line in out.splitlines() if line.startswith("n/")}
+    cwds = {line[1:] for line in out.splitlines() if line.startswith("n/")}
+    # A timed-out or empty read (a Mac at load 600 on 2026-11-24) is "unknown", never "nothing runs":
+    # None makes in_use() answer yes for every path.
+    return cwds if code != 99 and cwds else None
+
+
+def in_use(path, paths):
+    """True when a process runs in or holds something under path, or when that could not be read."""
+    return paths is None or any(o == str(path) or o.startswith(str(path) + "/") for o in paths)
 
 
 # ---------- worktrees ----------
@@ -381,8 +389,9 @@ def inspect_tree(wt, common, threads, cwds, days):
     row = {"path": path, "common": common, "branch": branch or "(detached)", "size": 0}
     if wt.get("locked"):
         return {**row, "action": "keep", "why": "locked"}
-    if any(c == str(path) or c.startswith(str(path) + "/") for c in cwds):
-        return {**row, "action": "keep", "why": "a process is running in it"}
+    if in_use(path, cwds):
+        why = "a process is running in it" if cwds is not None else "running processes could not be read"
+        return {**row, "action": "keep", "why": why}
     code, status, _ = git(path, "status", "--porcelain=v1", "-z", "--untracked-files=all")
     if code != 0:
         return {**row, "action": "keep", "why": "git status failed"}
@@ -496,7 +505,7 @@ def proof_targets(tree, cwds):
         d = Path(dirpath)
         if (d / "CACHEDIR.TAG").exists() or (d / ".rustc_info.json").exists():
             dirnames[:] = []
-            if any(c == str(d) or c.startswith(str(d) + "/") for c in cwds):
+            if in_use(d, cwds):
                 continue
             if (idle := target_idle(d)) >= PROOF_TARGET_DAYS:
                 rows.append({"action": "scratch", "path": d, "size": 0,
@@ -533,7 +542,7 @@ def worktrees(roots, days, apply, verbose):
     with ThreadPoolExecutor(WORKERS) as pool:
         rows += pool.map(lambda a: inspect_tree(a[0], a[1], threads, cwds, days), todo)
     # A proof folder can hold a checkout or worktree of its own: leave it while anything inside runs or stays.
-    busy = list(cwds) + [str(r["path"]) for r in rows if r["action"] in ("keep", "watch")]
+    busy = list(cwds or []) + [str(r["path"]) for r in rows if r["action"] in ("keep", "watch")]
     for r in list(rows):
         s = r.pop("scratch", None)
         if s and not any(b == str(s["path"]) or b.startswith(str(s["path"]) + "/") for b in busy):
@@ -622,11 +631,8 @@ def open_paths():
                         pass
         return paths
     code, out, _ = sh(["lsof", "-nP", "-w", "-Fn"], timeout=120)
-    return {line[1:] for line in out.splitlines() if line.startswith("n/")}
-
-
-def in_use(path, paths):
-    return any(o == str(path) or o.startswith(str(path) + "/") for o in paths)
+    paths = {line[1:] for line in out.splitlines() if line.startswith("n/")}
+    return paths if code != 99 and paths else None
 
 
 def rebuilds_from(p):
@@ -763,7 +769,8 @@ def low_disk(kept, apply, verbose, low_under, target, planned):
             # file in this folder open from elsewhere, since the scan.
             busy = open_paths()
             if in_use(c["tree"]["path"], process_cwds()) or in_use(c["path"], busy):
-                print(f"  {'keep':<7} {gb(c['size']):>8}  {short(c['path'])}  (a process started using it)")
+                print(f"  {'keep':<7} {gb(c['size']):>8}  {short(c['path'])}  "
+                      f"({'a process started using it' if busy is not None else 'running processes could not be read'})")
                 continue
             try:
                 shutil.rmtree(c["path"])
@@ -815,9 +822,11 @@ def cargo_scan(roots):
 def rust_builds():
     """(cwd, args) of every running cargo or rustc process: a target is in use when it lives under
     one's cwd or the process names it (rustc passes --out-dir <target>/debug/deps)."""
-    code, out, _ = sh(["ps", "-axo", "pid=,args="], timeout=10)
+    code, out, _ = sh(["ps", "-axo", "pid=,args="], timeout=60)
+    if code != 0 or not out:
+        return None  # unknown, never "no build is running"
     procs = {}
-    for line in out.splitlines() if code == 0 else []:
+    for line in out.splitlines():
         pid, _, args = line.strip().partition(" ")
         head = os.path.basename(args.split(" ", 1)[0])
         if head in ("cargo", "rustc", "clippy-driver", "rustdoc") or head.startswith("cargo-"):
@@ -825,6 +834,8 @@ def rust_builds():
     if not procs:
         return []
     code, out, _ = sh(["lsof", "-nP", "-w", "-a", "-p", ",".join(procs), "-d", "cwd", "-Fpn"], timeout=60)
+    if code == 99:
+        return None
     cwds, pid = {}, None
     for line in out.splitlines():
         if line.startswith("p"):
@@ -835,6 +846,8 @@ def rust_builds():
 
 
 def target_in_use(t, builds):
+    if builds is None:
+        return True
     ws = os.path.realpath(t.parent)  # lsof prints resolved paths (/private/var/..., not /var/...)
     return any((c and (c == ws or c.startswith(ws + "/"))) or str(t) in a or ws + "/target" in a
                for c, a in builds)
@@ -849,7 +862,7 @@ def cargo(scan, apply, skip_under):
         if idle >= CARGO_DAYS:
             rows.append(("remove", size, t, f"not built for {idle:.0f}d"))
         elif size > BIG_TARGET and idle * 24 >= BIG_TARGET_IDLE_H:
-            builds = rust_builds() if builds is None else builds
+            builds = rust_builds() if builds is None else builds  # None again when the read failed
             if target_in_use(t, builds):
                 rows.append(("keep", size, t, f"over {gb(BIG_TARGET)}, a cargo/rustc process is using it"))
             else:
