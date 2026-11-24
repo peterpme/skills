@@ -82,6 +82,7 @@ import subprocess
 import sys
 import tarfile
 import time
+import unicodedata
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -641,12 +642,24 @@ def rebuilds_from(p):
     return need is None or any((p.parent / n).exists() for n in need)
 
 
+def same_name(path):
+    return unicodedata.normalize("NFC", path).casefold()
+
+
 def holds_checkout(p, others):
-    """True when a repository or a registered worktree sits inside: its work is not build output."""
+    """True when a repository (with a .git, or bare) or a registered worktree sits inside: its work
+    is not build output. A failed search counts as yes."""
     if any(str(o).startswith(str(p) + "/") for o in others):
         return True
-    code, out, _ = sh(["find", str(p), "-name", ".git", "-print", "-quit"], timeout=600)
-    return code != 0 or bool(out)
+    code, out, _ = sh(["find", str(p), "(", "-name", ".git", "-o", "-type", "d", "-name", "objects", ")", "-print"],
+                      timeout=600)
+    if code != 0:
+        return True
+    for hit in out.splitlines():
+        h = Path(hit)
+        if h.name == ".git" or ((h.parent / "HEAD").is_file() and (h.parent / "refs").is_dir()):
+            return True
+    return False
 
 
 def rebuildable(root, others):
@@ -693,15 +706,16 @@ def ignored_only(gitroot, paths):
     ignored = [r for r in p.stdout.split("\0") if r in rels]
     # Tracked means in the index or in the last commit (a file dropped from the index with
     # `git rm --cached` still has unpublished edits on disk). Every tracked name is read once and
-    # compared without regard to case: on a Mac `pkg/` on disk is the folder git knows as `PKG/`.
+    # compared the way a Mac's disk compares names, case and Unicode form folded: `pkg/` on disk is
+    # the folder git knows as `PKG/`, and a decomposed `café` is git's composed `café`.
     tracked = set()
     for cmd in (["ls-files", "-z"], ["ls-tree", "-r", "-z", "--name-only", "HEAD"]):
         code, out, err = git(gitroot, *cmd, timeout=120)
         if code != 0 and "HEAD" not in err:  # a repository with no commit yet has no HEAD
             return []
         for f in out.split("\0") if code == 0 else []:
-            tracked.update(str(a).lower() for a in Path(f).parents)
-    return [rels[r] for r in ignored if r.lower() not in tracked]
+            tracked.update(same_name(str(a)) for a in Path(f).parents)
+    return [rels[r] for r in ignored if same_name(r) not in tracked]
 
 
 def unrecognised(tree, taken):
@@ -834,7 +848,7 @@ def rust_builds():
     if not procs:
         return []
     code, out, _ = sh(["lsof", "-nP", "-w", "-a", "-p", ",".join(procs), "-d", "cwd", "-Fpn"], timeout=60)
-    if code == 99:
+    if code == 99 or not out:
         return None
     cwds, pid = {}, None
     for line in out.splitlines():
